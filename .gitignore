@@ -1,0 +1,11 @@
+# Node
+node_modules/
+npm-debug.log*
+
+# Laravel
+/vendor/
+.env
+
+# OS
+.DS_Store
+Thumbs.db
