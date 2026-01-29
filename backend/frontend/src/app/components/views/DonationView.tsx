@@ -12,23 +12,20 @@ import {
   Phone,
   CheckCircle2,
   Lock,
-  ChevronLeft
+  ChevronLeft,
+  Gift,
+  Award
 } from 'lucide-react';
 import { Footer } from '../Footer';
 
-import MariaSantosBG from '../../../assets/MariaSantosBG.jpg';
-import AnneLimBG from '../../../assets/AnneLimBG.jpg';
-import MiguelCruzBG from '../../../assets/MiguelCruzBG.jpg';
-
 export function DonationsView() {
   const [showForm, setShowForm] = useState(false);
+  const [activeTab, setActiveTab] = useState<'gift' | 'needs'>('gift');
   
-  // States for togglable selections
   const [selectedAmount, setSelectedAmount] = useState<string | null>(null);
   const [selectedFreq, setSelectedFreq] = useState<string | null>(null);
   const [selectedDesignation, setSelectedDesignation] = useState<string | null>(null);
   const [selectedPayment, setSelectedPayment] = useState<string | null>(null);
-  const [activeAction, setActiveAction] = useState<string | null>(null);
 
   const handleToggle = (current: string | null, clicked: string, setter: (val: string | null) => void) => {
     setter(current === clicked ? null : clicked);
@@ -48,6 +45,7 @@ export function DonationsView() {
                 <p className="text-gray-500">Thank you for supporting ADDU. Your generosity makes a lasting difference.</p>
               </div>
 
+              {/* Form Sections */}
               <div className="space-y-6">
                 <h3 className="text-xl font-bold flex items-center gap-3"><span className="w-8 h-8 rounded-full bg-[#003087] text-white flex items-center justify-center text-sm">1</span>Select Your Gift Amount</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -64,14 +62,6 @@ export function DonationsView() {
                   {['One-Time', 'Monthly', 'Annual'].map((freq) => (
                     <button key={freq} onClick={() => handleToggle(selectedFreq, freq, setSelectedFreq)} className={`px-8 py-3 rounded-xl border-2 font-bold transition-all ${selectedFreq === freq ? 'bg-[#003087] border-[#003087] text-white' : 'bg-white border-gray-200 text-gray-600'}`}>{freq}</button>
                   ))}
-                </div>
-                <div className="bg-blue-50/50 p-6 rounded-3xl space-y-4">
-                  <p className="text-sm font-bold text-[#003087]">Already have a recurring gift?</p>
-                  <p className="text-sm text-gray-500">Manage or cancel your existing recurring donations</p>
-                  <div className="flex gap-6">
-                    <button onClick={() => handleToggle(activeAction, 'manage', setActiveAction)} className={`font-bold text-sm underline ${activeAction === 'manage' ? 'text-[#003087]' : 'text-gray-400'}`}>Manage</button>
-                    <button onClick={() => handleToggle(activeAction, 'cancel', setActiveAction)} className={`font-bold text-sm underline ${activeAction === 'cancel' ? 'text-red-600' : 'text-gray-400'}`}>Cancel</button>
-                  </div>
                 </div>
               </div>
 
@@ -93,8 +83,6 @@ export function DonationsView() {
                   <input type="text" placeholder="First Name *" className="p-4 bg-gray-50 border border-gray-100 rounded-xl" />
                   <input type="text" placeholder="Last Name *" className="p-4 bg-gray-50 border border-gray-100 rounded-xl" />
                   <input type="email" placeholder="Email Address *" className="p-4 bg-gray-50 border border-gray-100 rounded-xl md:col-span-2" />
-                  <input type="text" placeholder="Phone Number" className="p-4 bg-gray-50 border border-gray-100 rounded-xl" />
-                  <input type="text" placeholder="Class Year (if applicable)" className="p-4 bg-gray-50 border border-gray-100 rounded-xl" />
                 </div>
               </div>
 
@@ -107,16 +95,19 @@ export function DonationsView() {
                     ))}
                   </div>
                   <input type="text" placeholder="Card Number *" className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl" />
-                  <div className="grid grid-cols-2 gap-4"><input type="text" placeholder="Expiry Date *" className="p-4 bg-gray-50 border border-gray-100 rounded-xl" /><input type="text" placeholder="CVV *" className="p-4 bg-gray-50 border border-gray-100 rounded-xl" /></div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <input type="text" placeholder="Expiry Date *" className="p-4 bg-gray-50 border border-gray-100 rounded-xl" />
+                    <input type="text" placeholder="CVV *" className="p-4 bg-gray-50 border border-gray-100 rounded-xl" />
+                  </div>
                 </div>
               </div>
 
               <div className="pt-10 border-t border-gray-100 space-y-6">
                 <button className="w-full py-5 bg-[#003087] text-white rounded-2xl font-bold text-xl shadow-xl">Complete My Gift</button>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-[11px] text-gray-400 font-bold uppercase text-center">
-                  <div className="flex items-center justify-center gap-2"><Lock className="w-3 h-3" /> Secure & Encrypted</div>
-                  <div>📧 Tax Receipt via Email</div>
-                  <div>💳 Fully Tax-Deductible</div>
+                <div className="grid grid-cols-3 gap-4 text-[11px] text-gray-400 font-bold uppercase text-center">
+                  <div className="flex items-center justify-center gap-2"><Lock className="w-3 h-3" /> Secure</div>
+                  <div>📧 Receipt via Email</div>
+                  <div>💳 Tax-Deductible</div>
                 </div>
               </div>
             </div>
@@ -134,125 +125,182 @@ export function DonationsView() {
         <div className="bg-[#003087] text-white py-24 px-8 text-center">
           <div className="max-w-4xl mx-auto space-y-6">
             <h1 className="text-5xl font-bold leading-tight">Supporting Excellence at ADDU</h1>
-            <p className="text-xl text-blue-100 leading-relaxed max-w-3xl mx-auto">Your generosity empowers students, advances research, and strengthens our Jesuit mission of service and excellence. Together, we're building a brighter future for the Philippines.</p>
-            <div className="pt-4 flex flex-col items-center gap-6">
+            <p className="text-xl text-blue-100 leading-relaxed max-w-3xl mx-auto">Your generosity empowers students, advances research, and strengthens our Jesuit mission of service and excellence.</p>
+            <div className="pt-4">
               <button onClick={() => setShowForm(true)} className="bg-orange-600 hover:bg-orange-500 text-white px-10 py-4 rounded-2xl font-bold text-lg transition-all shadow-lg shadow-black/20">Make a Gift Today</button>
-              <p className="text-sm font-bold uppercase tracking-[0.2em] text-blue-300">Why Give to ADDU?</p>
             </div>
           </div>
         </div>
 
-        {/* STATISTICS - Updated for border pop and spacing */}
-        <div className="max-w-7xl mx-auto px-8 pt-20 pb-10 text-center">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
-            {[["Raised This Year", "65.8M"], ["Active Donors", "4,250"], ["Scholarships Awarded", "1,200+"], ["Alumni Participation", "35%"]].map(([label, val], i) => (
-              <div 
-                key={i} 
-                className="space-y-2 border-2 border-blue-500 p-8 rounded-[32px] shadow-lg shadow-blue-100/50 hover:shadow-xl hover:shadow-blue-200 transition-all bg-white"
-              >
-                <p className="text-4xl font-bold text-[#003087]">₱{val}</p>
-                <p className="text-gray-400 text-[10px] font-bold uppercase tracking-wider">{label}</p>
-              </div>
-            ))}
+        {/* TAB NAVIGATION - Font size reduced to text-base */}
+        <div className="max-w-7xl mx-auto px-8 mt-16 border-b border-gray-200">
+          <div className="flex gap-12">
+            <button 
+              onClick={() => setActiveTab('gift')}
+              className={`pb-4 text-base font-bold transition-all border-b-4 ${activeTab === 'gift' ? 'border-[#003087] text-[#003087]' : 'border-transparent text-gray-400 hover:text-gray-600'}`}
+            >
+              Make a Gift
+            </button>
+            <button 
+              onClick={() => setActiveTab('needs')}
+              className={`pb-4 text-base font-bold transition-all border-b-4 ${activeTab === 'needs' ? 'border-[#003087] text-[#003087]' : 'border-transparent text-gray-400 hover:text-gray-600'}`}
+            >
+              Areas of Greatest Need
+            </button>
           </div>
         </div>
 
-        {/* AREAS OF NEED - Updated for centering and reduced spacing */}
-        <div className="bg-gray-50/50 py-16">
-          <div className="max-w-7xl mx-auto px-8 text-center">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">Areas of Greatest Need</h2>
-            <p className="text-gray-500 text-lg mb-16 max-w-3xl mx-auto">Every gift matters. Choose where your donation will have the most meaningful impact on the ADDU community and beyond.</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {[
-                { title: "Student Financial Aid", desc: "Ensure every deserving student can access an ADDU education regardless of financial circumstances.", stats: ["₱12.5M awarded annually", "450+ scholars supported"], icon: <GraduationCap /> },
-                { title: "Faculty Excellence", desc: "Attract and retain world-class educators who inspire the next generation of leaders.", stats: ["₱8M in faculty development", "180+ faculty enhanced"], icon: <Presentation /> },
-                { title: "Research & Innovation", desc: "Advance breakthrough research that addresses real-world challenges in our communities.", stats: ["₱6.2M in research grants", "45 active research projects"], icon: <Microscope /> },
-                { title: "Campus Infrastructure", desc: "Build state-of-the-art facilities that create optimal learning environments.", stats: ["₱28M in improvements", "5 facilities upgraded"], icon: <Building2 /> },
-                { title: "Academic Programs", desc: "Strengthen curricula and create new programs that prepare students for tomorrow.", stats: ["₱4.8M in program support", "12 programs enhanced"], icon: <BookOpen /> },
-                { title: "Global Engagement", desc: "Expand international partnerships and study abroad opportunities for students.", stats: ["₱3.5M in exchanges", "85 international experiences"], icon: <Globe /> }
-              ].map((area, i) => (
-                <div key={i} className="bg-white p-10 rounded-[32px] border border-gray-100 text-left flex flex-col">
-                  <div className="bg-blue-50 text-[#003087] w-14 h-14 rounded-2xl flex items-center justify-center mb-6">{area.icon}</div>
-                  <h3 className="text-2xl font-bold mb-4">{area.title}</h3>
-                  <p className="text-gray-500 mb-8 flex-1">{area.desc}</p>
-                  <div className="space-y-3 mb-10 pt-6 border-t">{area.stats.map((s, si) => (<div key={si} className="text-sm font-bold text-gray-700 flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-orange-500" />{s}</div>))}</div>
-                  <button onClick={() => setShowForm(true)} className="w-full py-4 rounded-xl border-2 border-[#003087] text-[#003087] font-bold text-sm">Support This Area</button>
+        {/* TAB CONTENT: MAKE A GIFT */}
+        {activeTab === 'gift' && (
+          <>
+            <div className="max-w-7xl mx-auto px-8 py-20">
+              <div className="flex flex-col sm:flex-row justify-center gap-8">
+                {[["Active Donors", "4,250"], ["Alumni Participation", "35%"]].map(([label, val], i) => (
+                  <div key={i} className="flex-1 max-w-sm space-y-2 border-2 border-blue-500 p-10 rounded-[32px] shadow-lg shadow-blue-100/50 hover:shadow-xl transition-all bg-white text-center">
+                    <p className="text-5xl font-extrabold text-[#003087]">{val}</p>
+                    <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">{label}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-[#003087] py-24 px-8">
+              <div className="max-w-7xl mx-auto">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
+                  <div className="lg:col-span-7 space-y-12">
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3 text-orange-400 font-bold uppercase tracking-widest text-sm">
+                        <Award className="w-5 h-5" /> Recognition Tiers
+                      </div>
+                      <h2 className="text-4xl font-bold text-white">Honoring Our Donors</h2>
+                      <p className="text-blue-200 text-lg">We honor our generous supporters who make our mission possible.</p>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {[{ name: "Founder's Circle", price: "₱1,000,000+", perks: ["Named endowment opportunities", "Campus naming rights"] }, { name: "President's Council", price: "₱500,000 - ₱999,999", perks: ["Invitation to exclusive events", "Quarterly impact updates"] }].map((tier, i) => (
+                        <div key={i} className="bg-white/5 p-8 rounded-[32px] border border-white/10 hover:bg-white/10 transition-all">
+                          <h3 className="text-xl font-bold text-white mb-1">{tier.name}</h3>
+                          <p className="text-orange-400 font-bold mb-6 text-sm">{tier.price}</p>
+                          <ul className="space-y-3">
+                            {tier.perks.map((p, pi) => (
+                              <li key={pi} className="text-[11px] text-blue-100 flex items-start gap-2 leading-relaxed">
+                                <CheckCircle2 className="w-3 h-3 text-orange-500 mt-0.5 shrink-0" /> {p}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="lg:col-span-5">
+                    <div className="bg-white rounded-[40px] p-10 h-full shadow-2xl">
+                      <div className="flex items-center gap-3 text-[#003087] font-bold uppercase tracking-widest text-sm mb-4"><Gift className="w-5 h-5" /> Giving Methods</div>
+                      <h3 className="text-3xl font-bold text-gray-900 mb-8">Ways to Give</h3>
+                      <div className="space-y-10">
+                        {[{ t: "Cash Gifts", d: "Immediate impact via credit card, GCash, or bank transfer." }, { t: "Planned Giving", d: "Create a legacy through bequests or trusts." }].map((way, i) => (
+                          <div key={i} className="group">
+                            <h4 className="text-lg font-bold text-gray-900 group-hover:text-[#003087] transition-colors">{way.t}</h4>
+                            <p className="text-gray-500 text-sm mb-3 leading-relaxed">{way.d}</p>
+                            <button onClick={() => setShowForm(true)} className="text-[#003087] text-sm font-bold flex items-center gap-2 group-hover:gap-4 transition-all">Give Now <ArrowRight className="w-4 h-4" /></button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              ))}
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* TAB CONTENT: AREAS OF NEED - All 6 sections integrated */}
+        {activeTab === 'needs' && (
+          <div className="bg-gray-50/50 py-16">
+            <div className="max-w-7xl mx-auto px-8 text-center">
+              <h2 className="text-4xl font-bold text-gray-900 mb-16">Areas of Greatest Need</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 text-left">
+                {[
+                  { 
+                    title: "Student Financial Aid", 
+                    desc: "Ensure every deserving student can access an ADDU education regardless of financial circumstances.", 
+                    stats: ["₱12.5M awarded annually", "450+ scholars supported"], 
+                    icon: <GraduationCap /> 
+                  },
+                  { 
+                    title: "Faculty Excellence", 
+                    desc: "Attract and retain world-class educators who inspire the next generation of leaders.", 
+                    stats: ["₱8M in faculty development", "180+ faculty enhanced"], 
+                    icon: <Presentation /> 
+                  },
+                  { 
+                    title: "Research & Innovation", 
+                    desc: "Advance breakthrough research that addresses real-world challenges in our communities.", 
+                    stats: ["₱6.2M in research grants", "45 active research projects"], 
+                    icon: <Microscope /> 
+                  },
+                  { 
+                    title: "Campus Infrastructure", 
+                    desc: "Build state-of-the-art facilities that create optimal learning environments.", 
+                    stats: ["₱28M in improvements", "5 facilities upgraded"], 
+                    icon: <Building2 /> 
+                  },
+                  { 
+                    title: "Academic Programs", 
+                    desc: "Strengthen curricula and create new programs that prepare students for tomorrow.", 
+                    stats: ["₱4.8M in program support", "12 programs enhanced"], 
+                    icon: <BookOpen /> 
+                  },
+                  { 
+                    title: "Global Engagement", 
+                    desc: "Expand international partnerships and study abroad opportunities for students.", 
+                    stats: ["₱3.5M in exchanges", "85 international experiences"], 
+                    icon: <Globe /> 
+                  }
+                ].map((area, i) => (
+                  <div key={i} className="bg-white p-10 rounded-[32px] border border-gray-100 flex flex-col shadow-sm">
+                    <div className="bg-blue-50 text-[#003087] w-14 h-14 rounded-2xl flex items-center justify-center mb-6">
+                      {area.icon}
+                    </div>
+                    <h3 className="text-2xl font-bold mb-4">{area.title}</h3>
+                    <p className="text-gray-500 mb-8 flex-1 leading-relaxed">{area.desc}</p>
+                    <div className="space-y-3 mb-10 pt-6 border-t border-gray-100">
+                      {area.stats.map((s, si) => (
+                        <div key={si} className="text-sm font-bold text-gray-700 flex items-center gap-2">
+                          <div className="w-1.5 h-1.5 rounded-full bg-orange-500" />
+                          {s}
+                        </div>
+                      ))}
+                    </div>
+                    <button 
+                      onClick={() => setShowForm(true)} 
+                      className="w-full py-4 rounded-xl border-2 border-[#003087] text-[#003087] font-bold text-sm hover:bg-[#003087] hover:text-white transition-all"
+                    >
+                      Support This Area
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
-        {/* STORIES */}
-        <div className="max-w-7xl mx-auto px-8 py-24 text-center">
-          <h2 className="text-4xl font-bold mb-16">Stories of Impact</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-            {[
-              { name: "Maria Clara Santos", sub: "Class of 2024 • Computer Science", quote: '"The scholarship changed my life. I went from wondering if I could finish my degree to graduating with honors and landing my dream job."', tag: "ADDU Excellence Scholarship", img: MariaSantosBG },
-              { name: "Roberto Miguel Cruz", sub: "Class of 2023 • Engineering", quote: '"Thanks to donor support, I conducted research that is now being used to improve water systems in Mindanao communities."', tag: "Research Grant Recipient", img: MiguelCruzBG },
-              { name: "Jennifer Anne Lim", sub: "Class of 2025 • Business Administration", quote: '"The global exchange program opened doors I never imagined. Now I\'m working with an international firm, bridging cultures."', tag: "Global Scholars Program", img: AnneLimBG }
-            ].map((story, i) => (
-              <div key={i} className="space-y-6">
-                <div className="w-32 h-32 rounded-full overflow-hidden mx-auto shadow-xl"><img src={story.img} className="w-full h-full object-cover" /></div>
-                <p className="italic text-gray-600">{story.quote}</p>
-                <div><h4 className="font-bold">{story.name}</h4><p className="text-xs text-gray-400">{story.sub}</p></div>
-                <span className="inline-block bg-orange-50 text-orange-600 text-[10px] font-bold px-4 py-1 rounded-full uppercase">{story.tag}</span>
+        {/* SHARED CONTACT FOOTER */}
+        <div className="max-w-7xl mx-auto px-8 py-24">
+          <div className="relative overflow-hidden flex flex-col gap-12 rounded-[48px] p-12 md:p-20 shadow-2xl bg-[#003087]">
+            <div className="relative z-10 text-center space-y-6">
+              <h2 className="text-4xl md:text-5xl font-bold text-white">Ready to Make an Impact?</h2>
+              <p className="text-blue-100 text-lg max-w-2xl mx-auto leading-relaxed">Your gift today will transform lives and strengthen our community for generations to come.</p>
+              <div className="pt-4">
+                <button onClick={() => setShowForm(true)} className="bg-orange-600 text-white px-12 py-5 rounded-2xl font-bold text-xl shadow-xl hover:bg-orange-500 transition-all transform hover:-translate-y-1">Give Now</button>
               </div>
-            ))}
-          </div>
-        </div>
-
-        {/* RECOGNITION */}
-        <div className="bg-[#003087] py-24 px-8 text-white">
-          <div className="max-w-7xl mx-auto text-center">
-            <h2 className="text-4xl font-bold mb-4">Donor Recognition</h2>
-            <p className="text-blue-200 mb-20">We honor our generous supporters who make our mission possible. Join our community of changemakers.</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-              {[
-                { name: "Founder's Circle", price: "₱1,000,000+", perks: ["Named endowment opportunities", "Private events with university leadership", "Campus building/room naming rights", "Lifetime recognition on Founder's Wall", "Annual impact reports and personal updates"] },
-                { name: "President's Council", price: "₱500,000 - ₱999,999", perks: ["Invitation to exclusive university events", "Recognition in annual donor report", "Personal thank you from the President", "Priority access to campus events", "Quarterly impact updates"] },
-                { name: "Loyola Society", price: "₱100,000 - ₱499,999", perks: ["Annual recognition event invitation", "Name in university publications", "Donor appreciation events", "Semi-annual impact reports", "Special ADDU memorabilia"] },
-                { name: "Blue & Gold Circle", price: "₱25,000 - ₱99,999", perks: ["Recognition in donor honor roll", "Annual impact summary", "University event invitations", "Tax receipt and thank you letter"] }
-              ].map((tier, i) => (
-                <div key={i} className="bg-white/5 p-8 rounded-[32px] text-left border border-white/10">
-                  <h3 className="text-xl font-bold mb-1">{tier.name}</h3><p className="text-orange-400 font-bold mb-8 text-sm">{tier.price}</p>
-                  <ul className="space-y-4">{tier.perks.map((p, pi) => (<li key={pi} className="text-xs text-blue-100 flex items-start gap-2"><CheckCircle2 className="w-3 h-3 text-orange-500 mt-0.5 shrink-0" />{p}</li>))}</ul>
-                </div>
-              ))}
             </div>
-          </div>
-        </div>
-
-        {/* WAYS TO GIVE */}
-        <div className="max-w-7xl mx-auto px-8 py-24 text-left">
-          <h2 className="text-4xl font-bold mb-16">Ways to Give</h2>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
-            {[
-              { t: "Cash Gifts", d: "Make an immediate impact with a one-time or recurring gift via credit card, debit card, or bank transfer.", b: "Give Now" },
-              { t: "Matching Gifts", d: "Double or triple your impact! Many employers match charitable donations made by their employees.", b: "Check Eligibility" },
-              { t: "Planned Giving", d: "Create a lasting legacy through bequests, trusts, or life insurance beneficiary designations.", b: "Learn More" },
-              { t: "Stock & Securities", d: "Donate appreciated stocks or securities and potentially receive tax benefits while avoiding capital gains.", b: "Transfer Stock" }
-            ].map((way, i) => (
-              <div key={i} className="space-y-4 flex flex-col">
-                <h4 className="text-xl font-bold">{way.t}</h4><p className="text-gray-500 text-sm flex-1">{way.d}</p>
-                <button onClick={() => setShowForm(true)} className="text-[#003087] font-bold text-sm flex items-center gap-2">{way.b} <ArrowRight className="w-4 h-4" /></button>
+            <div className="relative z-10 pt-12 border-t border-white/10 text-center">
+              <h3 className="text-2xl font-bold text-white mb-2">Questions About Giving?</h3>
+              <p className="text-blue-200/70 mb-8">Our Development team is here to help.</p>
+              <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
+                <a href="mailto:development@addu.edu.ph" className="flex items-center gap-3 px-8 py-4 rounded-xl border-2 border-white/10 text-white font-bold hover:bg-white hover:text-[#003087] transition-all"><Mail className="w-5 h-5" /> development@addu.edu.ph</a>
+                <a href="tel:+63822212411" className="flex items-center gap-3 px-8 py-4 rounded-xl border-2 border-white/10 text-white font-bold hover:bg-white hover:text-[#003087] transition-all"><Phone className="w-5 h-5" /> +63 (82) 221-2411</a>
               </div>
-            ))}
-          </div>
-        </div>
-
-        {/* FOOTER CTA */}
-        <div className="py-24 text-center bg-gray-50">
-          <h2 className="text-4xl font-bold mb-4">Ready to Make an Impact?</h2>
-          <p className="text-gray-500 mb-10">Your gift today will transform lives and strengthen our community for generations to come.</p>
-          <button onClick={() => setShowForm(true)} className="bg-[#003087] text-white px-12 py-5 rounded-2xl font-bold text-xl shadow-xl">Give Now</button>
-        </div>
-
-        <div className="py-20 text-center bg-white border-t">
-          <p className="text-xl font-bold mb-8">Questions About Giving?</p>
-          <div className="flex flex-col md:flex-row justify-center gap-10 text-gray-600 font-bold">
-            <div className="flex items-center gap-2"><Mail className="w-5 h-5 text-[#003087]" /> development@addu.edu.ph</div>
-            <div className="flex items-center gap-2"><Phone className="w-5 h-5 text-[#003087]" /> +63 (82) 221-2411</div>
+            </div>
           </div>
         </div>
       </main>

@@ -1,4 +1,4 @@
-import { Users, Calendar, Heart, Globe, MapPin, Clock, GraduationCap, TrendingUp } from 'lucide-react';
+import { Users, Calendar, Heart, Globe, MapPin, Clock, GraduationCap } from 'lucide-react';
 import { Footer } from '../Footer';
 
 // FIXED PATHS: Moving up 3 levels to reach src/assets
@@ -79,7 +79,9 @@ export function HomeView({ userRole, onNavigate }: HomeViewProps) {
 
   return (
     <div className="flex flex-col min-h-screen bg-[#F8FAFC]">
-      <div className="p-8 space-y-16 flex-1">
+      {/* Container with consistent vertical spacing */}
+      <div className="p-8 space-y-24 flex-1">
+        
         {/* Hero Section */}
         <section className="relative h-[520px] flex items-center justify-center rounded-[40px] overflow-hidden text-center text-white shadow-2xl">
           <div className="absolute inset-0 z-0" style={{ backgroundImage: `url(${adduBackground})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
@@ -116,39 +118,14 @@ export function HomeView({ userRole, onNavigate }: HomeViewProps) {
           </div>
         </section>
 
-        {/* Spotlights Section */}
-        <section>
+        {/* Spotlights Section - Increased bottom padding to accommodate for removed CTA */}
+        <section className="pb-12">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold text-[#003087] tracking-tight">Alumni Spotlights</h2>
             <p className="text-gray-500 mt-3 text-base font-medium">Inspiring stories of Ateneans making an impact</p>
           </div>
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-10">
             {spotlights.map((s, i) => <SpotlightCard key={i} {...s} />)}
-          </div>
-        </section>
-
-        {/* Global Network CTA */}
-        <section className="bg-[#0051C3] rounded-[32px] p-12 text-white relative overflow-hidden shadow-xl text-left">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 relative z-10">
-            <div>
-              <h2 className="text-3xl font-bold mb-6">Join Our Global Network</h2>
-              <p className="text-blue-50 mb-8 max-w-md">Connect with 50,000+ Ateneans worldwide. Access exclusive benefits and opportunities.</p>
-              <ul className="space-y-4 mb-10 text-white/90">
-                <li className="flex items-center gap-3 text-sm font-medium"><TrendingUp className="w-5 h-5 text-white" /> Career development and job board</li>
-                <li className="flex items-center gap-3 text-sm font-medium"><Users className="w-5 h-5 text-white" /> Networking events and chapters</li>
-                <li className="flex items-center gap-3 text-sm font-medium"><Calendar className="w-5 h-5 text-white" /> Exclusive alumni programs</li>
-              </ul>
-              <button onClick={() => onNavigate('profile')} className="px-8 py-3 bg-white text-[#003087] rounded-xl font-bold hover:bg-blue-50 transition-all shadow-md">Update Your Profile</button>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              {[{ icon: Globe, val: "75+", lbl: "Countries" }, { icon: Users, val: "15", lbl: "Chapters" }, { icon: Calendar, val: "100+", lbl: "Events/Year" }, { icon: Heart, val: "₱10M", lbl: "Scholarships" }].map((box, i) => (
-                <div key={i} className="bg-white/10 backdrop-blur-sm p-6 rounded-2xl border border-white/10 text-center">
-                  <box.icon className="w-6 h-6 mx-auto mb-3 opacity-80" />
-                  <div className="text-2xl font-bold mb-1">{box.val}</div>
-                  <div className="text-[10px] font-bold uppercase opacity-70 tracking-tighter">{box.lbl}</div>
-                </div>
-              ))}
-            </div>
           </div>
         </section>
       </div>
