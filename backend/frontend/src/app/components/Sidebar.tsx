@@ -11,6 +11,7 @@ import {
   LogOut,
   ClipboardList // Added this icon for the new view
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import ADDULogo from '../../assets/ADDULogo.jpg'; 
 
 interface SidebarProps {
@@ -19,6 +20,8 @@ interface SidebarProps {
 }
 
 export function Sidebar({ activeView, onNavigate }: SidebarProps) {
+  const navigate = useNavigate();
+  
   const menuItems = [
     { id: 'home', icon: Home, label: 'Home' },
     { id: 'news', icon: Newspaper, label: 'News & Updates' },
@@ -76,7 +79,10 @@ export function Sidebar({ activeView, onNavigate }: SidebarProps) {
           <Settings className="w-4 h-4" />
           <span>Settings</span>
         </button>
-        <button className="w-full flex items-center gap-3 px-4 py-2 text-gray-500 hover:text-red-600 rounded-lg text-sm transition-all text-left">
+        <button 
+          onClick={() => navigate('/')}
+          className="w-full flex items-center gap-3 px-4 py-2 text-gray-500 hover:text-red-600 rounded-lg text-sm transition-all text-left"
+        >
           <LogOut className="w-4 h-4" />
           <span>Sign Out</span>
         </button>
