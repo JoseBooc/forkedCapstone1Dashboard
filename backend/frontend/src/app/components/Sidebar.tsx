@@ -9,31 +9,59 @@ import {
   Heart, 
   Settings, 
   LogOut,
-  ClipboardList // Added this icon for the new view
+  ClipboardList, // Added this icon for the new view
+  UserCog
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import ADDULogo from '../../assets/ADDULogo.jpg'; 
 
 interface SidebarProps {
   activeView: string;
   onNavigate: (view: any) => void;
+  userRole: 'alumni' | 'admin';
 }
 
-export function Sidebar({ activeView, onNavigate }: SidebarProps) {
+export function Sidebar({ activeView, onNavigate, userRole }: SidebarProps) {
   const navigate = useNavigate();
+  const [userName, setUserName] = useState(localStorage.getItem('userName') || 'User');
   
-  const menuItems = [
+  // Listen for storage changes to update name in real-time
+  useEffect(() => {
+    const handleStorageChange = () => {
+      setUserName(localStorage.getItem('userName') || 'User');
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
+  
+  // Base menu items for all users
+  const baseMenuItems = [
     { id: 'home', icon: Home, label: 'Home' },
+    ...(userRole === 'admin' ? [{ id: 'users', icon: UserCog, label: 'User Management' }] : []),
     { id: 'news', icon: Newspaper, label: 'News & Updates' },
     { id: 'profile', icon: User, label: 'My Profile' },
     { id: 'directory', icon: Users, label: 'Alumni Directory' },
     { id: 'events', icon: Calendar, label: 'Engagement' },
     { id: 'surveys', icon: FileText, label: 'Tracer & Surveys' },
     { id: 'careers', icon: Briefcase, label: 'Career Opportunities' },
-    // 1. Added the new menu item here
     { id: 'internships', icon: ClipboardList, label: 'Hiring Requests' }, 
     { id: 'give', icon: Heart, label: 'Give Back' },
   ];
+  
+  // Admin-only menu items
+  const adminMenuItems = [
+    { id: 'analytics', icon: Settings, label: 'Analytics' },
+  ];
+  
+  // Combine menu items based on role
+  const menuItems = userRole === 'admin' 
+    ? [...baseMenuItems, ...adminMenuItems] 
+    : baseMenuItems;
 
   return (
     <aside className="w-64 bg-white h-screen fixed left-0 top-0 border-r border-gray-200 flex flex-col z-50 text-left">
@@ -69,10 +97,17 @@ export function Sidebar({ activeView, onNavigate }: SidebarProps) {
 
       <div className="p-4 border-t border-gray-100 space-y-1">
         <div className="flex items-center gap-3 px-4 py-3 mb-2 text-left">
-          <div className="w-10 h-10 bg-[#003087] rounded-full flex items-center justify-center text-white text-xs font-bold">JD</div>
+          <div className="w-10 h-10 bg-[#003087] rounded-full flex items-center justify-center text-white text-xs font-bold">
+            {(() => {
+              const nameParts = userName.split(' ').filter(n => n.length > 0);
+              if (nameParts.length === 0) return 'U';
+              if (nameParts.length === 1) return nameParts[0][0];
+              return nameParts[0][0] + nameParts[nameParts.length - 1][0];
+            })()}
+          </div>
           <div>
-            <p className="text-xs font-bold text-gray-900">Juan Dela Cruz</p>
-            <p className="text-[10px] text-gray-500 font-medium">Alumni</p>
+            <p className="text-xs font-bold text-gray-900">{userName}</p>
+            <p className="text-[10px] text-gray-500 font-medium capitalize">{userRole}</p>
           </div>
         </div>
         <button className="w-full flex items-center gap-3 px-4 py-2 text-gray-500 hover:text-gray-900 rounded-lg text-sm transition-all text-left">
@@ -80,7 +115,13 @@ export function Sidebar({ activeView, onNavigate }: SidebarProps) {
           <span>Settings</span>
         </button>
         <button 
-          onClick={() => navigate('/')}
+          onClick={() => {
+            // Clear user data from localStorage
+            localStorage.removeItem('userRole');
+            localStorage.removeItem('userName');
+            localStorage.removeItem('userEmail');
+            navigate('/');
+          }}
           className="w-full flex items-center gap-3 px-4 py-2 text-gray-500 hover:text-red-600 rounded-lg text-sm transition-all text-left"
         >
           <LogOut className="w-4 h-4" />

@@ -8,21 +8,68 @@ interface ProfileViewProps {
 
 export function ProfileView({ userRole }: ProfileViewProps) {
   const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(true);
   
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
-
   // Main State
   const [formData, setFormData] = useState({
-    firstName: "Juan",
-    lastName: "Dela Cruz",
-    email: "juan.delacruz@email.com",
-    phone: "+63 912 345 6789",
-    address: "123 Main Street, Davao City, Philippines",
-    jobTitle: "Software Engineer",
-    company: "Tech Corp"
+    firstName: "",
+    middleName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    telephone: "",
+    address: "",
+    civilStatus: "",
+    birthDate: "",
+    region: "",
+    province: "",
+    city: "",
+    course: "",
+    batchYear: "",
+    jobTitle: "",
+    company: ""
   });
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    fetchUserData();
+  }, []);
+
+  const fetchUserData = async () => {
+    try {
+      const userEmail = localStorage.getItem('userEmail');
+      if (!userEmail) {
+        console.error('No user email found');
+        return;
+      }
+
+      const response = await fetch(`http://localhost:8000/api/users/${encodeURIComponent(userEmail)}`);
+      const userData = await response.json();
+
+      setFormData({
+        firstName: userData.first_name || '',
+        middleName: userData.middle_name || '',
+        lastName: userData.last_name || '',
+        email: userData.email || '',
+        phone: userData.phone_number || '',
+        telephone: userData.telephone_number || '',
+        address: userData.current_address || '',
+        civilStatus: userData.civil_status || '',
+        birthDate: userData.birth_date || '',
+        region: userData.region || '',
+        province: userData.province || '',
+        city: userData.city || '',
+        course: userData.course || '',
+        batchYear: userData.batch_year || '',
+        jobTitle: '',
+        company: ''
+      });
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+      setLoading(false);
+    }
+  };
 
   // Temporary state to allow "Cancel" functionality
   const [tempData, setTempData] = useState(formData);
@@ -36,14 +83,65 @@ export function ProfileView({ userRole }: ProfileViewProps) {
     { id: 2, role: "Software Engineer", company: "Startup Inc.", period: "2015 - 2020" }
   ]);
 
+  // Generate years array for batch year dropdown
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: currentYear - 1949 }, (_, i) => currentYear - i);
+
   const handleEdit = () => {
     setTempData(formData); // Store current data before editing
     setIsEditing(true);
   };
 
-  const handleSave = () => {
-    setIsEditing(false);
-    // Here you would typically send formData to your database
+  const handleSave = async () => {
+    try {
+      const userEmail = localStorage.getItem('userEmail');
+      if (!userEmail) {
+        alert('No user email found');
+        return;
+      }
+
+      const response = await fetch(`http://localhost:8000/api/users/${encodeURIComponent(userEmail)}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          first_name: formData.firstName,
+          middle_name: formData.middleName,
+          last_name: formData.lastName,
+          phone_number: formData.phone,
+          telephone_number: formData.telephone,
+          current_address: formData.address,
+          civil_status: formData.civilStatus,
+          birth_date: formData.birthDate,
+          region: formData.region,
+          province: formData.province,
+          city: formData.city,
+          course: formData.course,
+          batch_year: formData.batchYear,
+        }),
+      });
+
+      if (response.ok) {
+        // Update localStorage with the new full name
+        const fullName = `${formData.firstName}${formData.middleName ? ' ' + formData.middleName : ''} ${formData.lastName}`.trim();
+        localStorage.setItem('userName', fullName);
+        
+        // Trigger a storage event to update sidebar in real-time
+        window.dispatchEvent(new Event('storage'));
+        
+        // Trigger a custom event to refresh user management if open
+        window.dispatchEvent(new CustomEvent('userProfileUpdated'));
+        
+        alert('Profile updated successfully!');
+        setIsEditing(false);
+      } else {
+        alert('Failed to update profile');
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      alert('Error updating profile');
+    }
   };
 
   const handleCancel = () => {
@@ -90,48 +188,257 @@ export function ProfileView({ userRole }: ProfileViewProps) {
         </div>
 
         {/* Main Profile Card - UPDATES LIVE */}
-        <div className="bg-white rounded-[32px] p-8 border border-gray-100 shadow-sm flex flex-col md:flex-row items-center gap-8 text-left">
-          <div className="w-32 h-32 bg-[#003087] rounded-full flex items-center justify-center text-white text-4xl font-bold shrink-0">
-            {formData.firstName[0]}{formData.lastName[0]}
+        {loading ? (
+          <div className="bg-white rounded-[32px] p-8 border border-gray-100 shadow-sm text-center">
+            <p className="text-gray-500">Loading profile...</p>
           </div>
-          <div className="flex-1 space-y-4">
-            <div>
-              <h2 className="text-3xl font-bold text-gray-900">{formData.firstName} {formData.lastName}</h2>
-              <p className="text-gray-500 font-medium">Class of 2015 • BS Computer Science</p>
+        ) : (
+          <div className="bg-white rounded-[32px] p-8 border border-gray-100 shadow-sm flex flex-col md:flex-row items-center gap-8 text-left">
+            <div className="w-32 h-32 bg-[#003087] rounded-full flex items-center justify-center text-white text-4xl font-bold shrink-0">
+              {formData.firstName && formData.lastName ? `${formData.firstName[0]}${formData.lastName[0]}` : 'U'}
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-y-3 gap-x-12">
-              <div className="flex items-center gap-3 text-gray-600"><Mail className="w-4 h-4 text-[#003087]" /><span className="text-sm">{formData.email}</span></div>
-              <div className="flex items-center gap-3 text-gray-600"><Phone className="w-4 h-4 text-[#003087]" /><span className="text-sm">{formData.phone}</span></div>
-              <div className="flex items-center gap-3 text-gray-600"><MapPin className="w-4 h-4 text-[#003087]" /><span className="text-sm">{formData.address}</span></div>
-              <div className="flex items-center gap-3 text-gray-600"><Briefcase className="w-4 h-4 text-[#003087]" /><span className="text-sm">{formData.jobTitle} at {formData.company}</span></div>
+            <div className="flex-1 space-y-4">
+              <div>
+                <h2 className="text-3xl font-bold text-gray-900">{formData.firstName} {formData.middleName} {formData.lastName}</h2>
+                <p className="text-gray-500 font-medium">Class of {formData.batchYear || 'N/A'} • {formData.course || 'Course Not Set'}</p>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-y-3 gap-x-12">
+                <div className="flex items-center gap-3 text-gray-600"><Mail className="w-4 h-4 text-[#003087]" /><span className="text-sm">{formData.email || 'Not provided'}</span></div>
+                <div className="flex items-center gap-3 text-gray-600"><Phone className="w-4 h-4 text-[#003087]" /><span className="text-sm">{formData.phone || 'Not provided'}</span></div>
+                <div className="flex items-center gap-3 text-gray-600"><MapPin className="w-4 h-4 text-[#003087]" /><span className="text-sm">{formData.city || 'City not set'}, {formData.province || 'Province not set'}</span></div>
+                <div className="flex items-center gap-3 text-gray-600"><Briefcase className="w-4 h-4 text-[#003087]" /><span className="text-sm">{formData.jobTitle || 'Job title not set'} {formData.company && `at ${formData.company}`}</span></div>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Personal Info Form */}
         <div className="bg-white rounded-[32px] p-8 border border-gray-100 shadow-sm text-left">
           <h3 className="text-xl font-bold text-gray-900 mb-8">Personal Information</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {[
-              { label: "First Name", key: "firstName" },
-              { label: "Last Name", key: "lastName" },
-              { label: "Email Address", key: "email", type: "email" },
-              { label: "Phone Number", key: "phone" },
-              { label: "Job Title", key: "jobTitle" },
-              { label: "Company", key: "company" },
-              { label: "Address", key: "address" }
-            ].map((field) => (
-              <div key={field.key} className={`space-y-2 ${field.key === 'address' ? 'md:col-span-2' : ''}`}>
-                <label className="text-sm font-semibold text-gray-700">{field.label}</label>
-                <input 
-                  type={field.type || "text"}
-                  value={(formData as any)[field.key]}
-                  onChange={(e) => setFormData({...formData, [field.key]: e.target.value})}
-                  disabled={!isEditing}
-                  className={`w-full p-4 border rounded-xl transition-all ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
-                />
-              </div>
-            ))}
+            {/* First Name */}
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-gray-700">First Name</label>
+              <input 
+                type="text"
+                value={formData.firstName || ''}
+                onChange={(e) => setFormData({...formData, firstName: e.target.value})}
+                disabled={!isEditing}
+                className={`w-full p-4 border rounded-xl transition-all ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
+              />
+            </div>
+
+            {/* Middle Name */}
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-gray-700">Middle Name</label>
+              <input 
+                type="text"
+                value={formData.middleName || ''}
+                onChange={(e) => setFormData({...formData, middleName: e.target.value})}
+                disabled={!isEditing}
+                className={`w-full p-4 border rounded-xl transition-all ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
+              />
+            </div>
+
+            {/* Last Name */}
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-gray-700">Last Name</label>
+              <input 
+                type="text"
+                value={formData.lastName || ''}
+                onChange={(e) => setFormData({...formData, lastName: e.target.value})}
+                disabled={!isEditing}
+                className={`w-full p-4 border rounded-xl transition-all ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
+              />
+            </div>
+
+            {/* Email Address */}
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-gray-700">Email Address</label>
+              <input 
+                type="email"
+                value={formData.email || ''}
+                onChange={(e) => setFormData({...formData, email: e.target.value})}
+                disabled={true}
+                className="w-full p-4 border rounded-xl transition-all bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed"
+              />
+            </div>
+
+            {/* Phone Number */}
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-gray-700">Phone Number</label>
+              <input 
+                type="text"
+                value={formData.phone || ''}
+                onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                disabled={!isEditing}
+                className={`w-full p-4 border rounded-xl transition-all ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
+              />
+            </div>
+
+            {/* Telephone Number */}
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-gray-700">Telephone Number</label>
+              <input 
+                type="text"
+                value={formData.telephone || ''}
+                onChange={(e) => setFormData({...formData, telephone: e.target.value})}
+                disabled={!isEditing}
+                className={`w-full p-4 border rounded-xl transition-all ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
+              />
+            </div>
+
+            {/* Birth Date */}
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-gray-700">Birth Date</label>
+              <input 
+                type="date"
+                value={formData.birthDate || ''}
+                onChange={(e) => setFormData({...formData, birthDate: e.target.value})}
+                disabled={!isEditing}
+                className={`w-full p-4 border rounded-xl transition-all ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
+              />
+            </div>
+
+            {/* Civil Status */}
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-gray-700">Civil Status</label>
+              <select
+                value={formData.civilStatus || ''}
+                onChange={(e) => setFormData({...formData, civilStatus: e.target.value})}
+                disabled={!isEditing}
+                className={`w-full p-4 border rounded-xl transition-all ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
+              >
+                <option value="">Select your civil status</option>
+                <option value="single">Single</option>
+                <option value="married">Married</option>
+                <option value="widowed">Widowed</option>
+                <option value="separated">Separated</option>
+              </select>
+            </div>
+
+            {/* Region */}
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-gray-700">Region</label>
+              <select
+                value={formData.region || ''}
+                onChange={(e) => setFormData({...formData, region: e.target.value})}
+                disabled={!isEditing}
+                className={`w-full p-4 border rounded-xl transition-all ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
+              >
+                <option value="">Select your region</option>
+                <option value="region-11">Region XI - Davao Region</option>
+                <option value="ncr">NCR</option>
+                <option value="region-1">Region I - Ilocos Region</option>
+                <option value="region-2">Region II - Cagayan Valley</option>
+                <option value="region-3">Region III - Central Luzon</option>
+                <option value="region-4a">Region IV-A - CALABARZON</option>
+                <option value="region-5">Region V - Bicol Region</option>
+                <option value="region-6">Region VI - Western Visayas</option>
+                <option value="region-7">Region VII - Central Visayas</option>
+                <option value="region-8">Region VIII - Eastern Visayas</option>
+                <option value="region-9">Region IX - Zamboanga Peninsula</option>
+                <option value="region-10">Region X - Northern Mindanao</option>
+                <option value="region-12">Region XII - SOCCSKSARGEN</option>
+                <option value="region-13">Region XIII - Caraga</option>
+                <option value="barmm">BARMM</option>
+                <option value="car">CAR - Cordillera Administrative Region</option>
+              </select>
+            </div>
+
+            {/* Province */}
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-gray-700">Province</label>
+              <input 
+                type="text"
+                value={formData.province || ''}
+                onChange={(e) => setFormData({...formData, province: e.target.value})}
+                disabled={!isEditing}
+                className={`w-full p-4 border rounded-xl transition-all ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
+              />
+            </div>
+
+            {/* City */}
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-gray-700">City</label>
+              <input 
+                type="text"
+                value={formData.city || ''}
+                onChange={(e) => setFormData({...formData, city: e.target.value})}
+                disabled={!isEditing}
+                className={`w-full p-4 border rounded-xl transition-all ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
+              />
+            </div>
+
+            {/* Course */}
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-gray-700">Course</label>
+              <select
+                value={formData.course || ''}
+                onChange={(e) => setFormData({...formData, course: e.target.value})}
+                disabled={!isEditing}
+                className={`w-full p-4 border rounded-xl transition-all ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
+              >
+                <option value="">Select your course</option>
+                <option value="bs-computer-science">BS Computer Science</option>
+                <option value="bs-information-technology">BS Information Technology</option>
+                <option value="bs-information-systems">BS Information Systems</option>
+                <option value="bs-data-science">BS Data Science</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+
+            {/* Batch Year */}
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-gray-700">Batch Year</label>
+              <select
+                value={formData.batchYear || ''}
+                onChange={(e) => setFormData({...formData, batchYear: e.target.value})}
+                disabled={!isEditing}
+                className={`w-full p-4 border rounded-xl transition-all ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
+              >
+                <option value="">Select batch year</option>
+                {years.map(year => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Job Title */}
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-gray-700">Job Title</label>
+              <input 
+                type="text"
+                value={formData.jobTitle || ''}
+                onChange={(e) => setFormData({...formData, jobTitle: e.target.value})}
+                disabled={!isEditing}
+                className={`w-full p-4 border rounded-xl transition-all ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
+              />
+            </div>
+
+            {/* Company */}
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-gray-700">Company</label>
+              <input 
+                type="text"
+                value={formData.company || ''}
+                onChange={(e) => setFormData({...formData, company: e.target.value})}
+                disabled={!isEditing}
+                className={`w-full p-4 border rounded-xl transition-all ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
+              />
+            </div>
+
+            {/* Current Address */}
+            <div className="space-y-2 md:col-span-2">
+              <label className="text-sm font-semibold text-gray-700">Current Address</label>
+              <input 
+                type="text"
+                value={formData.address || ''}
+                onChange={(e) => setFormData({...formData, address: e.target.value})}
+                disabled={!isEditing}
+                className={`w-full p-4 border rounded-xl transition-all ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
+              />
+            </div>
           </div>
         </div>
 

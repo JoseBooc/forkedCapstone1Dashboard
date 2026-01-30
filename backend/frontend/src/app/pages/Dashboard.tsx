@@ -9,11 +9,14 @@ import { NewsView } from '../components/views/NewsView';
 import { DonationsView } from '../components/views/DonationView';
 import { AnalyticsView } from '../components/views/AnalyticsView';
 import { InternshipPostingsView } from '../components/views/InternshipPostingsView';
+import { UserManagementView } from '../components/views/UserManagementView';
 import { Sidebar } from '../components/Sidebar';
 
 export function Dashboard() {
-  const [activeView, setActiveView] = useState<'home'|'profile'|'directory'|'events'|'surveys'|'careers'|'news'|'give'|'analytics'|'internships'>('home');
-  const userRole: 'alumni' | 'admin' = 'alumni';
+  const [activeView, setActiveView] = useState<'home'|'profile'|'directory'|'events'|'surveys'|'careers'|'news'|'give'|'analytics'|'internships'|'users'>('home');
+  
+  // Get user role from localStorage
+  const userRole = (localStorage.getItem('userRole') as 'alumni' | 'admin') || 'alumni';
 
   const renderView = () => {
     switch (activeView) {
@@ -37,6 +40,8 @@ export function Dashboard() {
         return <AnalyticsView userRole={userRole} />;
       case 'internships':
         return <InternshipPostingsView />;
+      case 'users':
+        return <UserManagementView userRole={userRole} />;
       default: 
         return <HomeView userRole={userRole} onNavigate={setActiveView} />;
     }
@@ -44,7 +49,7 @@ export function Dashboard() {
 
   return (
     <div className="flex min-h-screen bg-[#F8FAFC]">
-      <Sidebar activeView={activeView} onNavigate={setActiveView} />
+      <Sidebar activeView={activeView} onNavigate={setActiveView} userRole={userRole} />
       <main className="flex-1 ml-64 min-w-0">
         {renderView()}
       </main>

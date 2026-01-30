@@ -8,12 +8,45 @@ export function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Add authentication logic here
-    // For now, just navigate to dashboard
-    navigate('/dashboard');
+    setError('');
+    setLoading(true);
+    
+    try {
+      // Call the authentication API
+      const response = await fetch('http://localhost:8000/api/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const userData = data.user;
+
+        // Store user info in localStorage
+        localStorage.setItem('userRole', userData.role);
+        localStorage.setItem('userName', userData.name);
+        localStorage.setItem('userEmail', userData.email);
+
+        // Navigate to dashboard
+        navigate('/dashboard');
+      } else {
+        const errorData = await response.json();
+        setError(errorData.message || 'Invalid email or password');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      setError('Connection error. Make sure the server is running.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -82,6 +115,13 @@ export function LoginPage() {
           <h2 className="text-3xl font-bold text-[#003087] mb-2">Sign In</h2>
           <p className="text-gray-600 mb-8">Access your alumni account</p>
 
+          {/* Error Message */}
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-600">{error}</p>
+            </div>
+          )}
+
           {/* Login Form */}
           <form onSubmit={handleSubmit}>
             {/* Email Address */}
@@ -147,9 +187,10 @@ export function LoginPage() {
             {/* Sign In Button */}
             <button
               type="submit"
-              className="w-full bg-[#003D7A] text-white py-3 rounded-lg hover:bg-[#002855] transition font-semibold text-lg shadow-lg"
+              disabled={loading}
+              className="w-full bg-[#003D7A] text-white py-3 rounded-lg hover:bg-[#002855] transition font-semibold text-lg shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Sign In
+              {loading ? 'Signing In...' : 'Sign In'}
             </button>
 
             {/* Register Link */}
