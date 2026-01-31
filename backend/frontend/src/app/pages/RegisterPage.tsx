@@ -28,11 +28,79 @@ export function RegisterPage() {
   const [diplomaFile, setDiplomaFile] = useState<File | null>(null);
   const [validIdFile, setValidIdFile] = useState<File | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Add registration logic here
-    // For now, just navigate to login
-    navigate('/login');
+    
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      alert('Please enter a valid email address (e.g., user@gmail.com)');
+      return;
+    }
+
+    // Validate email domain (ensure it's a real email provider)
+    const emailDomain = formData.email.split('@')[1]?.toLowerCase();
+    const commonDomains = [
+      'gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 
+      'icloud.com', 'protonmail.com', 'zoho.com', 'aol.com',
+      'addu.edu.ph', 'mail.com', 'yandex.com', 'gmx.com'
+    ];
+    
+    if (!emailDomain || (!commonDomains.includes(emailDomain) && !emailDomain.includes('.'))) {
+      alert('Please use a valid email provider (Gmail, Yahoo, Outlook, etc.)');
+      return;
+    }
+
+    try {
+      // Clean and prepare middle name - ensure empty string becomes null
+      const cleanMiddleName = formData.middleName && formData.middleName.trim() !== '' ? formData.middleName.trim() : null;
+      
+      // Construct full name - only include middle name if it exists
+      const fullName = cleanMiddleName 
+        ? `${formData.firstName} ${cleanMiddleName} ${formData.lastName}`.trim()
+        : `${formData.firstName} ${formData.lastName}`.trim();
+      
+      // Prepare user data
+      const userData = {
+        first_name: formData.firstName.trim(),
+        middle_name: cleanMiddleName,
+        last_name: formData.lastName.trim(),
+        email: formData.email.trim(),
+        password: formData.password,
+        role: 'alumni',
+        phone_number: formData.phoneNumber.trim(),
+        telephone_number: formData.telephoneNumber && formData.telephoneNumber.trim() !== '' ? formData.telephoneNumber.trim() : null,
+        current_address: formData.currentAddress.trim(),
+        civil_status: formData.civilStatus,
+        birth_date: formData.birthDate,
+        region: formData.region,
+        province: formData.province.trim(),
+        city: formData.city.trim(),
+        course: formData.course,
+        batch_year: formData.batchYear,
+        name: fullName
+      };
+
+      const response = await fetch('http://localhost:8000/api/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(userData),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        alert('Registration successful! You can now log in with your credentials.');
+        navigate('/login');
+      } else {
+        const error = await response.json();
+        alert(error.message || 'Registration failed. Please check your information and try again.');
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+      alert('Unable to connect to the server. Please ensure the Laravel server is running and try again.');
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -191,7 +259,9 @@ export function RegisterPage() {
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  placeholder="Enter your email"
+                  placeholder="Enter your email (e.g., user@gmail.com)"
+                  pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$"
+                  title="Please enter a valid email address"
                   className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition"
                   required
                 />
@@ -469,18 +539,17 @@ export function RegisterPage() {
 
             {/* Proof of Identity */}
             <div className="mb-6">
-              <label className="block text-gray-700 font-medium mb-2">Proof of Identity (Valid ID)</label>
+              <label className="block text-gray-700 font-medium mb-2">Proof of Identity (Valid ID) - Optional</label>
               
               {/* Select ID Type */}
               <div className="mb-4">
-                <label htmlFor="idType" className="block text-gray-600 text-sm mb-2">Select ID Type</label>
+                <label htmlFor="idType" className="block text-gray-600 text-sm mb-2">Select ID Type (Optional)</label>
                 <select
                   id="idType"
                   name="idType"
                   value={formData.idType}
                   onChange={handleChange}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition"
-                  required
                 >
                   <option value="">Choose your valid ID</option>
                   <option value="drivers-license">Driver's License</option>
@@ -503,7 +572,6 @@ export function RegisterPage() {
                   accept="image/png,image/jpeg,image/jpg"
                   onChange={(e) => handleFileChange(e, 'validId')}
                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                  required
                 />
                 <div className="pointer-events-none">
                   <Upload className="w-12 h-12 mx-auto text-gray-400 mb-4" />

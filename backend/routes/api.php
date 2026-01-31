@@ -20,3 +20,4 @@ Route::get('/users/{email}', [UserController::class, 'show']); // Get user by em
 Route::put('/users/{email}', [UserController::class, 'update']); // Update user by email
 Route::put('/users/id/{id}', [UserController::class, 'updateById']); // Update user by ID
 Route::delete('/users/{id}', [UserController::class, 'destroy']); // Delete user by ID
+Route::patch('/users/{id}/toggle-active', [UserController::class, 'toggleActive']); // Block/Unblock user

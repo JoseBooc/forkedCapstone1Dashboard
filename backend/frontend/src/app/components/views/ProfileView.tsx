@@ -64,6 +64,16 @@ export function ProfileView({ userRole }: ProfileViewProps) {
         jobTitle: '',
         company: ''
       });
+      
+      // Update localStorage with the current name from database
+      const fullName = `${userData.first_name || ''}${userData.middle_name ? ' ' + userData.middle_name : ''} ${userData.last_name || ''}`.trim();
+      if (fullName) {
+        localStorage.setItem('userName', fullName);
+        // Trigger events to update sidebar
+        window.dispatchEvent(new Event('storage'));
+        window.dispatchEvent(new CustomEvent('userProfileUpdated'));
+      }
+      
       setLoading(false);
     } catch (error) {
       console.error('Error fetching user data:', error);

@@ -1,11 +1,15 @@
 import { useState, useEffect } from 'react';
-import { Users, Search, Edit, Trash2, Plus, X, Mail, Phone, MapPin, GraduationCap, Calendar, Shield } from 'lucide-react';
+import { Users, Search, Edit, Trash2, Plus, X, Mail, Phone, MapPin, GraduationCap, Calendar, Shield, Lock, Unlock } from 'lucide-react';
 
 interface User {
   id: number;
   name: string;
+  first_name?: string;
+  middle_name?: string;
+  last_name?: string;
   email: string;
   role: 'alumni' | 'admin';
+  is_active: number;
   phone_number?: string;
   current_address?: string;
   course?: string;
@@ -21,6 +25,14 @@ interface UserManagementViewProps {
 export function UserManagementView({ userRole }: UserManagementViewProps) {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Helper function to get display name
+  const getDisplayName = (user: User) => {
+    if (user.first_name && user.last_name) {
+      return `${user.first_name}${user.middle_name ? ' ' + user.middle_name : ''} ${user.last_name}`.trim();
+    }
+    return user.name;
+  };
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<'all' | 'alumni' | 'admin'>('all');
   const [courseFilter, setCourseFilter] = useState<string>('all');
@@ -87,6 +99,31 @@ export function UserManagementView({ userRole }: UserManagementViewProps) {
     setIsDeleteModalOpen(true);
   };
 
+  const handleToggleActive = async (user: User) => {
+    try {
+      const newStatus = user.is_active === 1 ? 0 : 1;
+      const response = await fetch(`http://localhost:8000/api/users/${user.id}/toggle-active`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ is_active: newStatus }),
+      });
+
+      if (response.ok) {
+        const updatedUser = await response.json();
+        setUsers(users.map(u => u.id === user.id ? { ...u, is_active: newStatus } : u));
+        alert(`User ${newStatus === 1 ? 'unblocked' : 'blocked'} successfully!`);
+      } else {
+        console.error('Failed to toggle user status');
+        alert('Failed to update user status. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error toggling user status:', error);
+      alert('Error updating user status. Please check your connection.');
+    }
+  };
+
   const confirmDelete = async () => {
     if (!userToDelete) return;
 
@@ -123,8 +160,9 @@ export function UserManagementView({ userRole }: UserManagementViewProps) {
         const updatedUser = await response.json();
         setUsers(users.map(u => u.id === updatedUser.user.id ? updatedUser.user : u));
         setIsModalOpen(false);
+        const displayName = getDisplayName(selectedUser);
         setSelectedUser(null);
-        alert(`User role updated successfully! ${selectedUser.name} is now an ${selectedUser.role}.`);
+        alert(`User updated successfully! ${displayName} is now an ${selectedUser.role}.`);
       } else {
         console.error('Failed to update user');
         alert('Failed to update user. Please try again.');
@@ -194,7 +232,8 @@ export function UserManagementView({ userRole }: UserManagementViewProps) {
 
   const filteredUsers = users.filter(user => {
     // Search term filter
-    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const displayName = getDisplayName(user);
+    const matchesSearch = displayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.role.toLowerCase().includes(searchTerm.toLowerCase());
     
@@ -329,24 +368,27 @@ export function UserManagementView({ userRole }: UserManagementViewProps) {
                   <th className="px-6 py-4 text-left text-sm font-semibold">Contact</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold">Education</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold">Role</th>
-                  <th className="px-6 py-4 text-right text-sm font-semibold">Actions</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold">Status</th>
+                  <th className="px-6 py-4 text-center text-sm font-semibold">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {filteredUsers.map((user) => (
+                {filteredUsers.map((user) => {
+                  const displayName = getDisplayName(user);
+                  return (
                   <tr key={user.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-[#003087] rounded-full flex items-center justify-center text-white font-bold text-sm">
                           {(() => {
-                            const nameParts = user.name.split(' ').filter(n => n.length > 0);
+                            const nameParts = displayName.split(' ').filter(n => n.length > 0);
                             if (nameParts.length === 0) return 'U';
                             if (nameParts.length === 1) return nameParts[0][0];
                             return nameParts[0][0] + nameParts[nameParts.length - 1][0];
                           })()}
                         </div>
                         <div>
-                          <p className="font-semibold text-gray-900">{user.name}</p>
+                          <p className="font-semibold text-gray-900">{displayName}</p>
                           <p className="text-sm text-gray-500 flex items-center gap-1">
                             <Mail className="w-3 h-3" />
                             {user.email}
@@ -389,6 +431,19 @@ export function UserManagementView({ userRole }: UserManagementViewProps) {
                       </span>
                     </td>
                     <td className="px-6 py-4">
+                      {user.is_active === 1 ? (
+                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold border bg-green-100 text-green-700 border-green-200">
+                          <Unlock className="w-3 h-3" />
+                          Active
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold border bg-red-100 text-red-700 border-red-200">
+                          <Lock className="w-3 h-3" />
+                          Blocked
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
                       <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => handleEdit(user)}
@@ -396,6 +451,17 @@ export function UserManagementView({ userRole }: UserManagementViewProps) {
                           title="Edit user"
                         >
                           <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleToggleActive(user)}
+                          className={`p-2 rounded-lg transition-colors ${
+                            user.is_active === 1
+                              ? 'text-orange-600 hover:bg-orange-50'
+                              : 'text-green-600 hover:bg-green-50'
+                          }`}
+                          title={user.is_active === 1 ? 'Block user' : 'Unblock user'}
+                        >
+                          {user.is_active === 1 ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
                         </button>
                         <button
                           onClick={() => handleDelete(user)}
@@ -407,7 +473,8 @@ export function UserManagementView({ userRole }: UserManagementViewProps) {
                       </div>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
             {filteredUsers.length === 0 && (
@@ -438,14 +505,34 @@ export function UserManagementView({ userRole }: UserManagementViewProps) {
             </div>
 
             <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Name</label>
-                <input
-                  type="text"
-                  value={selectedUser.name}
-                  onChange={(e) => setSelectedUser({ ...selectedUser, name: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087]"
-                />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">First Name</label>
+                  <input
+                    type="text"
+                    value={selectedUser.first_name || ''}
+                    onChange={(e) => setSelectedUser({ ...selectedUser, first_name: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Middle Name</label>
+                  <input
+                    type="text"
+                    value={selectedUser.middle_name || ''}
+                    onChange={(e) => setSelectedUser({ ...selectedUser, middle_name: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Last Name</label>
+                  <input
+                    type="text"
+                    value={selectedUser.last_name || ''}
+                    onChange={(e) => setSelectedUser({ ...selectedUser, last_name: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087]"
+                  />
+                </div>
               </div>
 
               <div>
@@ -742,7 +829,7 @@ export function UserManagementView({ userRole }: UserManagementViewProps) {
               </div>
               <h2 className="text-xl font-bold text-gray-900 text-center mb-2">Delete User</h2>
               <p className="text-gray-600 text-center mb-6">
-                Are you sure you want to delete <span className="font-semibold">{userToDelete.name}</span>? This action cannot be undone.
+                Are you sure you want to delete <span className="font-semibold">{getDisplayName(userToDelete)}</span>? This action cannot be undone.
               </p>
               <div className="flex gap-3">
                 <button

@@ -25,6 +25,13 @@ class UserController extends Controller
             ], 401);
         }
 
+        // Check if user account is blocked
+        if ($user->is_active === 0) {
+            return response()->json([
+                'message' => 'Your account has been blocked. Please contact the administrator.'
+            ], 403);
+        }
+
         return response()->json([
             'message' => 'Login successful',
             'user' => $user
@@ -46,19 +53,45 @@ class UserController extends Controller
             'last_name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
             'password' => 'required|string|min:6',
+            'phone_number' => 'required|string',
+            'current_address' => 'required|string',
+            'civil_status' => 'required|string',
+            'birth_date' => 'required|date',
+            'region' => 'required|string',
+            'province' => 'required|string',
+            'city' => 'required|string',
+            'course' => 'required|string',
+            'batch_year' => 'required|string',
         ]);
 
+        // Handle middle name - set to null if empty
+        $middleName = $request->middle_name;
+        if (empty($middleName) || trim($middleName) === '') {
+            $middleName = null;
+        }
+
+        // Construct full name properly
+        $fullName = trim($request->first_name . ($middleName ? ' ' . $middleName : '') . ' ' . $request->last_name);
+
         $user = User::create([
-            'name' => $request->name,
+            'name' => $fullName,
             'first_name' => $request->first_name,
-            'middle_name' => $request->middle_name,
+            'middle_name' => $middleName,
             'last_name' => $request->last_name,
             'email' => $request->email,
             'password' => bcrypt($request->password),
             'role' => $request->role ?? 'alumni',
             'phone_number' => $request->phone_number,
+            'telephone_number' => $request->telephone_number,
+            'current_address' => $request->current_address,
+            'civil_status' => $request->civil_status,
+            'birth_date' => $request->birth_date,
+            'region' => $request->region,
+            'province' => $request->province,
+            'city' => $request->city,
             'course' => $request->course,
             'batch_year' => $request->batch_year,
+            'is_active' => 1,
             'email_verified_at' => now(),
         ]);
 
@@ -127,6 +160,28 @@ class UserController extends Controller
         
         return response()->json([
             'message' => 'User deleted successfully'
+        ]);
+    }
+
+    // Toggle user active status (block/unblock)
+    public function toggleActive(Request $request, $id)
+    {
+        $user = User::find($id);
+        
+        if (!$user) {
+            return response()->json(['error' => 'User not found'], 404);
+        }
+        
+        $request->validate([
+            'is_active' => 'required|integer|in:0,1',
+        ]);
+        
+        $user->is_active = $request->is_active;
+        $user->save();
+        
+        return response()->json([
+            'message' => 'User status updated successfully',
+            'user' => $user
         ]);
     }
 }

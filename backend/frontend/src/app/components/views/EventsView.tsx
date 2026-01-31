@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Calendar, Clock, MapPin, Users, Eye, Award, User, FileText } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, Eye, Award, User, FileText, Plus } from 'lucide-react';
 import { Footer } from '../Footer';
 
 // Upcoming Events Images
@@ -128,7 +128,19 @@ function EventCard({ event }: { event: Event }) {
 
 export function EventsView({ userRole }: { userRole: string }) {
   const [activeTab, setActiveTab] = useState('Upcoming Events');
-  const tabs = ['Upcoming Events', 'Past Events', 'Teaching Opportunities', 'Seminars & Workshops'];
+  const baseTabs = ['Upcoming Events', 'Past Events', 'Teaching Opportunities', 'Seminars & Workshops'];
+  const tabs = userRole === 'admin' ? [...baseTabs, 'Create Event'] : baseTabs;
+  const [newEvent, setNewEvent] = useState({
+    title: '',
+    category: '',
+    date: '',
+    startTime: '',
+    endTime: '',
+    location: '',
+    description: '',
+    capacity: '',
+    image: ''
+  });
 
   const allEvents: Event[] = [
     // --- UPCOMING EVENTS ---
@@ -175,30 +187,64 @@ export function EventsView({ userRole }: { userRole: string }) {
 
   const filteredEvents = allEvents.filter(event => event.tab === activeTab);
 
+  const handleCreateEvent = () => {
+    if (!newEvent.title || !newEvent.category || !newEvent.date || !newEvent.startTime || !newEvent.endTime || !newEvent.location || !newEvent.description) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    // Here you would typically make an API call to save the event
+    alert('Event created successfully!');
+    setNewEvent({
+      title: '',
+      category: '',
+      date: '',
+      startTime: '',
+      endTime: '',
+      location: '',
+      description: '',
+      capacity: '',
+      image: ''
+    });
+    setActiveTab('Upcoming Events');
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-[#F8FAFC]">
       <main className="flex-1 p-8 space-y-8">
-        <div className="text-left">
-          <h1 className="text-3xl font-bold text-gray-900">Engagement</h1>
-          <p className="text-gray-500 text-sm mt-1">Discover events, teaching opportunities, and educational seminars</p>
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="text-left">
+            <h1 className="text-3xl font-bold text-gray-900">Engagement</h1>
+            <p className="text-gray-500 text-sm mt-1">Discover events, teaching opportunities, and educational seminars</p>
+          </div>
+          {userRole === 'admin' && (
+            <button
+              onClick={() => setActiveTab('Create Event')}
+              className="flex items-center gap-2 px-4 py-2 bg-[#003087] text-white rounded-lg hover:bg-[#002066] transition-colors font-semibold shadow-md"
+            >
+              <Plus className="w-5 h-5" />
+              Create Event
+            </button>
+          )}
         </div>
 
         <div className="flex gap-8 border-b border-gray-200 overflow-x-auto no-scrollbar">
-          {tabs.map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`pb-4 text-[13px] font-bold whitespace-nowrap transition-all relative ${
-                activeTab === tab ? 'text-[#003087]' : 'text-gray-400'
-              }`}
-            >
-              {tab}
-              {activeTab === tab && (
-                <div className="absolute bottom-0 left-0 w-full h-[2px] bg-[#003087]" />
-              )}
-            </button>
-          ))}
-        </div>
+              {tabs.map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`pb-4 text-[13px] font-bold whitespace-nowrap transition-all relative ${
+                    activeTab === tab ? 'text-[#003087]' : 'text-gray-400'
+                  }`}
+                >
+                  {tab}
+                  {activeTab === tab && (
+                    <div className="absolute bottom-0 left-0 w-full h-[2px] bg-[#003087]" />
+                  )}
+                </button>
+              ))}
+            </div>
 
         {activeTab === 'Teaching Opportunities' && (
           <div className="bg-[#003087] rounded-[24px] p-8 text-white flex flex-col md:flex-row justify-between items-center gap-6 text-left">
@@ -235,11 +281,162 @@ export function EventsView({ userRole }: { userRole: string }) {
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredEvents.map((event, index) => (
-            <EventCard key={index} event={event} />
-          ))}
-        </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {filteredEvents.map((event, index) => (
+                <EventCard key={index} event={event} />
+              ))}
+            </div>
+
+        {activeTab === 'Create Event' && userRole === 'admin' && (
+          <div className="bg-white rounded-xl border-2 border-[#003087]/20 p-8 shadow-sm">
+            <h3 className="text-2xl font-bold text-gray-900 mb-6">Create New Event</h3>
+            
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Event Title *</label>
+                <input 
+                  type="text" 
+                  placeholder="Enter event title"
+                  value={newEvent.title}
+                  onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
+                />
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Event Date *</label>
+                  <input 
+                    type="date" 
+                    value={newEvent.date}
+                    onChange={(e) => setNewEvent({ ...newEvent, date: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Category *</label>
+                  <select 
+                    value={newEvent.category}
+                    onChange={(e) => setNewEvent({ ...newEvent, category: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
+                  >
+                    <option value="">Select category</option>
+                    <option value="Networking">Networking</option>
+                    <option value="Professional Dev">Professional Development</option>
+                    <option value="Social Event">Social Event</option>
+                    <option value="Academic">Academic</option>
+                    <option value="Career">Career</option>
+                    <option value="Sports">Sports</option>
+                    <option value="Technology">Technology</option>
+                    <option value="Leadership">Leadership</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Start Time *</label>
+                  <input 
+                    type="time" 
+                    value={newEvent.startTime}
+                    onChange={(e) => setNewEvent({ ...newEvent, startTime: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">End Time *</label>
+                  <input 
+                    type="time" 
+                    value={newEvent.endTime}
+                    onChange={(e) => setNewEvent({ ...newEvent, endTime: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Location *</label>
+                <input 
+                  type="text" 
+                  placeholder="e.g., ADDU Campus or Virtual Event"
+                  value={newEvent.location}
+                  onChange={(e) => setNewEvent({ ...newEvent, location: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Event Description *</label>
+                <textarea 
+                  rows={6}
+                  placeholder="Describe the event details..."
+                  value={newEvent.description}
+                  onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent resize-none"
+                ></textarea>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Event Capacity</label>
+                <input 
+                  type="number" 
+                  placeholder="Maximum number of attendees"
+                  value={newEvent.capacity}
+                  onChange={(e) => setNewEvent({ ...newEvent, capacity: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Event Banner Image</label>
+                <input 
+                  type="file" 
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      // In a real application, you would upload this file to a server
+                      // For now, we'll create a local URL for preview
+                      const imageUrl = URL.createObjectURL(file);
+                      setNewEvent({ ...newEvent, image: imageUrl });
+                    }
+                  }}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
+                />
+              </div>
+              
+              <div className="flex gap-3 pt-6 border-t border-gray-200">
+                <button 
+                  onClick={handleCreateEvent}
+                  className="px-6 py-3 bg-[#003087] text-white rounded-lg hover:bg-[#002066] transition-colors font-semibold"
+                >
+                  Create Event
+                </button>
+                <button 
+                  onClick={() => {
+                    setNewEvent({
+                      title: '',
+                      category: '',
+                      date: '',
+                      startTime: '',
+                      endTime: '',
+                      location: '',
+                      description: '',
+                      capacity: '',
+                      image: ''
+                    });
+                    setActiveTab('Upcoming Events');
+                  }}
+                  className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-semibold"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
       <Footer />
     </div>

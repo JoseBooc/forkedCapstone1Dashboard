@@ -1,6 +1,7 @@
 // 1. Imports MUST be at the very top for ESLint
-import { ArrowRight, Clock } from 'lucide-react';
+import { ArrowRight, Clock, Plus } from 'lucide-react';
 import { Footer } from '../Footer';
+import { useState } from 'react';
 
 // Asset Imports
 import admissionsFair from '../../../assets/AdmissionsFairBG.jpg';
@@ -57,6 +58,101 @@ function NewsCard({ category, title, excerpt, date, image }: NewsItemProps) {
 }
 
 export function NewsView({ userRole }: { userRole: string }) {
+  const [activeTab, setActiveTab] = useState<'feed' | 'create'>('feed');
+  const [news, setNews] = useState([
+    {
+      id: 1,
+      category: "Scholarship",
+      title: "HAPPENING NOW | Ateneo de Davao University Admissions and Scholarship Fair",
+      excerpt: "The Admissions and Scholars Fair runs from January 23 to 25, 2026, bringing admissions, academic programs, and scholarships all in one place.",
+      date: "January 10, 2026",
+      image: admissionsFair
+    },
+    {
+      id: 2,
+      category: "Programs",
+      title: "New Alumni Mentorship Program Launches",
+      excerpt: "Connect with fellow Ateneans and share your expertise with the next generation through our expanded mentorship initiative.",
+      date: "January 5, 2026",
+      image: mentorProgram
+    },
+    {
+      id: 3,
+      category: "Community",
+      title: "Global Alumni Chapters Expand to 15 Cities",
+      excerpt: "From Manila to New York, our international network continues to grow, bringing Ateneans together across continents.",
+      date: "December 28, 2025",
+      image: globalAlumni
+    },
+    {
+      id: 4,
+      category: "Achievements",
+      title: "Congratulations to the AdDU College of Law for their outstanding performance in the 2025 Bar Exam!",
+      excerpt: "AdDU is TOP 1 among law schools with 51-100 candidates! Our university has produced 82 new Attorneys this year with a 100% passing rate.",
+      date: "January 7, 2026",
+      image: achievements1
+    },
+    {
+      id: 5,
+      category: "Achievements",
+      title: "ADDU 26th in the Webometrics Philippines Ranking January 2026!",
+      excerpt: "Congratulations to the Ateneo de Davao University Community on ranking 26th out of 356 universities in the Philippines!",
+      date: "January 24, 2026",
+      image: achievements2
+    },
+    {
+      id: 6,
+      category: "Achievements",
+      title: "WHO MADE THE CUT? ⚖️📚",
+      excerpt: "Ateneo schools dominate the 2025 Bar exams as Ateneo de Manila University tops law schools with over 100 examinees.",
+      date: "January 7, 2026",
+      image: whoMadeCut
+    }
+  ]);
+
+  const [newPost, setNewPost] = useState({
+    title: '',
+    excerpt: '',
+    content: '',
+    category: '',
+    image: '',
+    featured: false
+  });
+
+  const handlePublish = () => {
+    if (!newPost.title || !newPost.excerpt || !newPost.content || !newPost.category) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    const article = {
+      id: news.length + 1,
+      category: newPost.category,
+      title: newPost.title,
+      excerpt: newPost.excerpt,
+      date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+      image: newPost.image || PLACEHOLDER
+    };
+
+    if (newPost.featured) {
+      setNews([article, ...news]);
+    } else {
+      setNews([...news, article]);
+    }
+
+    setNewPost({
+      title: '',
+      excerpt: '',
+      content: '',
+      category: '',
+      image: '',
+      featured: false
+    });
+
+    setActiveTab('feed');
+    alert('Article published successfully!');
+  };
+
   const newsFeed = [
     {
       category: "Programs",
@@ -98,59 +194,208 @@ export function NewsView({ userRole }: { userRole: string }) {
   return (
     <div className="flex flex-col min-h-screen bg-[#F8FAFC]">
       <div className="p-8 space-y-12 flex-1">
-        <div className="text-left">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">News & Updates</h1>
-          <p className="text-gray-500 font-medium">Stay informed about alumni news and announcements</p>
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="text-left">
+            <h1 className="text-4xl font-bold text-gray-900 mb-2">News & Updates</h1>
+            <p className="text-gray-500 font-medium">Stay informed about alumni news and announcements</p>
+          </div>
+          {userRole === 'admin' && (
+            <button
+              onClick={() => setActiveTab('create')}
+              className="flex items-center gap-2 px-4 py-2 bg-[#003087] text-white rounded-lg hover:bg-[#002066] transition-colors font-semibold shadow-md"
+            >
+              <Plus className="w-5 h-5" />
+              Post News
+            </button>
+          )}
         </div>
 
-        {/* Featured Section */}
-        <section className="relative overflow-hidden rounded-[40px] bg-white border border-gray-100 shadow-lg">
-          <div className="flex flex-col lg:flex-row">
-            <div className="lg:w-1/2 relative h-[450px] lg:h-auto overflow-hidden bg-gray-200">
-              <img 
-                src={admissionsFair || PLACEHOLDER} 
-                alt="Admissions Fair" 
-                className="w-full h-full object-cover"
-                onError={(e) => (e.currentTarget.src = PLACEHOLDER)}
-              />
-              <div className="absolute top-6 left-6">
-                <span className="px-5 py-2 bg-[#003087] text-white text-[10px] rounded-full font-bold uppercase tracking-widest shadow-lg">
-                  Featured
-                </span>
+        {/* Tabs */}
+        <div className="flex gap-2 mb-6 border-b-2 border-gray-200">
+          <button 
+            onClick={() => setActiveTab('feed')}
+            className={`px-6 py-3 border-b-2 transition-colors font-semibold ${
+              activeTab === 'feed' 
+                ? 'border-[#003087] text-[#003087]' 
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            News Feed
+          </button>
+          {userRole === 'admin' && (
+            <button 
+              onClick={() => setActiveTab('create')}
+              className={`px-6 py-3 border-b-2 transition-colors font-semibold ${
+                activeTab === 'create' 
+                  ? 'border-[#003087] text-[#003087]' 
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Create Post
+            </button>
+          )}
+        </div>
+
+        {activeTab === 'feed' && (
+          <>
+            {/* Featured Section */}
+            <section className="relative overflow-hidden rounded-[40px] bg-white border border-gray-100 shadow-lg">
+              <div className="flex flex-col lg:flex-row">
+                <div className="lg:w-1/2 relative h-[450px] lg:h-auto overflow-hidden bg-gray-200">
+                  <img 
+                    src={news[0]?.image || admissionsFair || PLACEHOLDER} 
+                    alt={news[0]?.title || "Featured Article"} 
+                    className="w-full h-full object-cover"
+                    onError={(e) => (e.currentTarget.src = PLACEHOLDER)}
+                  />
+                  <div className="absolute top-6 left-6">
+                    <span className="px-5 py-2 bg-[#003087] text-white text-[10px] rounded-full font-bold uppercase tracking-widest shadow-lg">
+                      Featured
+                    </span>
+                  </div>
+                </div>
+                <div className="lg:w-1/2 p-10 lg:p-14 flex flex-col justify-center text-left">
+                  <span className="px-3 py-1 bg-gray-100 text-gray-600 text-[10px] rounded-full font-bold uppercase tracking-wider w-fit mb-4">
+                    {news[0]?.category || "Scholarship"}
+                  </span>
+                  <h2 className="text-2xl font-extrabold text-gray-900 mb-6 leading-tight">
+                    {news[0]?.title || "HAPPENING NOW | Ateneo de Davao University Admissions and Scholarship Fair"}
+                  </h2>
+                  <p className="text-gray-600 text-sm leading-relaxed mb-8">
+                    {news[0]?.excerpt || "The Admissions and Scholars Fair runs from January 23 to 25, 2026, bringing admissions, academic programs, and scholarships all in one place."}
+                  </p>
+                  <div className="flex items-center justify-between mt-auto pt-6 border-t border-gray-100">
+                    <span className="text-sm text-gray-400 font-medium">{news[0]?.date || "January 10, 2026"}</span>
+                    <button className="text-[#003087] font-bold text-sm flex items-center gap-2 hover:translate-x-1 transition-transform">
+                      Read More <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* News Feed */}
+            <div className="space-y-8">
+              <div className="flex items-center gap-4 mb-8">
+                <h2 className="text-2xl font-bold text-gray-900">News Feed</h2>
+                <div className="h-[2px] flex-1 bg-gray-100"></div>
+              </div>
+              <div className="flex flex-col gap-8">
+                {news.slice(1).map((article, index) => (
+                  <NewsCard key={article.id || index} {...article} />
+                ))}
               </div>
             </div>
-            <div className="lg:w-1/2 p-10 lg:p-14 flex flex-col justify-center text-left">
-              <span className="px-3 py-1 bg-gray-100 text-gray-600 text-[10px] rounded-full font-bold uppercase tracking-wider w-fit mb-4">
-                Scholarship
-              </span>
-              <h2 className="text-2xl font-extrabold text-gray-900 mb-6 leading-tight">
-                HAPPENING NOW | Ateneo de Davao University Admissions and Scholarship Fair
-              </h2>
-              <p className="text-gray-600 text-sm leading-relaxed mb-8">
-                The Admissions and Scholars Fair runs from January 23 to 25, 2026, bringing admissions, academic programs, and scholarships all in one place.
-              </p>
-              <div className="flex items-center justify-between mt-auto pt-6 border-t border-gray-100">
-                <span className="text-sm text-gray-400 font-medium">January 10, 2026</span>
-                <button className="text-[#003087] font-bold text-sm flex items-center gap-2 hover:translate-x-1 transition-transform">
-                  Read More <ArrowRight className="w-4 h-4" />
+          </>
+        )}
+
+        {activeTab === 'create' && userRole === 'admin' && (
+          <div className="bg-white rounded-xl border-2 border-[#003087]/20 p-8 shadow-sm">
+            <h3 className="text-2xl font-bold text-gray-900 mb-6">Create News Post</h3>
+            
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Article Title *</label>
+                <input 
+                  type="text" 
+                  placeholder="Enter article title"
+                  value={newPost.title}
+                  onChange={(e) => setNewPost({ ...newPost, title: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Excerpt/Summary *</label>
+                <textarea 
+                  rows={3}
+                  placeholder="Brief summary that appears in the news feed"
+                  value={newPost.excerpt}
+                  onChange={(e) => setNewPost({ ...newPost, excerpt: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent resize-none"
+                ></textarea>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Full Content *</label>
+                <textarea 
+                  rows={10}
+                  placeholder="Write your full article here..."
+                  value={newPost.content}
+                  onChange={(e) => setNewPost({ ...newPost, content: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent resize-none"
+                ></textarea>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Category *</label>
+                  <select 
+                    value={newPost.category}
+                    onChange={(e) => setNewPost({ ...newPost, category: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
+                  >
+                    <option value="">Select category</option>
+                    <option value="Giving">Giving</option>
+                    <option value="Programs">Programs</option>
+                    <option value="Community">Community</option>
+                    <option value="Events">Events</option>
+                    <option value="Achievements">Achievements</option>
+                    <option value="Scholarship">Scholarship</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Featured Image URL</label>
+                  <input 
+                    type="text" 
+                    placeholder="Enter image URL"
+                    value={newPost.image}
+                    onChange={(e) => setNewPost({ ...newPost, image: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
+                  />
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-3">
+                <input 
+                  type="checkbox" 
+                  id="featured" 
+                  checked={newPost.featured}
+                  onChange={(e) => setNewPost({ ...newPost, featured: e.target.checked })}
+                  className="w-4 h-4 text-[#003087] border-gray-300 rounded focus:ring-[#003087]" 
+                />
+                <label htmlFor="featured" className="text-sm font-medium text-gray-700">Mark as featured article</label>
+              </div>
+              
+              <div className="flex gap-3 pt-6 border-t border-gray-200">
+                <button 
+                  onClick={handlePublish}
+                  className="px-6 py-3 bg-[#003087] text-white rounded-lg hover:bg-[#002066] transition-colors font-semibold"
+                >
+                  Publish
+                </button>
+                <button 
+                  onClick={() => {
+                    setNewPost({
+                      title: '',
+                      excerpt: '',
+                      content: '',
+                      category: '',
+                      image: '',
+                      featured: false
+                    });
+                    setActiveTab('feed');
+                  }}
+                  className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-semibold"
+                >
+                  Cancel
                 </button>
               </div>
             </div>
           </div>
-        </section>
-
-        {/* News Feed */}
-        <div className="space-y-8">
-          <div className="flex items-center gap-4 mb-8">
-            <h2 className="text-2xl font-bold text-gray-900">News Feed</h2>
-            <div className="h-[2px] flex-1 bg-gray-100"></div>
-          </div>
-          <div className="flex flex-col gap-8">
-            {newsFeed.map((news, index) => (
-              <NewsCard key={index} {...news} />
-            ))}
-          </div>
-        </div>
+        )}
       </div>
       
       {/* Footer added at the bottom */}

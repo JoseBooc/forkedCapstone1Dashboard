@@ -26,23 +26,52 @@ export function Sidebar({ activeView, onNavigate, userRole }: SidebarProps) {
   const navigate = useNavigate();
   const [userName, setUserName] = useState(localStorage.getItem('userName') || 'User');
   
-  // Listen for storage changes to update name in real-time
+  // Fetch user data from database to ensure name is up-to-date
+  const fetchUserName = async () => {
+    try {
+      const userEmail = localStorage.getItem('userEmail');
+      if (!userEmail) return;
+
+      const response = await fetch(`http://localhost:8000/api/users/${encodeURIComponent(userEmail)}`);
+      if (response.ok) {
+        const userData = await response.json();
+        const fullName = `${userData.first_name || ''}${userData.middle_name ? ' ' + userData.middle_name : ''} ${userData.last_name || ''}`.trim();
+        if (fullName) {
+          localStorage.setItem('userName', fullName);
+          setUserName(fullName);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching user name:', error);
+    }
+  };
+  
+  // Listen for storage changes and profile updates to update name in real-time
   useEffect(() => {
     const handleStorageChange = () => {
       setUserName(localStorage.getItem('userName') || 'User');
     };
     
+    const handleProfileUpdate = () => {
+      setUserName(localStorage.getItem('userName') || 'User');
+    };
+    
+    // Fetch the latest name from database on mount
+    fetchUserName();
+    
     window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('userProfileUpdated', handleProfileUpdate);
     
     return () => {
       window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('userProfileUpdated', handleProfileUpdate);
     };
   }, []);
   
   // Base menu items for all users
   const baseMenuItems = [
     { id: 'home', icon: Home, label: 'Home' },
-    ...(userRole === 'admin' ? [{ id: 'users', icon: UserCog, label: 'User Management' }] : []),
+    ...(userRole === 'admin' ? [{ id: 'users', icon: UserCog, label: 'Users' }] : []),
     { id: 'news', icon: Newspaper, label: 'News & Updates' },
     { id: 'profile', icon: User, label: 'My Profile' },
     { id: 'directory', icon: Users, label: 'Alumni Directory' },
