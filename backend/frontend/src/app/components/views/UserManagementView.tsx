@@ -25,6 +25,7 @@ interface UserManagementViewProps {
 export function UserManagementView({ userRole }: UserManagementViewProps) {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'all' | 'approval'>('all');
   
   // Helper function to get display name
   const getDisplayName = (user: User) => {
@@ -290,7 +291,34 @@ export function UserManagementView({ userRole }: UserManagementViewProps) {
         </div>
       </div>
 
+      {/* Tabs Navigation */}
+      <div className="bg-white rounded-lg border-2 border-[#003087]/20 shadow-sm mb-6 overflow-hidden">
+        <div className="flex border-b border-gray-200">
+          <button
+            onClick={() => setActiveTab('all')}
+            className={`flex-1 px-4 py-2.5 text-sm font-semibold transition-colors ${
+              activeTab === 'all'
+                ? 'bg-[#003087] text-white'
+                : 'bg-white text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            All Users
+          </button>
+          <button
+            onClick={() => setActiveTab('approval')}
+            className={`flex-1 px-4 py-2.5 text-sm font-semibold transition-colors ${
+              activeTab === 'approval'
+                ? 'bg-[#003087] text-white'
+                : 'bg-white text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            For Approval
+          </button>
+        </div>
+      </div>
+
       {/* Search Bar and Filters */}
+      {activeTab === 'all' && (
       <div className="bg-white rounded-xl border-2 border-[#003087]/20 p-4 mb-6 shadow-sm">
         <div className="flex flex-col lg:flex-row gap-4">
           {/* Search Input */}
@@ -351,8 +379,10 @@ export function UserManagementView({ userRole }: UserManagementViewProps) {
           )}
         </div>
       </div>
+      )}
 
-      {/* Users Table */}
+      {/* All Users Tab Content */}
+      {activeTab === 'all' && (
       <div className="bg-white rounded-xl border-2 border-[#003087]/20 shadow-sm overflow-hidden">
         {loading ? (
           <div className="p-12 text-center">
@@ -486,6 +516,18 @@ export function UserManagementView({ userRole }: UserManagementViewProps) {
           </div>
         )}
       </div>
+      )}
+
+      {/* For Approval Tab Content */}
+      {activeTab === 'approval' && (
+        <div className="bg-white rounded-xl border-2 border-[#003087]/20 shadow-sm p-12">
+          <div className="text-center text-gray-500">
+            <Users className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+            <h3 className="text-xl font-semibold text-gray-700 mb-2">No Pending Approvals</h3>
+            <p className="text-gray-500">There are currently no users waiting for approval.</p>
+          </div>
+        </div>
+      )}
 
       {/* Edit Modal */}
       {isModalOpen && selectedUser && (
@@ -579,7 +621,7 @@ export function UserManagementView({ userRole }: UserManagementViewProps) {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Course</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Course Graduated</label>
                   <select
                     value={selectedUser.course || ''}
                     onChange={(e) => setSelectedUser({ ...selectedUser, course: e.target.value })}
@@ -589,6 +631,7 @@ export function UserManagementView({ userRole }: UserManagementViewProps) {
                     <option value="bs-computer-science">BS Computer Science</option>
                     <option value="bs-information-technology">BS Information Technology</option>
                     <option value="bs-information-systems">BS Information Systems</option>
+                    <option value="bs-information-management">BS Information Management</option>
                     <option value="bs-data-science">BS Data Science</option>
                     <option value="other">Other</option>
                   </select>
@@ -762,6 +805,7 @@ export function UserManagementView({ userRole }: UserManagementViewProps) {
                     <option value="bs-computer-science">BS Computer Science</option>
                     <option value="bs-information-technology">BS Information Technology</option>
                     <option value="bs-information-systems">BS Information Systems</option>
+                    <option value="bs-information-management">BS Information Management</option>
                     <option value="bs-data-science">BS Data Science</option>
                     <option value="other">Other</option>
                   </select>

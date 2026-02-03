@@ -19,7 +19,15 @@ export function ProfileView({ userRole }: ProfileViewProps) {
     phone: "",
     telephone: "",
     address: "",
-    civilStatus: "",
+    geocode: "",
+    sex: "",
+    religion: "",
+    religionOther: "",
+    maritalStatus: "",
+    marriageDate: "",
+    intendToMarry: "",
+    intendedMarriageAge: "",
+    noMarriageReason: "",
     birthDate: "",
     region: "",
     province: "",
@@ -54,7 +62,15 @@ export function ProfileView({ userRole }: ProfileViewProps) {
         phone: userData.phone_number || '',
         telephone: userData.telephone_number || '',
         address: userData.current_address || '',
-        civilStatus: userData.civil_status || '',
+        geocode: userData.geocode || '',
+        sex: userData.sex || '',
+        religion: userData.religion || '',
+        religionOther: userData.religion_other || '',
+        maritalStatus: userData.marital_status || '',
+        marriageDate: userData.marriage_date || '',
+        intendToMarry: userData.intend_to_marry || '',
+        intendedMarriageAge: userData.intended_marriage_age || '',
+        noMarriageReason: userData.no_marriage_reason || '',
         birthDate: userData.birth_date || '',
         region: userData.region || '',
         province: userData.province || '',
@@ -122,7 +138,15 @@ export function ProfileView({ userRole }: ProfileViewProps) {
           phone_number: formData.phone,
           telephone_number: formData.telephone,
           current_address: formData.address,
-          civil_status: formData.civilStatus,
+          geocode: formData.geocode,
+          sex: formData.sex,
+          religion: formData.religion,
+          religion_other: formData.religionOther,
+          marital_status: formData.maritalStatus,
+          marriage_date: formData.marriageDate,
+          intend_to_marry: formData.intendToMarry,
+          intended_marriage_age: formData.intendedMarriageAge,
+          no_marriage_reason: formData.noMarriageReason,
           birth_date: formData.birthDate,
           region: formData.region,
           province: formData.province,
@@ -224,117 +248,245 @@ export function ProfileView({ userRole }: ProfileViewProps) {
 
         {/* Personal Info Form */}
         <div className="bg-white rounded-[32px] p-8 border border-gray-100 shadow-sm text-left">
-          <h3 className="text-xl font-bold text-gray-900 mb-8">Personal Information</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <h3 className="text-xl font-bold text-gray-900 mb-6">Personal Information</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4">
             {/* First Name */}
-            <div className="space-y-2">
+            <div className="space-y-1">
               <label className="text-sm font-semibold text-gray-700">First Name</label>
               <input 
                 type="text"
                 value={formData.firstName || ''}
                 onChange={(e) => setFormData({...formData, firstName: e.target.value})}
                 disabled={!isEditing}
-                className={`w-full p-4 border rounded-xl transition-all ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
+                className={`w-full px-3 py-2 border rounded-lg transition-all text-sm ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
               />
             </div>
 
             {/* Middle Name */}
-            <div className="space-y-2">
+            <div className="space-y-1">
               <label className="text-sm font-semibold text-gray-700">Middle Name</label>
               <input 
                 type="text"
                 value={formData.middleName || ''}
                 onChange={(e) => setFormData({...formData, middleName: e.target.value})}
                 disabled={!isEditing}
-                className={`w-full p-4 border rounded-xl transition-all ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
+                className={`w-full px-3 py-2 border rounded-lg transition-all text-sm ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
               />
             </div>
 
             {/* Last Name */}
-            <div className="space-y-2">
+            <div className="space-y-1">
               <label className="text-sm font-semibold text-gray-700">Last Name</label>
               <input 
                 type="text"
                 value={formData.lastName || ''}
                 onChange={(e) => setFormData({...formData, lastName: e.target.value})}
                 disabled={!isEditing}
-                className={`w-full p-4 border rounded-xl transition-all ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
+                className={`w-full px-3 py-2 border rounded-lg transition-all text-sm ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
               />
             </div>
 
             {/* Email Address */}
-            <div className="space-y-2">
+            <div className="space-y-1">
               <label className="text-sm font-semibold text-gray-700">Email Address</label>
               <input 
                 type="email"
                 value={formData.email || ''}
                 onChange={(e) => setFormData({...formData, email: e.target.value})}
                 disabled={true}
-                className="w-full p-4 border rounded-xl transition-all bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed"
+                className="w-full px-3 py-2 border rounded-lg transition-all text-sm bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed"
               />
             </div>
 
             {/* Phone Number */}
-            <div className="space-y-2">
+            <div className="space-y-1">
               <label className="text-sm font-semibold text-gray-700">Phone Number</label>
               <input 
                 type="text"
                 value={formData.phone || ''}
                 onChange={(e) => setFormData({...formData, phone: e.target.value})}
                 disabled={!isEditing}
-                className={`w-full p-4 border rounded-xl transition-all ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
+                className={`w-full px-3 py-2 border rounded-lg transition-all text-sm ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
               />
             </div>
 
             {/* Telephone Number */}
-            <div className="space-y-2">
+            <div className="space-y-1">
               <label className="text-sm font-semibold text-gray-700">Telephone Number</label>
               <input 
                 type="text"
                 value={formData.telephone || ''}
                 onChange={(e) => setFormData({...formData, telephone: e.target.value})}
                 disabled={!isEditing}
-                className={`w-full p-4 border rounded-xl transition-all ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
+                className={`w-full px-3 py-2 border rounded-lg transition-all text-sm ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
               />
             </div>
 
             {/* Birth Date */}
-            <div className="space-y-2">
+            <div className="space-y-1">
               <label className="text-sm font-semibold text-gray-700">Birth Date</label>
               <input 
                 type="date"
                 value={formData.birthDate || ''}
                 onChange={(e) => setFormData({...formData, birthDate: e.target.value})}
                 disabled={!isEditing}
-                className={`w-full p-4 border rounded-xl transition-all ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
+                className={`w-full px-3 py-2 border rounded-lg transition-all text-sm ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
               />
             </div>
 
-            {/* Civil Status */}
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-gray-700">Civil Status</label>
-              <select
-                value={formData.civilStatus || ''}
-                onChange={(e) => setFormData({...formData, civilStatus: e.target.value})}
+            {/* Geocode/Zipcode */}
+            <div className="space-y-1">
+              <label className="text-sm font-semibold text-gray-700">Geocode/Zipcode</label>
+              <input 
+                type="text"
+                value={formData.geocode || ''}
+                onChange={(e) => setFormData({...formData, geocode: e.target.value})}
                 disabled={!isEditing}
-                className={`w-full p-4 border rounded-xl transition-all ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
+                className={`w-full px-3 py-2 border rounded-lg transition-all text-sm ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
+              />
+            </div>
+
+            {/* Sex */}
+            <div className="space-y-1">
+              <label className="text-sm font-semibold text-gray-700">Sex</label>
+              <select
+                value={formData.sex || ''}
+                onChange={(e) => setFormData({...formData, sex: e.target.value})}
+                disabled={!isEditing}
+                className={`w-full px-3 py-2 border rounded-lg transition-all text-sm ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
               >
-                <option value="">Select your civil status</option>
-                <option value="single">Single</option>
-                <option value="married">Married</option>
-                <option value="widowed">Widowed</option>
-                <option value="separated">Separated</option>
+                <option value="">Select your sex</option>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+                <option value="prefer_not_to_say">Prefer not to say</option>
               </select>
             </div>
 
+            {/* Religion */}
+            <div className="space-y-1">
+              <label className="text-sm font-semibold text-gray-700">Religion</label>
+              <select
+                value={formData.religion || ''}
+                onChange={(e) => setFormData({...formData, religion: e.target.value})}
+                disabled={!isEditing}
+                className={`w-full px-3 py-2 border rounded-lg transition-all text-sm ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
+              >
+                <option value="">Select your religion</option>
+                <option value="roman_catholic">Roman Catholic</option>
+                <option value="protestant">Protestant</option>
+                <option value="iglesia_ni_cristo">Iglesia ni Cristo</option>
+                <option value="islam">Islam</option>
+                <option value="born_again_christian">Born Again Christian</option>
+                <option value="buddhist">Buddhist</option>
+                <option value="other">Other</option>
+                <option value="prefer_not_to_say">Prefer not to say</option>
+              </select>
+            </div>
+
+            {/* Religion Other (if applicable) */}
+            {formData.religion === 'other' && (
+              <div className="space-y-1">
+                <label className="text-sm font-semibold text-gray-700">Religion (Other)</label>
+                <input 
+                  type="text"
+                  value={formData.religionOther || ''}
+                  onChange={(e) => setFormData({...formData, religionOther: e.target.value})}
+                  disabled={!isEditing}
+                  placeholder="Please specify"
+                  className={`w-full px-3 py-2 border rounded-lg transition-all text-sm ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
+                />
+              </div>
+            )}
+
+            {/* Marital Status */}
+            <div className="space-y-1">
+              <label className="text-sm font-semibold text-gray-700">Marital Status</label>
+              <select
+                value={formData.maritalStatus || ''}
+                onChange={(e) => setFormData({...formData, maritalStatus: e.target.value})}
+                disabled={!isEditing}
+                className={`w-full px-3 py-2 border rounded-lg transition-all text-sm ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
+              >
+                <option value="">Select your marital status</option>
+                <option value="single">Single</option>
+                <option value="married">Married</option>
+                <option value="living_in">Living-in</option>
+                <option value="separated">Separated</option>
+                <option value="annulled">Annulled</option>
+                <option value="divorced">Divorced</option>
+                <option value="widowed">Widowed</option>
+              </select>
+            </div>
+
+            {/* Marriage Date (if applicable) */}
+            {['married', 'separated', 'annulled', 'divorced', 'widowed'].includes(formData.maritalStatus) && (
+              <div className="space-y-1">
+                <label className="text-sm font-semibold text-gray-700">Marriage Date</label>
+                <input 
+                  type="month"
+                  value={formData.marriageDate || ''}
+                  onChange={(e) => setFormData({...formData, marriageDate: e.target.value})}
+                  disabled={!isEditing}
+                  className={`w-full px-3 py-2 border rounded-lg transition-all text-sm ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
+                />
+              </div>
+            )}
+
+            {/* Marriage Intentions (if single) */}
+            {formData.maritalStatus === 'single' && (
+              <>
+                <div className="space-y-1">
+                  <label className="text-sm font-semibold text-gray-700">Intend to Marry?</label>
+                  <select
+                    value={formData.intendToMarry || ''}
+                    onChange={(e) => setFormData({...formData, intendToMarry: e.target.value})}
+                    disabled={!isEditing}
+                    className={`w-full px-3 py-2 border rounded-lg transition-all text-sm ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
+                  >
+                    <option value="">Select</option>
+                    <option value="yes">Yes</option>
+                    <option value="no">No</option>
+                  </select>
+                </div>
+
+                {formData.intendToMarry === 'yes' && (
+                  <div className="space-y-1">
+                    <label className="text-sm font-semibold text-gray-700">Intended Age</label>
+                    <input 
+                      type="number"
+                      value={formData.intendedMarriageAge || ''}
+                      onChange={(e) => setFormData({...formData, intendedMarriageAge: e.target.value})}
+                      disabled={!isEditing}
+                      min="18"
+                      max="100"
+                      className={`w-full px-3 py-2 border rounded-lg transition-all text-sm ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
+                    />
+                  </div>
+                )}
+
+                {formData.intendToMarry === 'no' && (
+                  <div className="space-y-1 md:col-span-2">
+                    <label className="text-sm font-semibold text-gray-700">Reason</label>
+                    <textarea
+                      value={formData.noMarriageReason || ''}
+                      onChange={(e) => setFormData({...formData, noMarriageReason: e.target.value})}
+                      disabled={!isEditing}
+                      rows={2}
+                      className={`w-full px-3 py-2 border rounded-lg transition-all text-sm resize-none ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
+                    />
+                  </div>
+                )}
+              </>
+            )}
+
             {/* Region */}
-            <div className="space-y-2">
+            <div className="space-y-1">
               <label className="text-sm font-semibold text-gray-700">Region</label>
               <select
                 value={formData.region || ''}
                 onChange={(e) => setFormData({...formData, region: e.target.value})}
                 disabled={!isEditing}
-                className={`w-full p-4 border rounded-xl transition-all ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
+                className={`w-full px-3 py-2 border rounded-lg transition-all text-sm ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
               >
                 <option value="">Select your region</option>
                 <option value="region-11">Region XI - Davao Region</option>
@@ -357,55 +509,56 @@ export function ProfileView({ userRole }: ProfileViewProps) {
             </div>
 
             {/* Province */}
-            <div className="space-y-2">
+            <div className="space-y-1">
               <label className="text-sm font-semibold text-gray-700">Province</label>
               <input 
                 type="text"
                 value={formData.province || ''}
                 onChange={(e) => setFormData({...formData, province: e.target.value})}
                 disabled={!isEditing}
-                className={`w-full p-4 border rounded-xl transition-all ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
+                className={`w-full px-3 py-2 border rounded-lg transition-all text-sm ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
               />
             </div>
 
             {/* City */}
-            <div className="space-y-2">
+            <div className="space-y-1">
               <label className="text-sm font-semibold text-gray-700">City</label>
               <input 
                 type="text"
                 value={formData.city || ''}
                 onChange={(e) => setFormData({...formData, city: e.target.value})}
                 disabled={!isEditing}
-                className={`w-full p-4 border rounded-xl transition-all ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
+                className={`w-full px-3 py-2 border rounded-lg transition-all text-sm ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
               />
             </div>
 
             {/* Course */}
-            <div className="space-y-2">
+            <div className="space-y-1">
               <label className="text-sm font-semibold text-gray-700">Course</label>
               <select
                 value={formData.course || ''}
                 onChange={(e) => setFormData({...formData, course: e.target.value})}
                 disabled={!isEditing}
-                className={`w-full p-4 border rounded-xl transition-all ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
+                className={`w-full px-3 py-2 border rounded-lg transition-all text-sm ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
               >
                 <option value="">Select your course</option>
                 <option value="bs-computer-science">BS Computer Science</option>
                 <option value="bs-information-technology">BS Information Technology</option>
                 <option value="bs-information-systems">BS Information Systems</option>
+                <option value="bs-information-management">BS Information Management</option>
                 <option value="bs-data-science">BS Data Science</option>
                 <option value="other">Other</option>
               </select>
             </div>
 
             {/* Batch Year */}
-            <div className="space-y-2">
+            <div className="space-y-1">
               <label className="text-sm font-semibold text-gray-700">Batch Year</label>
               <select
                 value={formData.batchYear || ''}
                 onChange={(e) => setFormData({...formData, batchYear: e.target.value})}
                 disabled={!isEditing}
-                className={`w-full p-4 border rounded-xl transition-all ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
+                className={`w-full px-3 py-2 border rounded-lg transition-all text-sm ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
               >
                 <option value="">Select batch year</option>
                 {years.map(year => (
@@ -415,38 +568,38 @@ export function ProfileView({ userRole }: ProfileViewProps) {
             </div>
 
             {/* Job Title */}
-            <div className="space-y-2">
+            <div className="space-y-1">
               <label className="text-sm font-semibold text-gray-700">Job Title</label>
               <input 
                 type="text"
                 value={formData.jobTitle || ''}
                 onChange={(e) => setFormData({...formData, jobTitle: e.target.value})}
                 disabled={!isEditing}
-                className={`w-full p-4 border rounded-xl transition-all ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
+                className={`w-full px-3 py-2 border rounded-lg transition-all text-sm ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
               />
             </div>
 
             {/* Company */}
-            <div className="space-y-2">
+            <div className="space-y-1">
               <label className="text-sm font-semibold text-gray-700">Company</label>
               <input 
                 type="text"
                 value={formData.company || ''}
                 onChange={(e) => setFormData({...formData, company: e.target.value})}
                 disabled={!isEditing}
-                className={`w-full p-4 border rounded-xl transition-all ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
+                className={`w-full px-3 py-2 border rounded-lg transition-all text-sm ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
               />
             </div>
 
             {/* Current Address */}
-            <div className="space-y-2 md:col-span-2">
+            <div className="space-y-1 md:col-span-3">
               <label className="text-sm font-semibold text-gray-700">Current Address</label>
               <input 
                 type="text"
                 value={formData.address || ''}
                 onChange={(e) => setFormData({...formData, address: e.target.value})}
                 disabled={!isEditing}
-                className={`w-full p-4 border rounded-xl transition-all ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
+                className={`w-full px-3 py-2 border rounded-lg transition-all text-sm ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
               />
             </div>
           </div>

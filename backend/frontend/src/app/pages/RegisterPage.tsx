@@ -14,7 +14,15 @@ export function RegisterPage() {
     currentAddress: '',
     phoneNumber: '',
     telephoneNumber: '',
-    civilStatus: '',
+    geocode: '',
+    sex: '',
+    religion: '',
+    religionOther: '',
+    maritalStatus: '',
+    marriageDate: '',
+    intendToMarry: '',
+    intendedMarriageAge: '',
+    noMarriageReason: '',
     birthDate: '',
     region: '',
     province: '',
@@ -30,6 +38,17 @@ export function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate required file uploads
+    if (!validIdFile) {
+      alert('Please upload your Valid ID');
+      return;
+    }
+
+    if (formData.hasDiploma === 'yes' && !diplomaFile) {
+      alert('Please upload your Diploma/Degree');
+      return;
+    }
     
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -71,7 +90,15 @@ export function RegisterPage() {
         phone_number: formData.phoneNumber.trim(),
         telephone_number: formData.telephoneNumber && formData.telephoneNumber.trim() !== '' ? formData.telephoneNumber.trim() : null,
         current_address: formData.currentAddress.trim(),
-        civil_status: formData.civilStatus,
+        geocode: formData.geocode.trim(),
+        sex: formData.sex,
+        religion: formData.religion,
+        religion_other: formData.religionOther && formData.religionOther.trim() !== '' ? formData.religionOther.trim() : null,
+        marital_status: formData.maritalStatus,
+        marriage_date: formData.marriageDate && formData.marriageDate !== '' ? formData.marriageDate : null,
+        intend_to_marry: formData.intendToMarry,
+        intended_marriage_age: formData.intendedMarriageAge && formData.intendedMarriageAge.trim() !== '' ? formData.intendedMarriageAge.trim() : null,
+        no_marriage_reason: formData.noMarriageReason && formData.noMarriageReason.trim() !== '' ? formData.noMarriageReason.trim() : null,
         birth_date: formData.birthDate,
         region: formData.region,
         province: formData.province.trim(),
@@ -349,25 +376,21 @@ export function RegisterPage() {
               </div>
             </div>
 
-            {/* Civil Status & Birth Date */}
+            {/* Geocode/Zipcode & Birth Date */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-              {/* Civil Status */}
+              {/* Geocode/Zipcode */}
               <div>
-                <label htmlFor="civilStatus" className="block text-gray-700 font-medium mb-2">Civil Status</label>
-                <select
-                  id="civilStatus"
-                  name="civilStatus"
-                  value={formData.civilStatus}
+                <label htmlFor="geocode" className="block text-gray-700 font-medium mb-2">Geocode/Zipcode</label>
+                <input
+                  id="geocode"
+                  type="text"
+                  name="geocode"
+                  value={formData.geocode}
                   onChange={handleChange}
+                  placeholder="Enter your geocode/zipcode"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition"
                   required
-                >
-                  <option value="">Select your civil status</option>
-                  <option value="single">Single</option>
-                  <option value="married">Married</option>
-                  <option value="widowed">Widowed</option>
-                  <option value="separated">Separated</option>
-                </select>
+                />
               </div>
 
               {/* Birth Date */}
@@ -387,6 +410,190 @@ export function RegisterPage() {
                 </div>
               </div>
             </div>
+
+            {/* Sex */}
+            <div className="mb-6">
+              <label className="block text-gray-700 font-medium mb-2">Sex</label>
+              <div className="flex gap-6">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="sex"
+                    value="male"
+                    checked={formData.sex === 'male'}
+                    onChange={handleChange}
+                    className="w-4 h-4 text-[#003D7A] focus:ring-2 focus:ring-[#003D7A]"
+                    required
+                  />
+                  <span className="text-gray-700">Male</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="sex"
+                    value="female"
+                    checked={formData.sex === 'female'}
+                    onChange={handleChange}
+                    className="w-4 h-4 text-[#003D7A] focus:ring-2 focus:ring-[#003D7A]"
+                  />
+                  <span className="text-gray-700">Female</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="sex"
+                    value="prefer_not_to_say"
+                    checked={formData.sex === 'prefer_not_to_say'}
+                    onChange={handleChange}
+                    className="w-4 h-4 text-[#003D7A] focus:ring-2 focus:ring-[#003D7A]"
+                  />
+                  <span className="text-gray-700">Prefer not to say</span>
+                </label>
+              </div>
+            </div>
+
+            {/* Religion */}
+            <div className="mb-6">
+              <label htmlFor="religion" className="block text-gray-700 font-medium mb-2">Religion</label>
+              <select
+                id="religion"
+                name="religion"
+                value={formData.religion}
+                onChange={handleChange}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition"
+                required
+              >
+                <option value="">Select your religion</option>
+                <option value="roman_catholic">Roman Catholic</option>
+                <option value="protestant">Protestant</option>
+                <option value="iglesia_ni_cristo">Iglesia ni Cristo</option>
+                <option value="islam">Islam</option>
+                <option value="born_again_christian">Born Again Christian</option>
+                <option value="buddhist">Buddhist</option>
+                <option value="other">Other (please specify)</option>
+                <option value="prefer_not_to_say">Prefer not to say</option>
+              </select>
+
+              {/* Conditional: Show text input if "Other" is selected */}
+              {formData.religion === 'other' && (
+                <input
+                  type="text"
+                  name="religionOther"
+                  value={formData.religionOther}
+                  onChange={handleChange}
+                  placeholder="Please specify your religion"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition mt-3"
+                  required
+                />
+              )}
+            </div>
+
+            {/* Marital Status */}
+            <div className="mb-6">
+              <label htmlFor="maritalStatus" className="block text-gray-700 font-medium mb-2">Marital Status</label>
+              <select
+                id="maritalStatus"
+                name="maritalStatus"
+                value={formData.maritalStatus}
+                onChange={handleChange}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition"
+                required
+              >
+                <option value="">Select your marital status</option>
+                <option value="single">Single</option>
+                <option value="married">Married</option>
+                <option value="living_in">Living-in</option>
+                <option value="separated">Separated</option>
+                <option value="annulled">Annulled</option>
+                <option value="divorced">Divorced</option>
+                <option value="widowed">Widowed</option>
+              </select>
+            </div>
+
+            {/* Conditional: Marriage Date for Married/Separated/Annulled/Divorced/Widowed */}
+            {['married', 'separated', 'annulled', 'divorced', 'widowed'].includes(formData.maritalStatus) && (
+              <div className="mb-6">
+                <label htmlFor="marriageDate" className="block text-gray-700 font-medium mb-2">Month and Year of Marriage</label>
+                <input
+                  id="marriageDate"
+                  type="month"
+                  name="marriageDate"
+                  value={formData.marriageDate}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition"
+                  required
+                />
+              </div>
+            )}
+
+            {/* Conditional: Marriage Intentions for Single */}
+            {formData.maritalStatus === 'single' && (
+              <div className="mb-6 space-y-4">
+                <div>
+                  <label className="block text-gray-700 font-medium mb-2">Do you intend to get married in the future?</label>
+                  <div className="flex gap-6">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="intendToMarry"
+                        value="yes"
+                        checked={formData.intendToMarry === 'yes'}
+                        onChange={handleChange}
+                        className="w-4 h-4 text-[#003D7A] focus:ring-2 focus:ring-[#003D7A]"
+                        required
+                      />
+                      <span className="text-gray-700">Yes</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="intendToMarry"
+                        value="no"
+                        checked={formData.intendToMarry === 'no'}
+                        onChange={handleChange}
+                        className="w-4 h-4 text-[#003D7A] focus:ring-2 focus:ring-[#003D7A]"
+                      />
+                      <span className="text-gray-700">No</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* If Yes: Age */}
+                {formData.intendToMarry === 'yes' && (
+                  <div>
+                    <label htmlFor="intendedMarriageAge" className="block text-gray-700 font-medium mb-2">At what age?</label>
+                    <input
+                      id="intendedMarriageAge"
+                      type="number"
+                      name="intendedMarriageAge"
+                      value={formData.intendedMarriageAge}
+                      onChange={handleChange}
+                      placeholder="Enter age"
+                      min="18"
+                      max="100"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition"
+                      required
+                    />
+                  </div>
+                )}
+
+                {/* If No: Reason */}
+                {formData.intendToMarry === 'no' && (
+                  <div>
+                    <label htmlFor="noMarriageReason" className="block text-gray-700 font-medium mb-2">Reason (Optional)</label>
+                    <textarea
+                      id="noMarriageReason"
+                      name="noMarriageReason"
+                      value={formData.noMarriageReason}
+                      onChange={handleChange}
+                      rows={3}
+                      placeholder="Please share your reason (optional)"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition resize-none"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Region, Province, Location */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -462,7 +669,7 @@ export function RegisterPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
               {/* Course Graduated */}
               <div>
-                <label htmlFor="course" className="block text-gray-700 font-medium mb-2">Course Graduated</label>
+                <label htmlFor="course" className="block text-gray-700 font-medium mb-2">Degree Program Completed:</label>
                 <select
                   id="course"
                   name="course"
@@ -471,10 +678,11 @@ export function RegisterPage() {
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition"
                   required
                 >
-                  <option value="">Select your course</option>
+                  <option value="">Select your program</option>
                   <option value="bs-computer-science">BS Computer Science</option>
                   <option value="bs-information-technology">BS Information Technology</option>
                   <option value="bs-information-systems">BS Information Systems</option>
+                  <option value="bs-information-management">BS Information Management</option>
                   <option value="bs-data-science">BS Data Science</option>
                   <option value="other">Other</option>
                 </select>
@@ -539,17 +747,18 @@ export function RegisterPage() {
 
             {/* Proof of Identity */}
             <div className="mb-6">
-              <label className="block text-gray-700 font-medium mb-2">Proof of Identity (Valid ID) - Optional</label>
+              <label className="block text-gray-700 font-medium mb-2">Proof of Identity (Valid ID) </label>
               
               {/* Select ID Type */}
               <div className="mb-4">
-                <label htmlFor="idType" className="block text-gray-600 text-sm mb-2">Select ID Type (Optional)</label>
+                <label htmlFor="idType" className="block text-gray-600 text-sm mb-2">Select ID Type </label>
                 <select
                   id="idType"
                   name="idType"
                   value={formData.idType}
                   onChange={handleChange}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition"
+                  required
                 >
                   <option value="">Choose your valid ID</option>
                   <option value="drivers-license">Driver's License</option>
