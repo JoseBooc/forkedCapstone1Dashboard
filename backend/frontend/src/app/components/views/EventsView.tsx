@@ -52,6 +52,7 @@ interface Event {
   postedDate?: string;
   compensation?: string;
   status?: 'Pending' | 'Approved' | 'Rejected';
+  submittedBy?: string;
 }
 
 const INITIAL_EVENTS: Event[] = [
@@ -90,10 +91,11 @@ const INITIAL_EVENTS: Event[] = [
   { id: '33', title: "Pharmacy Trends 2026", category: "Healthcare", date: "September 15, 2026", time: "2:00 PM - 5:00 PM", location: "ADDU School of Nursing", participants: 55, description: "Updating clinical knowledge on emerging pharmaceuticals and patient care.", image: PharmaBG, tab: 'Seminars & Workshops' },
 ];
 
-function EventCard({ event, userRole, onApprove, onReject, onView, onRemove }: any) {
+function EventCard({ event, userRole, onApprove, onReject, onView, onRemove, activeTab }: any) {
   const isPast = event.tab === 'Past Events';
   const isTeaching = event.tab === 'Teaching Opportunities';
   const isProposalTab = event.tab === 'Alumni Proposals';
+  const isMySubmissions = activeTab === 'My Submissions';
   const isAdmin = userRole === 'admin';
 
   return (
@@ -124,7 +126,6 @@ function EventCard({ event, userRole, onApprove, onReject, onView, onRemove }: a
       
       <div className="p-6 flex flex-col flex-1">
         <h3 className="text-lg font-bold text-gray-900 mb-1 line-clamp-1">{event.title}</h3>
-        {(isTeaching || isProposalTab) && <p className="text-[#003087] text-[11px] font-bold uppercase mb-4">{event.location}</p>}
         
         <div className="space-y-2 mb-4">
           <div className="flex items-start gap-2 text-gray-500 text-[13px]">
@@ -133,7 +134,7 @@ function EventCard({ event, userRole, onApprove, onReject, onView, onRemove }: a
           <div className="flex items-start gap-2 text-gray-500 text-[13px]">
             <Clock className="w-4 h-4 text-gray-400 mt-0.5" /> {event.time || 'TBD'}
           </div>
-          {!isTeaching && !isProposalTab && (
+          {!isTeaching && (
             <div className="flex items-start gap-2 text-gray-500 text-[13px]">
               <MapPin className="w-4 h-4 text-gray-400 mt-0.5" /> {event.location}
             </div>
@@ -153,7 +154,7 @@ function EventCard({ event, userRole, onApprove, onReject, onView, onRemove }: a
           {event.description}
         </p>
 
-        {(isTeaching || isProposalTab) && event.postedBy && (
+        {(isTeaching || isProposalTab || isMySubmissions) && event.postedBy && (
           <div className="pt-4 border-t border-gray-100 mb-6 flex items-center gap-2 text-gray-400 text-[11px]">
             <User className="w-3 h-3" />
             <span>Posted by <span className="text-gray-600 font-medium">{event.postedBy}</span> • {event.postedDate}</span>
@@ -189,7 +190,7 @@ function EventCard({ event, userRole, onApprove, onReject, onView, onRemove }: a
   );
 }
 
-export function EventsView({ userRole }: { userRole: string }) {
+export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: string; userName?: string }) {
   const [activeTab, setActiveTab] = useState('Upcoming Events');
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
@@ -254,11 +255,10 @@ export function EventsView({ userRole }: { userRole: string }) {
       date: newEvent.date,
       time: `${newEvent.startTime} - ${newEvent.endTime}`,
       location: newEvent.location,
-      participants: 0,
+      participants: parseInt(newEvent.capacity) || 0,
       description: newEvent.description,
       image: newEvent.image || CareerFairBG,
       tab: 'Upcoming Events',
-      status: 'Approved',
     };
 
     setEvents(prev => [createdEvent, ...prev]);
@@ -281,8 +281,8 @@ export function EventsView({ userRole }: { userRole: string }) {
   const tabs = userRole === 'admin' ? [...baseTabs, 'Alumni Proposals', 'Create Event'] : [...baseTabs, 'My Submissions'];
 
   const filteredEvents = events.filter(event => {
-    if (activeTab === 'My Submissions') return event.status !== undefined;
-    if (activeTab === 'Create Event') return false;
+    if (activeTab === 'My Submissions') return event.status !== undefined && event.submittedBy === userName;
+    if (activeTab === 'Create Event' || activeTab === 'Submit Proposal') return false;
     return event.tab === activeTab;
   });
 
@@ -302,13 +302,21 @@ export function EventsView({ userRole }: { userRole: string }) {
             <h1 className="text-3xl font-bold text-gray-900">Engagement</h1>
             <p className="text-gray-500 text-sm mt-1">Discover events, teaching opportunities, and educational seminars</p>
           </div>
-          {userRole === 'admin' && (
+          {userRole === 'admin' ? (
             <button
               onClick={() => setActiveTab('Create Event')}
               className="flex items-center gap-2 px-4 py-2 bg-[#003087] text-white rounded-lg hover:bg-[#002066] transition-colors font-semibold shadow-md"
             >
               <Plus className="w-5 h-5" />
               Create Event
+            </button>
+          ) : (
+            <button
+              onClick={() => setActiveTab('Submit Proposal')}
+              className="flex items-center gap-2 px-4 py-2 bg-[#003087] text-white rounded-lg hover:bg-[#002066] transition-colors font-semibold shadow-md"
+            >
+              <Plus className="w-5 h-5" />
+              Submit Proposal
             </button>
           )}
         </div>
@@ -365,7 +373,7 @@ export function EventsView({ userRole }: { userRole: string }) {
           </div>
         )}
 
-        {activeTab !== 'Create Event' && (
+        {activeTab !== 'Create Event' && activeTab !== 'Submit Proposal' && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredEvents.map((event) => (
               <EventCard 
@@ -376,6 +384,7 @@ export function EventsView({ userRole }: { userRole: string }) {
                 onReject={handleReject} 
                 onView={setSelectedEvent}
                 onRemove={handleRemove}
+                activeTab={activeTab}
               />
             ))}
           </div>
@@ -505,6 +514,194 @@ export function EventsView({ userRole }: { userRole: string }) {
                   className="px-6 py-3 bg-[#003087] text-white rounded-lg hover:bg-[#002066] transition-colors font-semibold"
                 >
                   Create Event
+                </button>
+                <button 
+                  onClick={() => {
+                    setNewEvent({
+                      title: '',
+                      category: '',
+                      date: '',
+                      startTime: '',
+                      endTime: '',
+                      location: '',
+                      description: '',
+                      capacity: '',
+                      image: ''
+                    });
+                    setActiveTab('Upcoming Events');
+                  }}
+                  className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-semibold"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'Submit Proposal' && userRole !== 'admin' && (
+          <div className="bg-white rounded-xl border-2 border-[#003087]/20 p-8 shadow-sm">
+            <h3 className="text-2xl font-bold text-gray-900 mb-6">Submit Event Proposal</h3>
+            <p className="text-gray-600 text-sm mb-6">Submit your event proposal for admin review. Once approved, your event will be published to the Upcoming Events section.</p>
+            
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Event Title *</label>
+                <input 
+                  type="text" 
+                  placeholder="Enter event title"
+                  value={newEvent.title}
+                  onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
+                />
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Event Date *</label>
+                  <input 
+                    type="date" 
+                    value={newEvent.date}
+                    onChange={(e) => setNewEvent({ ...newEvent, date: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Category *</label>
+                  <select 
+                    value={newEvent.category}
+                    onChange={(e) => setNewEvent({ ...newEvent, category: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
+                  >
+                    <option value="">Select category</option>
+                    <option value="Networking">Networking</option>
+                    <option value="Professional Dev">Professional Development</option>
+                    <option value="Social Event">Social Event</option>
+                    <option value="Academic">Academic</option>
+                    <option value="Career">Career</option>
+                    <option value="Sports">Sports</option>
+                    <option value="Technology">Technology</option>
+                    <option value="Leadership">Leadership</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Start Time *</label>
+                  <input 
+                    type="time" 
+                    value={newEvent.startTime}
+                    onChange={(e) => setNewEvent({ ...newEvent, startTime: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">End Time *</label>
+                  <input 
+                    type="time" 
+                    value={newEvent.endTime}
+                    onChange={(e) => setNewEvent({ ...newEvent, endTime: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Location *</label>
+                <input 
+                  type="text" 
+                  placeholder="e.g., ADDU Campus or Virtual Event"
+                  value={newEvent.location}
+                  onChange={(e) => setNewEvent({ ...newEvent, location: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Event Description *</label>
+                <textarea 
+                  rows={6}
+                  placeholder="Describe the event details..."
+                  value={newEvent.description}
+                  onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent resize-none"
+                ></textarea>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Event Capacity</label>
+                <input 
+                  type="number" 
+                  placeholder="Maximum number of attendees"
+                  value={newEvent.capacity}
+                  onChange={(e) => setNewEvent({ ...newEvent, capacity: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Event Banner Image</label>
+                <input 
+                  type="file" 
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const imageUrl = URL.createObjectURL(file);
+                      setNewEvent({ ...newEvent, image: imageUrl });
+                    }
+                  }}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
+                />
+              </div>
+              
+              <div className="flex gap-3 pt-6 border-t border-gray-200">
+                <button 
+                  onClick={() => {
+                    if (!newEvent.title || !newEvent.category || !newEvent.date || !newEvent.startTime || !newEvent.endTime || !newEvent.location || !newEvent.description) {
+                      alert('Please fill in all required fields');
+                      return;
+                    }
+
+                    const proposedEvent: Event = {
+                      id: Date.now().toString(),
+                      title: newEvent.title,
+                      category: newEvent.category,
+                      date: newEvent.date,
+                      time: `${newEvent.startTime} - ${newEvent.endTime}`,
+                      location: newEvent.location,
+                      participants: parseInt(newEvent.capacity) || 0,
+                      description: newEvent.description,
+                      image: newEvent.image || CareerFairBG,
+                      tab: 'Alumni Proposals',
+                      status: 'Pending',
+                      postedBy: userName,
+                      postedDate: 'Just now',
+                      submittedBy: userName
+                    };
+
+                    setEvents(prev => [proposedEvent, ...prev]);
+                    setNewEvent({
+                      title: '',
+                      category: '',
+                      date: '',
+                      startTime: '',
+                      endTime: '',
+                      location: '',
+                      description: '',
+                      capacity: '',
+                      image: ''
+                    });
+                    setActiveTab('My Submissions');
+                    alert('Event proposal submitted successfully! The admin will review and approve your event before it goes live.');
+                    triggerToast();
+                  }}
+                  className="px-6 py-3 bg-[#003087] text-white rounded-lg hover:bg-[#002066] transition-colors font-semibold"
+                >
+                  Submit Proposal
                 </button>
                 <button 
                   onClick={() => {
