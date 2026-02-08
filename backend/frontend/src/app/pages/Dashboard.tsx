@@ -15,8 +15,9 @@ import { Sidebar } from '../components/Sidebar';
 export function Dashboard() {
   const [activeView, setActiveView] = useState<'home'|'profile'|'directory'|'events'|'surveys'|'careers'|'news'|'give'|'analytics'|'internships'|'users'>('home');
   
-  // Get user role from localStorage
+  // Get user data from localStorage
   const userRole = (localStorage.getItem('userRole') as 'alumni' | 'admin') || 'alumni';
+  const userName = localStorage.getItem('userName') || 'Alumni User';
 
   const renderView = () => {
     switch (activeView) {
@@ -27,7 +28,7 @@ export function Dashboard() {
       case 'directory': 
         return <DirectoryView userRole={userRole} />;
       case 'events': 
-        return <EventsView userRole={userRole} />;
+        return <EventsView userRole={userRole} userName={userName} />;
       case 'surveys': 
         return <SurveysView userRole={userRole} />;
       case 'careers': 
@@ -39,7 +40,7 @@ export function Dashboard() {
       case 'analytics': 
         return <AnalyticsView userRole={userRole} />;
       case 'internships':
-        return <InternshipPostingsView />;
+        return <InternshipPostingsView role={userRole} />;
       case 'users':
         return <UserManagementView userRole={userRole} />;
       default: 
