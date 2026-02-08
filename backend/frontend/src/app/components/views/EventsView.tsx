@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Calendar, Clock, MapPin, Users, Eye, Award, User, FileText, Plus, X, CheckCircle, XCircle, Trash2 } from 'lucide-react';
 import { Footer } from '../Footer';
+import { EventRegistrationModal } from '../EventRegistrationModal';
 
 // Image imports
 import EngageWebDevBG from '../../../assets/EngageWebDevBG.jpg';
@@ -170,6 +171,21 @@ function EventCard({ event, userRole, onApprove, onReject, onView, onRemove }: a
                 <XCircle className="w-4 h-4" /> Reject
               </button>
             </>
+          ) : (event.tab === 'Upcoming Events' || event.tab === 'Seminars & Workshops') ? (
+            <>
+              <button 
+                onClick={() => onView(event)}
+                className="flex-1 py-2.5 rounded-lg font-bold text-sm transition-colors bg-gray-100 text-gray-700 hover:bg-gray-200"
+              >
+                View Details
+              </button>
+              <button 
+                onClick={() => window.dispatchEvent(new CustomEvent('registerEvent', { detail: { event } }))}
+                className="flex-1 py-2.5 rounded-lg font-bold text-sm transition-colors bg-[#003087] text-white hover:bg-[#002566]"
+              >
+                Register
+              </button>
+            </>
           ) : (
             <button 
               onClick={() => onView(event)}
@@ -177,7 +193,7 @@ function EventCard({ event, userRole, onApprove, onReject, onView, onRemove }: a
                 isPast ? 'bg-gray-100 text-gray-700 hover:bg-gray-200' : isTeaching ? 'bg-[#003087] text-white hover:bg-[#002566]' : 'bg-[#003087] text-white hover:bg-[#002566]'
               }`}
             >
-              {isPast ? 'View Gallery' : isTeaching ? 'Apply Now' : 'Register Now'}
+              {isPast ? 'View Gallery' : isTeaching ? 'Apply Now' : 'View Details'}
             </button>
           )}
           <button onClick={() => onView(event)} className="px-3 py-2.5 border border-gray-200 rounded-lg text-gray-400 hover:bg-gray-50 transition-colors">
@@ -193,6 +209,7 @@ export function EventsView({ userRole }: { userRole: string }) {
   const [activeTab, setActiveTab] = useState('Upcoming Events');
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [registrationEvent, setRegistrationEvent] = useState<Event | null>(null);
 
   const [events, setEvents] = useState<Event[]>(() => {
     const saved = localStorage.getItem('addu_events');
@@ -214,6 +231,14 @@ export function EventsView({ userRole }: { userRole: string }) {
   useEffect(() => {
     localStorage.setItem('addu_events', JSON.stringify(events));
   }, [events]);
+
+  useEffect(() => {
+    const handleRegisterEvent = (event: any) => {
+      setRegistrationEvent(event.detail.event);
+    };
+    window.addEventListener('registerEvent', handleRegisterEvent as EventListener);
+    return () => window.removeEventListener('registerEvent', handleRegisterEvent as EventListener);
+  }, []);
 
   const triggerToast = () => {
     setShowSuccessToast(true);
@@ -565,6 +590,21 @@ export function EventsView({ userRole }: { userRole: string }) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Event Registration Modal */}
+      {registrationEvent && (
+        <EventRegistrationModal 
+          event={{
+            title: registrationEvent.title,
+            date: registrationEvent.date,
+            time: registrationEvent.time,
+            location: registrationEvent.location,
+            image: registrationEvent.image
+          }}
+          onClose={() => setRegistrationEvent(null)}
+          pricePerGuest={1000}
+        />
       )}
 
       <Footer />
