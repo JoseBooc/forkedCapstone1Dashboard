@@ -18,8 +18,16 @@ return new class extends Migration
             $table->text('current_address')->after('role');
             $table->string('phone_number', 20)->after('current_address');
             $table->string('telephone_number', 20)->nullable()->after('phone_number');
-            $table->enum('civil_status', ['single', 'married', 'widowed', 'separated'])->after('telephone_number');
-            $table->date('birth_date')->after('civil_status');
+            $table->string('geocode')->after('telephone_number');
+            $table->enum('sex', ['male', 'female', 'prefer_not_to_say'])->after('geocode');
+            $table->enum('religion', ['roman_catholic', 'protestant', 'iglesia_ni_cristo', 'islam', 'born_again_christian', 'buddhist', 'other', 'prefer_not_to_say'])->after('sex');
+            $table->string('religion_other')->nullable()->after('religion');
+            $table->enum('marital_status', ['single', 'married', 'living_in', 'separated', 'annulled', 'divorced', 'widowed'])->after('religion_other');
+            $table->string('marriage_date')->nullable()->after('marital_status');
+            $table->enum('intend_to_marry', ['yes', 'no'])->nullable()->after('marriage_date');
+            $table->string('intended_marriage_age')->nullable()->after('intend_to_marry');
+            $table->text('no_marriage_reason')->nullable()->after('intended_marriage_age');
+            $table->date('birth_date')->after('no_marriage_reason');
             $table->string('region')->after('birth_date');
             $table->string('province')->after('region');
             $table->string('city')->after('province');
@@ -45,7 +53,15 @@ return new class extends Migration
                 'current_address',
                 'phone_number',
                 'telephone_number',
-                'civil_status',
+                'geocode',
+                'sex',
+                'religion',
+                'religion_other',
+                'marital_status',
+                'marriage_date',
+                'intend_to_marry',
+                'intended_marriage_age',
+                'no_marriage_reason',
                 'birth_date',
                 'region',
                 'province',
