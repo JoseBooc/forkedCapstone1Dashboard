@@ -15,7 +15,9 @@ import {
   Table as TableIcon,
   User,
   Filter,
-  Edit3
+  Edit3,
+  EyeOff,
+  RefreshCcw
 } from 'lucide-react';
 
 interface Application {
@@ -39,6 +41,7 @@ interface InternshipPosting {
   applicantsCount: number;
   applications: Application[];
   remarks?: string;
+  hidden?: boolean;
 }
 
 const INITIAL_POSTINGS: InternshipPosting[] = [
@@ -58,7 +61,8 @@ const INITIAL_POSTINGS: InternshipPosting[] = [
       { id: 101, name: "Juan Dela Cruz", email: "juan@example.com", date: "Oct 23, 2026" },
       { id: 102, name: "Maria Clara", email: "clara@example.com", date: "Oct 24, 2026" },
       { id: 103, name: "Jose Rizal", email: "pepe@example.com", date: "Oct 25, 2026" }
-    ]
+    ],
+    hidden: false
   }
 ];
 
@@ -83,7 +87,9 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
   const [denyRemarks, setDenyRemarks] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'All' | 'Job' | 'Internship'>('All');
-  const [filterStatus, setFilterStatus] = useState<'All' | 'Pending' | 'Approved' | 'Denied'>('All');
+  
+  // Explicitly defined type to allow 'Hidden'
+  const [filterStatus, setFilterStatus] = useState<'All' | 'Pending' | 'Approved' | 'Denied' | 'Hidden'>('All');
 
   const now = new Date();
   const threeYearsLater = new Date();
@@ -109,7 +115,8 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
           endDate: formData.get('endDate') as string,
           description: formData.get('description') as string,
           status: role === 'admin' ? p.status : "Pending", 
-          remarks: role === 'admin' ? p.remarks : undefined 
+          remarks: role === 'admin' ? p.remarks : undefined,
+          hidden: role === 'admin' ? p.hidden : false 
         } : p
       ));
     } else {
@@ -125,7 +132,8 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
         date: todayFormatted,
         status: "Pending",
         applicantsCount: 0,
-        applications: []
+        applications: [],
+        hidden: false
       };
       setPostings([newEntry, ...postings]);
     }
@@ -141,10 +149,25 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
     setDenyRemarks('');
   };
 
+  const handleToggleHide = (id: number) => {
+    setPostings(prev => prev.map(p => 
+      p.id === id ? { ...p, hidden: !p.hidden } : p
+    ));
+    if (selectedRequest?.id === id) handleBackToList();
+  };
+
   const filteredRequests = postings.filter(req => {
     const matchesSearch = req.company.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           req.position.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = filterType === 'All' || req.type === filterType;
+    
+    if (role === 'admin') {
+      if (filterStatus === 'Hidden') return matchesSearch && matchesType && req.hidden === true;
+      if (req.hidden) return false;
+    } else {
+      if (req.hidden) return false;
+    }
+
     const matchesStatus = filterStatus === 'All' || req.status === filterStatus;
     return matchesSearch && matchesType && matchesStatus;
   });
@@ -296,6 +319,11 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
                         <button onClick={() => setIsDenying(true)} className="bg-red-50 text-red-600 px-6 py-3 rounded-xl font-bold hover:bg-red-100">Deny</button>
                       </>
                     )}
+                    {role === 'admin' && selectedRequest.status === 'Denied' && (
+                      <button onClick={() => handleToggleHide(selectedRequest.id)} className="bg-gray-50 text-gray-600 px-6 py-3 rounded-xl font-bold hover:bg-gray-100 flex items-center gap-2 border">
+                        {selectedRequest.hidden ? <><RefreshCcw size={18} /> Restore</> : <><EyeOff size={18} /> Hide from List</>}
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -344,8 +372,12 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
                     <div className="flex items-center gap-3 ml-auto">
                       <div className="relative">
                         <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value as any)} className="pl-9 pr-8 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-600 outline-none appearance-none cursor-pointer">
-                          <option value="All">All Status</option><option value="Pending">Pending</option><option value="Approved">Approved</option><option value="Denied">Denied</option>
+                        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value as 'All' | 'Pending' | 'Approved' | 'Denied' | 'Hidden')} className="pl-9 pr-8 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-600 outline-none appearance-none cursor-pointer">
+                          <option value="All">All Status</option>
+                          <option value="Pending">Pending</option>
+                          <option value="Approved">Approved</option>
+                          <option value="Denied">Denied</option>
+                          {role === 'admin' && <option value="Hidden">Hidden/Archived</option>}
                         </select>
                       </div>
                       {role === 'admin' && (
@@ -372,13 +404,21 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
                       <tbody>
                         {filteredRequests.map(req => (
                           <tr key={req.id} className="border-b last:border-0 hover:bg-blue-50/20 transition-colors">
-                            <td className="p-5 font-bold">{req.company}</td>
+                            <td className="p-5 font-bold flex items-center gap-2">
+                              {req.company}
+                              {req.hidden && <EyeOff size={14} className="text-gray-400" />}
+                            </td>
                             <td className="p-5 font-medium text-gray-600">{req.position}</td>
                             <td className="p-5 text-xs font-bold text-gray-400">{req.type}</td>
                             <td className="p-5"><span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase ${req.status === 'Approved' ? 'bg-green-100 text-green-700' : req.status === 'Pending' ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700'}`}>{req.status}</span></td>
                             <td className="p-5 text-center">{req.status === 'Approved' ? <button onClick={() => { setSelectedRequest(req); setViewState('applicants'); }} className="text-[#003087] font-bold underline">{req.applicantsCount}</button> : "-"}</td>
                             <td className="p-5 text-right">
                               <div className="flex justify-end gap-2">
+                                {req.status === 'Denied' && (
+                                  <button onClick={() => handleToggleHide(req.id)} className="p-2 text-gray-400 hover:text-gray-600" title={req.hidden ? "Unhide" : "Hide"}>
+                                    {req.hidden ? <RefreshCcw size={18} /> : <EyeOff size={18} />}
+                                  </button>
+                                )}
                                 {req.status === 'Denied' && <button onClick={() => handleEdit(req)} className="p-2 text-gray-400 hover:text-blue-600"><Edit3 size={18} /></button>}
                                 <button onClick={() => { setSelectedRequest(req); setViewState('detail'); }} className="p-2 text-gray-400 hover:text-blue-600"><Eye size={18} /></button>
                               </div>
@@ -391,15 +431,26 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
                 ) : (
                   <div className="space-y-6">
                     {filteredRequests.map((req) => (
-                      <div key={req.id} className="bg-white border border-gray-100 p-6 rounded-[24px] hover:border-blue-200 transition-all flex items-center justify-between group shadow-sm">
+                      <div key={req.id} className={`bg-white border border-gray-100 p-6 rounded-[24px] hover:border-blue-200 transition-all flex items-center justify-between group shadow-sm ${req.hidden ? 'opacity-60 bg-gray-50' : ''}`}>
                         <div className="flex items-center gap-5">
                           <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${req.status === 'Approved' ? 'bg-green-50 text-green-600' : req.status === 'Pending' ? 'bg-orange-50 text-orange-600' : 'bg-red-50 text-red-600'}`}>
                             {req.status === 'Approved' ? <CheckCircle2 /> : req.status === 'Pending' ? <Clock /> : <XCircle />}
                           </div>
-                          <div><h4 className="font-bold text-gray-900">{req.company}</h4><p className="text-sm text-gray-500">{req.position} • {req.date}</p></div>
+                          <div>
+                            <h4 className="font-bold text-gray-900 flex items-center gap-2">
+                              {req.company} 
+                              {req.hidden && <span className="text-[10px] bg-gray-200 text-gray-600 px-2 py-0.5 rounded-md uppercase tracking-tighter">Hidden</span>}
+                            </h4>
+                            <p className="text-sm text-gray-500">{req.position} • {req.date}</p>
+                          </div>
                         </div>
                         <div className="flex items-center gap-3">
                           {req.status === 'Approved' && <button onClick={() => { setSelectedRequest(req); setViewState('applicants'); }} className="flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-xl text-xs font-bold hover:bg-blue-100"><Users size={16} /> {req.applicantsCount} Applicants</button>}
+                          {role === 'admin' && req.status === 'Denied' && (
+                             <button onClick={() => handleToggleHide(req.id)} className="p-2 text-gray-400 hover:text-gray-600 transition-all" title={req.hidden ? "Restore Posting" : "Hide Posting"}>
+                               {req.hidden ? <RefreshCcw size={20}/> : <EyeOff size={20}/>}
+                             </button>
+                          )}
                           {(role === 'alumni' && (req.status === 'Pending' || req.status === 'Denied')) || (role === 'admin' && req.status === 'Denied') ? (
                             <button onClick={() => handleEdit(req)} className="p-2 text-gray-400 hover:text-blue-600 transition-all" title="Edit Posting"><Edit3 size={20}/></button>
                           ) : null}
@@ -407,6 +458,11 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
                         </div>
                       </div>
                     ))}
+                    {filteredRequests.length === 0 && (
+                      <div className="text-center py-20 bg-white border border-dashed rounded-[32px]">
+                        <p className="text-gray-400 font-medium">No postings found.</p>
+                      </div>
+                    )}
                   </div>
                 )}
               </>
@@ -418,9 +474,18 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
               <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><Info size={20} /> Guidelines</h3>
               <ul className="space-y-4 text-sm text-blue-100 font-medium opacity-90">
                 {role === 'admin' ? (
-                  <><li>New posts appear at the top of the list instantly.</li><li>Use Table View for "All Posts/Application List".</li><li>Admins can <strong>edit details</strong> of denied requests to help alumni.</li></>
+                  <>
+                    <li>New posts appear at the top of the list instantly.</li>
+                    <li>Use Table View for "All Posts/Application List".</li>
+                    <li>Admins can <strong>hide denied requests</strong> to archive them.</li>
+                    <li>Toggle the <strong>Hidden/Archived</strong> status filter to see hidden items.</li>
+                  </>
                 ) : (
-                  <><li>Track your own posting requests here.</li><li>You can <strong>edit and resubmit</strong> any pending or denied posts.</li><li>Dates are auto-filled but can be adjusted if needed.</li></>
+                  <>
+                    <li>Track your own posting requests here.</li>
+                    <li>You can <strong>edit and resubmit</strong> any pending or denied posts.</li>
+                    <li>Dates are auto-filled but can be adjusted if needed.</li>
+                  </>
                 )}
               </ul>
             </div>

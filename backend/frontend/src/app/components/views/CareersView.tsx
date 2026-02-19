@@ -12,7 +12,8 @@ import {
   Laptop,
   X,
   Calendar,
-  CheckCircle2 // Added for success state
+  CheckCircle2,
+  ChevronLeft // Added for back button
 } from 'lucide-react';
 import { Footer } from '../Footer';
 
@@ -39,6 +40,9 @@ export function CareersView({ userRole }: { userRole: string }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [selectedModality, setSelectedModality] = useState<string>('All');
+  
+  // Added state to track selected opportunity for details view
+  const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
 
   const tabs = ['All Opportunities', 'Jobs only', 'Internship only'];
 
@@ -166,6 +170,75 @@ export function CareersView({ userRole }: { userRole: string }) {
 
     return matchesTab && matchesSearch && matchesModality;
   });
+
+  if (selectedOpportunity) {
+    return (
+      <div className="flex flex-col min-h-screen bg-[#F8FAFC]">
+        <main className="flex-1 p-8">
+          <div className="max-w-4xl mx-auto text-left">
+            <button 
+              onClick={() => setSelectedOpportunity(null)} 
+              className="flex items-center gap-2 text-gray-500 font-bold mb-8 hover:text-[#003087] transition-all"
+            >
+              <ChevronLeft className="w-5 h-5" /> Back to Career Opportunities
+            </button>
+            
+            <div className="bg-white rounded-[40px] shadow-xl overflow-hidden border border-gray-100">
+              <div className="bg-[#003087] p-12 text-white">
+                <div className="flex justify-between items-start">
+                  <div className="space-y-4">
+                    <span className="px-4 py-1 bg-white/20 rounded-full text-sm font-bold backdrop-blur-md">
+                      {selectedOpportunity.type}
+                    </span>
+                    <h1 className="text-4xl font-bold">{selectedOpportunity.title}</h1>
+                    <div className="flex flex-wrap gap-6 text-blue-100">
+                      <div className="flex items-center gap-2 font-bold"><Building2 className="w-5 h-5" /> {selectedOpportunity.company}</div>
+                      <div className="flex items-center gap-2 font-bold"><MapPin className="w-5 h-5" /> {selectedOpportunity.location}</div>
+                      <div className="flex items-center gap-2 font-bold"><Clock className="w-5 h-5" /> {selectedOpportunity.workType}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-12 space-y-12">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                  <div className="md:col-span-2 space-y-10">
+                    <section className="space-y-4">
+                      <h3 className="text-2xl font-bold text-gray-900">Description</h3>
+                      <p className="text-gray-600 leading-relaxed text-lg">{selectedOpportunity.description}</p>
+                    </section>
+                  </div>
+
+                  <div className="space-y-6">
+                    <div className="bg-gray-50 p-8 rounded-3xl border border-gray-100 space-y-6">
+                      {selectedOpportunity.salary && (
+                        <div className="space-y-1">
+                          <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">Salary Range</p>
+                          <p className="text-xl font-bold text-[#003087]">{selectedOpportunity.salary}</p>
+                        </div>
+                      )}
+                      <div className="space-y-1">
+                        <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">Date Posted</p>
+                        <p className="text-xl font-bold text-gray-900">{selectedOpportunity.posted}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">Modality</p>
+                        <p className="text-xl font-bold text-gray-900">{selectedOpportunity.modality}</p>
+                      </div>
+                      <button className="w-full py-4 bg-[#003087] text-white rounded-2xl font-bold shadow-lg shadow-blue-200 hover:bg-[#002566] transition-all">
+                        Apply Now
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   if (showPostForm) {
     return (
@@ -374,7 +447,12 @@ export function CareersView({ userRole }: { userRole: string }) {
                   </div>
                 </div>
                 <div className="flex flex-row md:flex-col justify-end gap-3 min-w-[180px]">
-                  <button className={`px-8 py-4 rounded-2xl font-bold text-sm transition-all flex-1 md:flex-none shadow-sm ${item.isPriority ? 'bg-white text-[#003087] hover:bg-blue-50' : 'bg-[#003087] text-white hover:bg-[#002566]'}`}>{item.isPriority ? 'Apply Now' : 'View Details'}</button>
+                  <button 
+                    onClick={() => setSelectedOpportunity(item)}
+                    className={`px-8 py-4 rounded-2xl font-bold text-sm transition-all flex-1 md:flex-none shadow-sm ${item.isPriority ? 'bg-white text-[#003087] hover:bg-blue-50' : 'bg-[#003087] text-white hover:bg-[#002566]'}`}
+                  >
+                    {item.isPriority ? 'Apply Now' : 'View Details'}
+                  </button>
                   <button className={`p-4 rounded-2xl transition-all border flex justify-center ${item.isPriority ? 'bg-white/10 border-white/10 text-white hover:bg-white/20' : 'bg-gray-50 border-gray-100 text-gray-400 hover:bg-gray-100'}`}><Bookmark className="w-5 h-5" /></button>
                 </div>
               </div>

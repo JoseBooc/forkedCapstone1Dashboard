@@ -1,774 +1,868 @@
 import { useState, useEffect } from 'react';
 import { 
   Heart, 
-  ChevronLeft,
-  CreditCard,
+  ArrowRight, 
+  GraduationCap, 
+  Building2, 
+  Microscope, 
+  Globe, 
+  BookOpen, 
+  Presentation,
+  Mail,
+  Phone,
+  CheckCircle2,
   Lock,
-  Target,
-  Calendar,
-  TrendingUp,
-  Settings,
-  BarChart3,
-  DollarSign,
-  Users,
+  ChevronLeft,
+  Gift,
   Award,
-  Check
+  Calendar,
+  Trash2,
+  CreditCard,
+  X,
+  Settings,
+  Plus,
+  Image as ImageIcon,
+  Upload,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { Footer } from '../Footer';
-import { CampaignsManagementView } from './CampaignsManagementView';
+
+interface DonationsViewProps {
+  userRole?: "alumni" | "admin";
+  onNavigate?: (view: string) => void;
+}
 
 interface Campaign {
   id: number;
   title: string;
-  description: string;
-  category?: string;
-  image_url?: string;
-  goal_amount: number;
-  raised_amount: number;
-  end_date: string;
-  is_active: boolean;
-  days_left?: string;
-  progress_percentage?: number;
-  donors_count?: number;
-  remaining_amount?: number;
+  goal: string;
+  raised: string;
+  backers: number;
+  status: string;
+  is_active?: boolean;
 }
 
-interface DonationsViewProps {
-  userRole?: 'alumni' | 'admin';
-}
-
-interface Statistics {
-  total_raised_this_year: number;
-  active_donors: number;
-  scholarships_awarded: number;
-}
-
-interface Donation {
-  id: number;
-  campaign_id: number | null;
-  first_name: string;
-  last_name: string;
-  email: string;
-  amount: number;
-  payment_method: string;
-  created_at: string;
-  campaign?: Campaign;
-}
-
-interface CampaignDonationGroup {
-  campaign: Campaign;
-  total: number;
-  count: number;
-  donations: Donation[];
-}
-
-interface AnalyticsData {
-  all_donations: Donation[];
-  general_donations: {
-    donations: Donation[];
-    total: number;
-    count: number;
-  };
-  campaign_donations: CampaignDonationGroup[];
-  overall_total: number;
-  overall_count: number;
-}
-
-export function DonationsView({ userRole = 'alumni' }: DonationsViewProps) {
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
-  const [customAmount, setCustomAmount] = useState('');
-  const [selectedAmount, setSelectedAmount] = useState<string | null>(null);
-  const [showManagement, setShowManagement] = useState(false);
-  const [statistics, setStatistics] = useState<Statistics>({
-    total_raised_this_year: 0,
-    active_donors: 0,
-    scholarships_awarded: 1200
-  });
+export function DonationsView({ userRole, onNavigate }: DonationsViewProps) {
+  const [showForm, setShowForm] = useState(false);
+  const [activeTab, setActiveTab] = useState<'gift' | 'needs'>('gift');
+  const [managementView, setManagementView] = useState(false);
+  const [adminManagementView, setAdminManagementView] = useState(false);
+  const [isCreatingCampaign, setIsCreatingCampaign] = useState(false);
+  const [isEditingCampaign, setIsEditingCampaign] = useState(false);
+  const [editingCampaignId, setEditingCampaignId] = useState<number | null>(null);
   
-  // Form fields
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
-  const [cardNumber, setCardNumber] = useState('');
-  const [expiryDate, setExpiryDate] = useState('');
-  const [cvv, setCvv] = useState('');
+  // States for the Modal
+  const [isEditingAmount, setIsEditingAmount] = useState(false);
+  const [isChangingPayment, setIsChangingPayment] = useState(false);
+  
+  // Dynamic State for the Recurring Gift
+  const [recurringAmount, setRecurringAmount] = useState("₱500");
+  const [tempAmount, setTempAmount] = useState("");
+  
+  const [selectedAmount, setSelectedAmount] = useState<string | null>(null);
+  const [selectedFreq, setSelectedFreq] = useState<string | null>(null);
+  const [selectedDesignation, setSelectedDesignation] = useState<string | null>(null);
+  
+  // Default and selectable payment state
+  const [selectedPayment, setSelectedPayment] = useState<string>("Credit Card");
 
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [showPaymentSection, setShowPaymentSection] = useState(false);
-  const [showDonationForm, setShowDonationForm] = useState(false);
-  const [showCampaignSelect, setShowCampaignSelect] = useState(false);
-  const [showAnalytics, setShowAnalytics] = useState(false);
-  const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
+  // Campaigns State - Fetch from API
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  // Donation to Campaign States
+  const [showDonationModal, setShowDonationModal] = useState(false);
+  const [selectedCampaignForDonation, setSelectedCampaignForDonation] = useState<Campaign | null>(null);
+  const [donationAmount, setDonationAmount] = useState('');
+  const [donationFirstName, setDonationFirstName] = useState('');
+  const [donationLastName, setDonationLastName] = useState('');
+  const [donationEmail, setDonationEmail] = useState('');
+  const [donationPaymentMethod, setDonationPaymentMethod] = useState('Credit Card');
+  const [isDonating, setIsDonating] = useState(false);
 
+  // Form States for New Campaign
+  const [newCampaign, setNewCampaign] = useState({
+    title: '',
+    description: '',
+    category: 'Student Aid',
+    imageUrl: '',
+    goalAmount: '',
+    endDate: ''
+  });
+
+  const [editCampaignData, setEditCampaignData] = useState({
+    title: '',
+    description: '',
+    category: 'Student Aid',
+    imageUrl: '',
+    goalAmount: '',
+    endDate: ''
+  });
+
+  // Fetch campaigns from API
   useEffect(() => {
     fetchCampaigns();
-    fetchStatistics();
-  }, []);
+  }, [userRole]);
 
   const fetchCampaigns = async () => {
     try {
-      const response = await fetch(`http://localhost:8000/api/campaigns?role=${userRole}`);
-      const data = await response.json();
-      setCampaigns(data);
+      // Admins see all campaigns, users only see active ones
+      const roleParam = userRole === 'admin' ? '?role=admin' : '';
+      const response = await fetch(`http://localhost:8000/api/campaigns${roleParam}`);
+      if (response.ok) {
+        const data = await response.json();
+        const formattedCampaigns = data.map((campaign: any) => ({
+          id: campaign.id,
+          title: campaign.title,
+          goal: `₱${Number(campaign.goal_amount).toLocaleString()}`,
+          raised: `₱${Number(campaign.raised_amount || 0).toLocaleString()}`,
+          backers: campaign.donors_count || 0,
+          status: campaign.is_active ? 'Active' : 'Inactive',
+          is_active: campaign.is_active,
+          ...campaign // Include all original fields
+        }));
+        setCampaigns(formattedCampaigns);
+      }
     } catch (error) {
       console.error('Error fetching campaigns:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const fetchStatistics = async () => {
-    try {
-      const response = await fetch('http://localhost:8000/api/donations/statistics');
-      const data = await response.json();
-      setStatistics(data);
-    } catch (error) {
-      console.error('Error fetching statistics:', error);
+  const activeGifts = [
+    { id: 1, amount: recurringAmount, freq: "Monthly", designation: "Student Financial Aid", nextDate: "March 15, 2026" }
+  ];
+
+  const handleToggle = (current: string | null, clicked: string, setter: (val: string | null) => void) => {
+    setter(current === clicked ? null : clicked);
+  };
+
+  const confirmNewAmount = () => {
+    if (tempAmount) {
+      setRecurringAmount(`₱${tempAmount}`);
+    } else if (selectedAmount) {
+      setRecurringAmount(selectedAmount);
     }
+    setIsEditingAmount(false);
+    setTempAmount("");
+    setSelectedAmount(null);
   };
 
-  const fetchAnalytics = async () => {
-    try {
-      const response = await fetch('http://localhost:8000/api/donations/analytics');
-      const data = await response.json();
-      setAnalyticsData(data);
-    } catch (error) {
-      console.error('Error fetching analytics:', error);
+  const handleCreateCampaign = async () => {
+    if (!newCampaign.title || !newCampaign.goalAmount || !newCampaign.endDate) {
+      alert("Please fill in all required fields (Title, Goal Amount, and End Date).");
+      return;
     }
-  };
 
-  const handleAmountSelect = (amount: string) => {
-    setSelectedAmount(amount);
-    setCustomAmount('');
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
     try {
-      if (selectedCampaign) {
-        // Donate to a specific campaign
-        await fetch(`http://localhost:8000/api/campaigns/${selectedCampaign.id}/donate`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            amount: parseFloat(finalAmount || '0'),
-            first_name: firstName,
-            last_name: lastName,
-            email: email,
-          }),
+      const response = await fetch('http://localhost:8000/api/campaigns', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: newCampaign.title,
+          description: newCampaign.description || 'No description provided',
+          category: newCampaign.category,
+          goal_amount: parseFloat(newCampaign.goalAmount),
+          end_date: newCampaign.endDate,
+          image_url: newCampaign.imageUrl || null,
+          is_active: true
+        })
+      });
+
+      if (response.ok) {
+        const createdCampaign = await response.json();
+        fetchCampaigns(); // Refresh the campaigns list
+        setIsCreatingCampaign(false);
+        setNewCampaign({
+          title: '',
+          description: '',
+          category: 'Student Aid',
+          imageUrl: '',
+          goalAmount: '',
+          endDate: ''
         });
+        alert("Campaign created successfully!");
       } else {
-        // General donation
-        await fetch('http://localhost:8000/api/donations', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            amount: parseFloat(finalAmount || '0'),
-            first_name: firstName,
-            last_name: lastName,
-            email: email,
-          }),
+        const errorData = await response.json();
+        console.error('Server error:', errorData);
+        alert(`Failed to create campaign: ${errorData.message || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error creating campaign:', error);
+      alert(`Error creating campaign: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
+  const handleEditCampaign = async () => {
+    if (!editCampaignData.title || !editCampaignData.goalAmount) {
+      alert("Please fill in the required fields.");
+      return;
+    }
+
+    try {
+      const response = await fetch(`http://localhost:8000/api/campaigns/${editingCampaignId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: editCampaignData.title,
+          description: editCampaignData.description || 'No description provided',
+          category: editCampaignData.category,
+          goal_amount: parseFloat(editCampaignData.goalAmount),
+          end_date: editCampaignData.endDate || new Date().toISOString().split('T')[0],
+          image_url: editCampaignData.imageUrl || null
+        })
+      });
+
+      if (response.ok) {
+        fetchCampaigns(); // Refresh the campaigns list
+        setIsEditingCampaign(false);
+        setEditingCampaignId(null);
+        setEditCampaignData({
+          title: '',
+          description: '',
+          category: 'Student Aid',
+          imageUrl: '',
+          goalAmount: '',
+          endDate: ''
         });
+        alert("Campaign updated successfully!");
+      } else {
+        const errorData = await response.json();
+        console.error('Server error:', errorData);
+        alert(`Failed to update campaign: ${errorData.message || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error updating campaign:', error);
+      alert(`Error updating campaign: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
+  const handleDeleteCampaign = async (id: number) => {
+    if (!window.confirm("Are you sure you want to delete this campaign?")) return;
+
+    try {
+      const response = await fetch(`http://localhost:8000/api/campaigns/${id}`, {
+        method: 'DELETE'
+      });
+
+      if (response.ok) {
+        fetchCampaigns(); // Refresh the campaigns list
+        alert("Campaign deleted successfully!");
+      } else {
+        alert("Failed to delete campaign");
+      }
+    } catch (error) {
+      console.error('Error deleting campaign:', error);
+      alert("Error deleting campaign");
+    }
+  };
+
+  const handleToggleCampaignVisibility = async (id: number, currentStatus: boolean) => {
+    try {
+      const response = await fetch(`http://localhost:8000/api/campaigns/${id}/toggle-active`, {
+        method: 'PATCH'
+      });
+
+      if (response.ok) {
+        fetchCampaigns(); // Refresh the campaigns list
+        alert(currentStatus ? "Campaign hidden successfully!" : "Campaign shown successfully!");
+      } else {
+        alert("Failed to update campaign visibility");
+      }
+    } catch (error) {
+      console.error('Error toggling campaign visibility:', error);
+      alert("Error updating campaign visibility");
+    }
+  };
+
+  const openEditCampaign = (campaign: Campaign) => {
+    setEditingCampaignId(campaign.id);
+    setEditCampaignData({
+      title: campaign.title,
+      description: '',
+      category: 'Student Aid',
+      imageUrl: '',
+      goalAmount: campaign.goal.replace(/\D/g, ''),
+      endDate: ''
+    });
+    setIsEditingCampaign(true);
+  };
+
+  const openDonationModal = (campaign: Campaign) => {
+    setSelectedCampaignForDonation(campaign);
+    setShowDonationModal(true);
+  };
+
+  const handleDonateToCampaign = async () => {
+    if (!donationAmount || !donationFirstName || !donationLastName || !donationEmail) {
+      alert("Please fill in all required fields");
+      return;
+    }
+
+    if (!selectedCampaignForDonation) {
+      alert("No campaign selected");
+      return;
+    }
+
+    setIsDonating(true);
+    try {
+      const response = await fetch(`http://localhost:8000/api/campaigns/${selectedCampaignForDonation.id}/donate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          amount: parseFloat(donationAmount),
+          first_name: donationFirstName,
+          last_name: donationLastName,
+          email: donationEmail,
+          payment_method: donationPaymentMethod
+        })
+      });
+
+      if (response.ok) {
+        alert("Thank you for your donation!");
+        setShowDonationModal(false);
+        setDonationAmount('');
+        setDonationFirstName('');
+        setDonationLastName('');
+        setDonationEmail('');
+        setDonationPaymentMethod('Credit Card');
+        setSelectedCampaignForDonation(null);
+        fetchCampaigns(); // Refresh campaigns to update amounts
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to process donation: ${errorData.message || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Error processing donation:', error);
+      alert(`Error processing donation: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsDonating(false);
     }
-    
-    // Show success message
-    setShowSuccess(true);
-    setTimeout(() => {
-      setShowSuccess(false);
-      // Reset form
-      setSelectedAmount(null);
-      setCustomAmount('');
-      setFirstName('');
-      setLastName('');
-      setEmail('');
-      setCardNumber('');
-      setExpiryDate('');
-      setCvv('');
-      setShowPaymentSection(false);
-      setShowDonationForm(false);
-      setShowCampaignSelect(false);
-      setSelectedCampaign(null);
-      fetchCampaigns(); // Refresh campaigns
-    }, 3000);
   };
 
-  const finalAmount = customAmount || selectedAmount?.replace('₱', '').replace(',', '');
+  if (showForm) {
+    // Prevent non-admins from accessing admin management view
+    if (userRole !== 'admin' && adminManagementView) {
+      setAdminManagementView(false);
+    }
 
-  const canProceedToPayment = finalAmount && firstName && lastName && email;
-
-  // Show analytics dashboard for admin
-  if (showAnalytics && userRole === 'admin') {
     return (
       <div className="flex flex-col min-h-screen bg-[#F8FAFC]">
-        <div className="p-8">
-          <button 
-            onClick={() => {
-              setShowAnalytics(false);
-              setAnalyticsData(null);
-            }} 
-            className="flex items-center gap-2 text-gray-500 font-bold mb-8 hover:text-[#003087] transition-all"
-          >
-            <ChevronLeft className="w-5 h-5" /> Back to Donations
-          </button>
-
-          <div className="space-y-8">
-            {/* Header */}
-            <div className="text-center space-y-4">
-              <div className="w-20 h-20 bg-[#003087] rounded-full flex items-center justify-center mx-auto">
-                <BarChart3 className="w-10 h-10 text-white" />
-              </div>
-              <h1 className="text-4xl font-bold text-gray-900">Donation Analytics</h1>
-              <p className="text-gray-600 text-lg">Comprehensive view of all donations and campaign performance</p>
-            </div>
-
-            {analyticsData ? (
-              <>
-                {/* Overview Statistics */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-6 text-white shadow-lg">
-                    <div className="flex items-center justify-between mb-4">
-                      <DollarSign className="w-8 h-8" />
-                      <span className="text-sm font-semibold opacity-90">Overall Total</span>
-                    </div>
-                    <p className="text-3xl font-bold">₱{analyticsData.overall_total.toLocaleString()}</p>
-                    <p className="text-sm opacity-90 mt-2">{analyticsData.overall_count} donations</p>
+        <main className="flex-1 p-8">
+          <div className="max-w-3xl mx-auto">
+            <button 
+              onClick={() => {
+                if (isCreatingCampaign) setIsCreatingCampaign(false);
+                else if (isEditingCampaign) setIsEditingCampaign(false);
+                else if (adminManagementView) setAdminManagementView(false);
+                else if (managementView) setManagementView(false);
+                else {
+                  setShowForm(false);
+                  // If admin and in form, return to homepage
+                  if (userRole === 'admin' && onNavigate) {
+                    onNavigate('home');
+                  }
+                }
+              }} 
+              className="flex items-center gap-2 text-gray-500 font-bold mb-8 hover:text-[#003087] transition-all"
+            >
+              <ChevronLeft className="w-5 h-5" /> 
+              {isCreatingCampaign ? "Back to Campaign List" : isEditingCampaign ? "Back to Campaign List" : adminManagementView ? "Back to Donation Form" : managementView ? "Back to Donation Form" : "Back to Information"}
+            </button>
+            
+            <div className="bg-white rounded-[40px] shadow-xl p-12 text-left space-y-12 border border-gray-100 relative">
+              
+              {/* UPDATE AMOUNT IN-SECTION MODAL */}
+              {isEditingAmount && (
+                <div className="absolute inset-0 z-50 bg-white rounded-[40px] p-12 flex flex-col animate-in fade-in zoom-in-95 duration-200">
+                  <div className="flex justify-between items-center mb-8">
+                    <h3 className="text-2xl font-bold">Update Gift Amount</h3>
+                    <button onClick={() => setIsEditingAmount(false)} className="p-2 hover:bg-gray-100 rounded-full"><X /></button>
                   </div>
-
-                  <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl p-6 text-white shadow-lg">
-                    <div className="flex items-center justify-between mb-4">
-                      <Heart className="w-8 h-8" />
-                      <span className="text-sm font-semibold opacity-90">General Donations</span>
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-2 gap-4">
+                      {['₱500', '₱1,000', '₱2,000', '₱5,000'].map((amt) => (
+                        <button 
+                          key={amt} 
+                          onClick={() => {
+                            setSelectedAmount(amt);
+                            setTempAmount("");
+                          }} 
+                          className={`py-4 rounded-2xl font-bold border-2 transition-all ${selectedAmount === amt ? 'bg-[#003087] border-[#003087] text-white' : 'border-gray-100'}`}
+                        >
+                          {amt}
+                        </button>
+                      ))}
                     </div>
-                    <p className="text-3xl font-bold">₱{analyticsData.general_donations.total.toLocaleString()}</p>
-                    <p className="text-sm opacity-90 mt-2">{analyticsData.general_donations.count} donations</p>
-                  </div>
-
-                  <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-6 text-white shadow-lg">
-                    <div className="flex items-center justify-between mb-4">
-                      <Target className="w-8 h-8" />
-                      <span className="text-sm font-semibold opacity-90">Campaign Donations</span>
-                    </div>
-                    <p className="text-3xl font-bold">
-                      ₱{(analyticsData.overall_total - analyticsData.general_donations.total).toLocaleString()}
-                    </p>
-                    <p className="text-sm opacity-90 mt-2">
-                      {analyticsData.overall_count - analyticsData.general_donations.count} donations
-                    </p>
-                  </div>
-                </div>
-
-                {/* General Donations Table */}
-                <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-200">
-                  <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                    <Heart className="w-6 h-6 text-green-600" />
-                    General Donations
-                  </h2>
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b-2 border-gray-200">
-                          <th className="text-left py-3 px-4 font-bold text-gray-700">Donor Name</th>
-                          <th className="text-left py-3 px-4 font-bold text-gray-700">Email</th>
-                          <th className="text-right py-3 px-4 font-bold text-gray-700">Amount</th>
-                          <th className="text-left py-3 px-4 font-bold text-gray-700">Date</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {analyticsData.general_donations.donations.map((donation) => (
-                          <tr key={donation.id} className="border-b border-gray-100 hover:bg-gray-50">
-                            <td className="py-3 px-4">{donation.first_name} {donation.last_name}</td>
-                            <td className="py-3 px-4 text-gray-600">{donation.email}</td>
-                            <td className="py-3 px-4 text-right font-bold text-green-600">
-                              ₱{donation.amount.toLocaleString()}
-                            </td>
-                            <td className="py-3 px-4 text-gray-600">
-                              {new Date(donation.created_at).toLocaleDateString()}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                      <tfoot>
-                        <tr className="border-t-2 border-gray-300 bg-gray-50">
-                          <td colSpan={2} className="py-3 px-4 font-bold text-gray-900">Total</td>
-                          <td className="py-3 px-4 text-right font-bold text-green-600 text-lg">
-                            ₱{analyticsData.general_donations.total.toLocaleString()}
-                          </td>
-                          <td className="py-3 px-4 text-gray-600">
-                            {analyticsData.general_donations.count} donations
-                          </td>
-                        </tr>
-                      </tfoot>
-                    </table>
-                  </div>
-                </div>
-
-                {/* Campaign Donations */}
-                {analyticsData.campaign_donations.map((campaignGroup) => (
-                  <div key={campaignGroup.campaign.id} className="bg-white rounded-2xl shadow-xl p-6 border border-gray-200">
-                    <div className="mb-6">
-                      <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2 mb-2">
-                        <Target className="w-6 h-6 text-[#003087]" />
-                        {campaignGroup.campaign.title}
-                      </h2>
-                      <div className="flex items-center gap-4 text-sm text-gray-600">
-                        <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full font-semibold">
-                          {campaignGroup.campaign.category || 'General'}
-                        </span>
-                        <span>
-                          ₱{campaignGroup.total.toLocaleString()} raised from {campaignGroup.count} donors
-                        </span>
-                      </div>
-                    </div>
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="border-b-2 border-gray-200">
-                            <th className="text-left py-3 px-4 font-bold text-gray-700">Donor Name</th>
-                            <th className="text-left py-3 px-4 font-bold text-gray-700">Email</th>
-                            <th className="text-right py-3 px-4 font-bold text-gray-700">Amount</th>
-                            <th className="text-left py-3 px-4 font-bold text-gray-700">Date</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {campaignGroup.donations.map((donation) => (
-                            <tr key={donation.id} className="border-b border-gray-100 hover:bg-gray-50">
-                              <td className="py-3 px-4">{donation.first_name} {donation.last_name}</td>
-                              <td className="py-3 px-4 text-gray-600">{donation.email}</td>
-                              <td className="py-3 px-4 text-right font-bold text-[#003087]">
-                                ₱{donation.amount.toLocaleString()}
-                              </td>
-                              <td className="py-3 px-4 text-gray-600">
-                                {new Date(donation.created_at).toLocaleDateString()}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                        <tfoot>
-                          <tr className="border-t-2 border-gray-300 bg-gray-50">
-                            <td colSpan={2} className="py-3 px-4 font-bold text-gray-900">Campaign Total</td>
-                            <td className="py-3 px-4 text-right font-bold text-[#003087] text-lg">
-                              ₱{campaignGroup.total.toLocaleString()}
-                            </td>
-                            <td className="py-3 px-4 text-gray-600">
-                              {campaignGroup.count} donations
-                            </td>
-                          </tr>
-                        </tfoot>
-                      </table>
-                    </div>
-                  </div>
-                ))}
-              </>
-            ) : (
-              <div className="text-center py-12">
-                <p className="text-gray-500">Loading analytics data...</p>
-              </div>
-            )}
-          </div>
-        </div>
-        <Footer />
-      </div>
-    );
-  }
-
-  // Show campaign management for admin
-  if (showManagement && userRole === 'admin') {
-    return (
-      <div className="flex flex-col min-h-screen bg-[#F8FAFC]">
-        <div className="p-8">
-          <button 
-            onClick={() => {
-              setShowManagement(false);
-              fetchCampaigns(); // Refresh campaigns when returning
-            }} 
-            className="flex items-center gap-2 text-gray-500 font-bold mb-8 hover:text-[#003087] transition-all"
-          >
-            <ChevronLeft className="w-5 h-5" /> Back to Donations
-          </button>
-        </div>
-        <CampaignsManagementView userRole={userRole} />
-      </div>
-    );
-  }
-
-  if (showSuccess) {
-    return (
-      <div className="flex flex-col min-h-screen bg-[#F8FAFC]">
-        <main className="flex-1 p-8 flex items-center justify-center">
-          <div className="bg-white rounded-[40px] shadow-xl p-12 max-w-md text-center space-y-6">
-            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-              <Heart className="w-10 h-10 text-green-600 fill-current" />
-            </div>
-            <h2 className="text-3xl font-bold text-gray-900">Thank You!</h2>
-            <p className="text-gray-600">Your donation of ₱{finalAmount} has been processed successfully.</p>
-            <p className="text-sm text-gray-500">A receipt has been sent to your email.</p>
-          </div>
-        </main>
-      </div>
-    );
-  }
-
-  if (!showDonationForm) {
-    return (
-      <div className="flex flex-col min-h-screen bg-[#F8FAFC]">
-        <main className="flex-1">
-          <div className="relative">
-            {/* Hero Section */}
-            <div className="bg-[#003087] text-white py-16 px-8 pb-24">
-              <div className="max-w-6xl mx-auto text-center space-y-6">
-                <h1 className="text-5xl font-bold">Supporting Excellence at ADDU</h1>
-                <p className="text-xl text-blue-100 max-w-4xl mx-auto">
-                  Your generosity empowers students, advances research, and strengthens our Jesuit mission of service
-                  and excellence. Together, we're building a brighter future for the Philippines.
-                </p>
-                <button
-                  onClick={() => {
-                    setSelectedCampaign(null);
-                    setShowDonationForm(true);
-                  }}
-                  className="mt-6 px-10 py-4 bg-white text-[#003087] rounded-xl font-bold text-lg hover:bg-gray-100 transition-all shadow-lg"
-                >
-                  Make General Donation
-                </button>
-              </div>
-            </div>
-
-            {/* Statistics Section */}
-            <div className="max-w-6xl mx-auto px-8 relative">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 -mt-16">
-                {/* Raised This Year */}
-                <div className="bg-white rounded-2xl shadow-lg border-2 border-gray-200 p-8 text-center">
-                  <p className="text-4xl font-bold text-[#003087] mb-2">
-                    ₱{(statistics.total_raised_this_year / 1000000).toFixed(1)}M
-                  </p>
-                  <p className="text-gray-600 font-semibold">Raised This Year</p>
-                </div>
-
-                {/* Active Donors */}
-                <div className="bg-white rounded-2xl shadow-lg border-2 border-gray-200 p-8 text-center">
-                  <p className="text-4xl font-bold text-[#003087] mb-2">
-                    {statistics.active_donors.toLocaleString()}
-                  </p>
-                  <p className="text-gray-600 font-semibold">Active Donors</p>
-                </div>
-
-                {/* Scholarships Awarded */}
-                <div className="bg-white rounded-2xl shadow-lg border-2 border-gray-200 p-8 text-center">
-                  <p className="text-4xl font-bold text-[#003087] mb-2">
-                    {statistics.scholarships_awarded.toLocaleString()}+
-                  </p>
-                  <p className="text-gray-600 font-semibold">Scholarships Awarded</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Content Section */}
-            <div className="py-8 space-y-8">
-              {/* Admin Button Section */}
-              <div className="max-w-6xl mx-auto px-8">
-                {userRole === 'admin' && (
-                  <div className="flex justify-end gap-4">
-                    <button
-                      onClick={() => {
-                        setShowAnalytics(true);
-                        fetchAnalytics();
+                    <input 
+                      type="text" 
+                      placeholder="Custom Amount" 
+                      value={tempAmount}
+                      onChange={(e) => {
+                        setTempAmount(e.target.value);
+                        setSelectedAmount(null);
                       }}
-                      className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-xl font-bold hover:bg-purple-700 transition-all text-sm"
+                      className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none font-bold" 
+                    />
+                    <button 
+                      onClick={confirmNewAmount} 
+                      className="w-full py-4 bg-[#003087] text-white rounded-xl font-bold"
                     >
-                      <BarChart3 className="w-4 h-4" />
-                      View Analytics
+                      Confirm New Amount
                     </button>
-                    <button
-                      onClick={() => setShowManagement(true)}
-                      className="flex items-center gap-2 px-4 py-2 bg-[#003087] text-white rounded-xl font-bold hover:bg-[#002566] transition-all text-sm"
-                    >
-                      <Settings className="w-4 h-4" />
-                      Manage Campaigns
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* Active Campaigns */}
-              <div className="max-w-6xl mx-auto px-8">
-              {campaigns.filter(c => c.is_active).length > 0 && (
-                <div className="space-y-6">
-                  <div className="text-center space-y-2">
-                    <h2 className="text-3xl font-bold text-gray-900">Active Donation Campaigns</h2>
-                    <p className="text-gray-600">Support specific projects and initiatives. Track progress and see the impact of our community's generosity.</p>
-                  </div>
-
-                <div className="space-y-6">
-                  {campaigns.filter(c => c.is_active).map((campaign) => (
-                    <div key={campaign.id} className="bg-white rounded-2xl border-2 border-gray-200 shadow-sm overflow-hidden hover:shadow-lg transition-all">
-                      <div className="grid grid-cols-1 md:grid-cols-12 gap-6 p-6">
-                        {/* Campaign Image */}
-                        <div className="md:col-span-4 relative">
-                          <div className="relative h-full min-h-[200px] rounded-xl overflow-hidden">
-                            {campaign.image_url ? (
-                              <img 
-                                src={campaign.image_url.startsWith('http') 
-                                  ? campaign.image_url 
-                                  : `http://localhost:8000${campaign.image_url}`
-                                } 
-                                alt={campaign.title}
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  (e.target as HTMLImageElement).src = '';
-                                  (e.target as HTMLImageElement).style.display = 'none';
-                                  (e.target as HTMLImageElement).parentElement!.innerHTML = `
-                                    <div class="w-full h-full bg-gradient-to-br from-[#003087] to-[#0052cc] flex items-center justify-center">
-                                      <svg class="w-16 h-16 text-white/30" fill="currentColor" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
-                                    </div>
-                                  `;
-                                }}
-                              />
-                            ) : (
-                              <div className="w-full h-full bg-gradient-to-br from-[#003087] to-[#0052cc] flex items-center justify-center">
-                                <Heart className="w-16 h-16 text-white/30" />
-                              </div>
-                            )}
-                            
-                            {/* Category Badge */}
-                            {campaign.category && (
-                              <div className="absolute top-3 left-3">
-                                <span className="bg-[#003087] text-white text-xs font-bold px-3 py-1 rounded-full">
-                                  {campaign.category}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Campaign Info */}
-                        <div className="md:col-span-8 space-y-4">
-                          <div>
-                            <h3 className="text-2xl font-bold text-gray-900 mb-2">{campaign.title}</h3>
-                            <p className="text-gray-600 text-sm leading-relaxed">{campaign.description}</p>
-                          </div>
-
-                          {/* Progress Section */}
-                          <div className="space-y-2">
-                            <div className="flex justify-between items-center">
-                              <span className="text-sm font-semibold text-gray-700">Progress</span>
-                              <span className="text-lg font-bold text-[#003087]">{campaign.progress_percentage?.toFixed(1)}%</span>
-                            </div>
-                            <div className="bg-gray-200 rounded-full h-4 overflow-hidden">
-                              <div
-                                className="bg-[#003087] h-4 rounded-full transition-all duration-500"
-                                style={{ width: `${Math.min(campaign.progress_percentage || 0, 100)}%` }}
-                              />
-                            </div>
-                          </div>
-
-                          {/* Stats Grid */}
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                            {/* Goal */}
-                            <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
-                              <div className="flex items-center gap-2 text-blue-600 mb-1">
-                                <Target className="w-4 h-4" />
-                                <span className="text-xs font-semibold">Goal</span>
-                              </div>
-                              <p className="text-xl font-bold text-blue-900">₱{campaign.goal_amount.toLocaleString()}</p>
-                            </div>
-
-                            {/* Raised */}
-                            <div className="bg-green-50 rounded-xl p-4 border border-green-100">
-                              <div className="flex items-center gap-2 text-green-600 mb-1">
-                                <TrendingUp className="w-4 h-4" />
-                                <span className="text-xs font-semibold">Raised</span>
-                              </div>
-                              <p className="text-xl font-bold text-green-900">₱{campaign.raised_amount.toLocaleString()}</p>
-                            </div>
-
-                            {/* Donors */}
-                            <div className="bg-orange-50 rounded-xl p-4 border border-orange-100">
-                              <div className="flex items-center gap-2 text-orange-600 mb-1">
-                                <Heart className="w-4 h-4" />
-                                <span className="text-xs font-semibold">Donors</span>
-                              </div>
-                              <p className="text-xl font-bold text-orange-900">{campaign.donors_count || 0}</p>
-                            </div>
-
-                            {/* Days Left */}
-                            <div className="bg-red-50 rounded-xl p-4 border border-red-100">
-                              <div className="flex items-center gap-2 text-red-600 mb-1">
-                                <Calendar className="w-4 h-4" />
-                                <span className="text-xs font-semibold">Days Left</span>
-                              </div>
-                              <p className="text-xl font-bold text-red-900">
-                                {campaign.days_left?.includes('day') ? campaign.days_left.split(' ')[0] : campaign.days_left}
-                              </p>
-                            </div>
-                          </div>
-
-                          {/* Footer */}
-                          <div className="flex items-center justify-between pt-2">
-                            <p className="text-sm text-gray-600">
-                              <span className="font-bold text-[#003087]">₱{(campaign.remaining_amount || 0).toLocaleString()}</span> remaining to reach goal
-                            </p>
-                            <button
-                              onClick={() => {
-                                setSelectedCampaign(campaign);
-                                setShowDonationForm(true);
-                              }}
-                              className="flex items-center gap-2 px-6 py-3 bg-[#003087] text-white rounded-xl font-bold hover:bg-[#002566] transition-all"
-                            >
-                              <Heart className="w-4 h-4" />
-                              Donate Now
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
                   </div>
                 </div>
               )}
-            </div>
 
-            {/* Donor Recognition Section */}
-            <div className="max-w-6xl mx-auto px-8 py-16">
-              <div className="text-center space-y-4 mb-12">
-                <h2 className="text-4xl font-bold text-gray-900">Donor Recognition</h2>
-                <p className="text-gray-600 text-lg max-w-3xl mx-auto">
-                  We honor our generous supporters who make our mission possible. Join our community of changemakers.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Founder's Circle */}
-                <div className="bg-white rounded-2xl shadow-lg border-2 border-gray-200 overflow-hidden">
-                  <div className="bg-gradient-to-r from-yellow-500 to-yellow-600 p-6 text-white flex items-center justify-between">
-                    <div>
-                      <h3 className="text-2xl font-bold">Founder's Circle</h3>
-                      <p className="text-yellow-100 font-semibold">₱1,000,000+</p>
-                    </div>
-                    <Award className="w-12 h-12" />
+              {/* CHANGE PAYMENT IN-SECTION MODAL */}
+              {isChangingPayment && (
+                <div className="absolute inset-0 z-50 bg-white rounded-[40px] p-12 flex flex-col animate-in fade-in zoom-in-95 duration-200">
+                  <div className="flex justify-between items-center mb-8">
+                    <h3 className="text-2xl font-bold">Change Payment Method</h3>
+                    <button onClick={() => setIsChangingPayment(false)} className="p-2 hover:bg-gray-100 rounded-full"><X /></button>
                   </div>
-                  <div className="p-6 space-y-3">
-                    <div className="flex items-start gap-3">
-                      <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                      <span className="text-gray-700">Named endowment opportunities</span>
+                  <div className="space-y-6">
+                    {['Credit Card', 'GCash', 'Bank Transfer'].map(m => (
+                      <button key={m} onClick={() => setSelectedPayment(m)} className={`w-full p-6 border-2 rounded-2xl flex justify-between items-center font-bold transition-all ${selectedPayment === m ? 'border-[#003087] bg-blue-50' : 'border-gray-100'}`}>
+                        {m}
+                        {selectedPayment === m && <CheckCircle2 className="text-[#003087]" />}
+                      </button>
+                    ))}
+                    <button onClick={() => setIsChangingPayment(false)} className="w-full py-4 bg-[#003087] text-white rounded-xl font-bold">Save Payment Method</button>
+                  </div>
+                </div>
+              )}
+
+              {isCreatingCampaign ? (
+                <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  <div className="space-y-2 border-b border-gray-100 pb-8">
+                    <h1 className="text-4xl font-bold text-gray-900">Create New Campaign</h1>
+                    <p className="text-gray-500">Fill in the details to launch a new fundraising initiative.</p>
+                  </div>
+
+                  <div className="space-y-6">
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-bold text-gray-700">Campaign Title *</label>
+                        <input 
+                          type="text" 
+                          value={newCampaign.title}
+                          onChange={(e) => setNewCampaign({...newCampaign, title: e.target.value})}
+                          placeholder="e.g., Scholar Excellence Fund 2026" 
+                          className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:border-[#003087] transition-all" 
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-bold text-gray-700">Description *</label>
+                        <textarea 
+                          value={newCampaign.description}
+                          onChange={(e) => setNewCampaign({...newCampaign, description: e.target.value})}
+                          placeholder="Tell the story of this campaign..." 
+                          rows={4} 
+                          className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:border-[#003087] transition-all resize-none" 
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <label className="text-sm font-bold text-gray-700">Category</label>
+                          <select 
+                            value={newCampaign.category}
+                            onChange={(e) => setNewCampaign({...newCampaign, category: e.target.value})}
+                            className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:border-[#003087] transition-all appearance-none"
+                          >
+                            <option>Student Aid</option>
+                            <option>Infrastructure</option>
+                            <option>Research</option>
+                            <option>Faculty</option>
+                          </select>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-bold text-gray-700">Image URL (Optional)</label>
+                          <div className="relative">
+                            <ImageIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                            <input 
+                              type="text" 
+                              value={newCampaign.imageUrl}
+                              onChange={(e) => setNewCampaign({...newCampaign, imageUrl: e.target.value})}
+                              placeholder="https://..." 
+                              className="w-full p-4 pl-12 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:border-[#003087] transition-all" 
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-bold text-gray-700">Upload Campaign Image</label>
+                        <div className="border-2 border-dashed border-gray-200 rounded-2xl p-8 flex flex-col items-center justify-center gap-2 hover:bg-gray-50 cursor-pointer transition-all">
+                          <Upload className="w-8 h-8 text-gray-400" />
+                          <p className="text-sm font-bold text-gray-500">Click to upload or drag and drop</p>
+                          <p className="text-xs text-gray-400">PNG, JPG or WEBP (max. 5MB)</p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
+                        <div className="space-y-2">
+                          <label className="text-sm font-bold text-gray-700">Goal Amount (₱) *</label>
+                          <input 
+                            type="number" 
+                            value={newCampaign.goalAmount}
+                            onChange={(e) => setNewCampaign({...newCampaign, goalAmount: e.target.value})}
+                            placeholder="0.00" 
+                            className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:border-[#003087] transition-all" 
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-bold text-gray-700">End Date *</label>
+                          <input 
+                            type="date" 
+                            value={newCampaign.endDate}
+                            onChange={(e) => setNewCampaign({...newCampaign, endDate: e.target.value})}
+                            className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:border-[#003087] transition-all" 
+                          />
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex items-start gap-3">
-                      <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                      <span className="text-gray-700">Private events with university leadership</span>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                      <span className="text-gray-700">Campus building/room naming rights</span>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                      <span className="text-gray-700">Lifetime recognition on Founder's Wall</span>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                      <span className="text-gray-700">Annual impact reports and personal updates</span>
+
+                    <div className="flex gap-4 pt-8">
+                      <button onClick={() => setIsCreatingCampaign(false)} className="flex-1 py-4 border border-gray-200 rounded-xl font-bold text-gray-600 hover:bg-gray-50 transition-all">Cancel</button>
+                      <button onClick={handleCreateCampaign} className="flex-1 py-4 bg-[#003087] text-white rounded-xl font-bold shadow-lg shadow-blue-900/20 hover:bg-blue-800 transition-all">Create Campaign</button>
                     </div>
                   </div>
                 </div>
-
-                {/* President's Council */}
-                <div className="bg-white rounded-2xl shadow-lg border-2 border-gray-200 overflow-hidden">
-                  <div className="bg-gradient-to-r from-gray-500 to-gray-600 p-6 text-white flex items-center justify-between">
-                    <div>
-                      <h3 className="text-2xl font-bold">President's Council</h3>
-                      <p className="text-gray-100 font-semibold">₱500,000 - ₱999,999</p>
-                    </div>
-                    <Award className="w-12 h-12" />
+              ) : isEditingCampaign ? (
+                <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  <div className="space-y-2 border-b border-gray-100 pb-8">
+                    <h1 className="text-4xl font-bold text-gray-900">Edit Campaign</h1>
+                    <p className="text-gray-500">Update the details of your fundraising campaign.</p>
                   </div>
-                  <div className="p-6 space-y-3">
-                    <div className="flex items-start gap-3">
-                      <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                      <span className="text-gray-700">Invitation to exclusive university events</span>
+
+                  <div className="space-y-6">
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-bold text-gray-700">Campaign Title *</label>
+                        <input 
+                          type="text" 
+                          value={editCampaignData.title}
+                          onChange={(e) => setEditCampaignData({...editCampaignData, title: e.target.value})}
+                          placeholder="e.g., Scholar Excellence Fund 2026" 
+                          className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:border-[#003087] transition-all" 
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-bold text-gray-700">Description *</label>
+                        <textarea 
+                          value={editCampaignData.description}
+                          onChange={(e) => setEditCampaignData({...editCampaignData, description: e.target.value})}
+                          placeholder="Tell the story of this campaign..." 
+                          rows={4} 
+                          className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:border-[#003087] transition-all resize-none" 
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <label className="text-sm font-bold text-gray-700">Category</label>
+                          <select 
+                            value={editCampaignData.category}
+                            onChange={(e) => setEditCampaignData({...editCampaignData, category: e.target.value})}
+                            className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:border-[#003087] transition-all appearance-none"
+                          >
+                            <option>Student Aid</option>
+                            <option>Infrastructure</option>
+                            <option>Research</option>
+                            <option>Faculty</option>
+                          </select>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-bold text-gray-700">Image URL (Optional)</label>
+                          <div className="relative">
+                            <ImageIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                            <input 
+                              type="text" 
+                              value={editCampaignData.imageUrl}
+                              onChange={(e) => setEditCampaignData({...editCampaignData, imageUrl: e.target.value})}
+                              placeholder="https://..." 
+                              className="w-full p-4 pl-12 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:border-[#003087] transition-all" 
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
+                        <div className="space-y-2">
+                          <label className="text-sm font-bold text-gray-700">Goal Amount (₱) *</label>
+                          <input 
+                            type="number" 
+                            value={editCampaignData.goalAmount}
+                            onChange={(e) => setEditCampaignData({...editCampaignData, goalAmount: e.target.value})}
+                            placeholder="0.00" 
+                            className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:border-[#003087] transition-all" 
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-bold text-gray-700">End Date *</label>
+                          <input 
+                            type="date" 
+                            value={editCampaignData.endDate}
+                            onChange={(e) => setEditCampaignData({...editCampaignData, endDate: e.target.value})}
+                            className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:border-[#003087] transition-all" 
+                          />
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex items-start gap-3">
-                      <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                      <span className="text-gray-700">Recognition in annual donor report</span>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                      <span className="text-gray-700">Personal thank you from the President</span>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                      <span className="text-gray-700">Priority access to campus events</span>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                      <span className="text-gray-700">Quarterly impact updates</span>
+
+                    <div className="flex gap-4 pt-8">
+                      <button onClick={() => setIsEditingCampaign(false)} className="flex-1 py-4 border border-gray-200 rounded-xl font-bold text-gray-600 hover:bg-gray-50 transition-all">Cancel</button>
+                      <button onClick={handleEditCampaign} className="flex-1 py-4 bg-[#003087] text-white rounded-xl font-bold shadow-lg shadow-blue-900/20 hover:bg-blue-800 transition-all">Update Campaign</button>
                     </div>
                   </div>
                 </div>
-
-                {/* Loyola Society */}
-                <div className="bg-white rounded-2xl shadow-lg border-2 border-gray-200 overflow-hidden">
-                  <div className="bg-gradient-to-r from-orange-600 to-red-600 p-6 text-white flex items-center justify-between">
-                    <div>
-                      <h3 className="text-2xl font-bold">Loyola Society</h3>
-                      <p className="text-orange-100 font-semibold">₱100,000 - ₱499,999</p>
+              ) : adminManagementView ? (
+                <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  <div className="flex justify-between items-start border-b border-gray-100 pb-8">
+                    <div className="space-y-2">
+                      <h1 className="text-4xl font-bold text-gray-900">Manage Campaigns</h1>
+                      <p className="text-gray-500">Create and monitor fundraising initiatives.</p>
                     </div>
-                    <Award className="w-12 h-12" />
+                    <button 
+                      onClick={() => setIsCreatingCampaign(true)}
+                      className="flex items-center gap-2 px-6 py-3 bg-[#003087] text-white rounded-xl font-bold text-sm shadow-lg hover:bg-blue-800 transition-all"
+                    >
+                      <Plus className="w-4 h-4" /> New Campaign
+                    </button>
                   </div>
-                  <div className="p-6 space-y-3">
-                    <div className="flex items-start gap-3">
-                      <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                      <span className="text-gray-700">Annual recognition event invitation</span>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                      <span className="text-gray-700">Name in university publications</span>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                      <span className="text-gray-700">Donor appreciation events</span>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                      <span className="text-gray-700">Semi-annual impact reports</span>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                      <span className="text-gray-700">Special ADDU memorabilia</span>
+
+                  <div className="grid grid-cols-1 gap-6">
+                    {loading ? (
+                      <div className="text-center py-8">
+                        <p className="text-gray-500 font-semibold">Loading campaigns...</p>
+                      </div>
+                    ) : campaigns.length === 0 ? (
+                      <div className="text-center py-8">
+                        <p className="text-gray-500 font-semibold">No campaigns created yet</p>
+                      </div>
+                    ) : (
+                      campaigns.map((campaign) => (
+                        <div key={campaign.id} className="p-6 border border-gray-200 rounded-3xl space-y-4 hover:border-blue-300 transition-all group">
+                          <div className="flex justify-between items-center">
+                            <h4 className="text-xl font-bold text-gray-900">{campaign.title}</h4>
+                            <span className={`text-xs font-bold px-3 py-1 rounded-full ${campaign.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
+                              {campaign.is_active ? 'Active' : 'Hidden'}
+                            </span>
+                          </div>
+                          <div className="space-y-2">
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-500 font-medium">Progress</span>
+                              <span className="font-bold text-[#003087]">{campaign.raised} / {campaign.goal}</span>
+                            </div>
+                            <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
+                              <div 
+                                className="h-full bg-[#003087] rounded-full transition-all duration-1000" 
+                                style={{ width: `${(parseInt(campaign.raised.replace(/\D/g,'')) || 0) / (parseInt(campaign.goal.replace(/\D/g,'')) || 1) * 100}%` }}
+                              ></div>
+                            </div>
+                          </div>
+                          <div className="flex justify-between items-center pt-2">
+                            <div className="flex items-center gap-4 text-sm text-gray-500 font-medium">
+                              <span>{campaign.backers} Backers</span>
+                              <span>Ends in 14 days</span>
+                            </div>
+                            <div className="flex gap-2">
+                              <button 
+                                onClick={() => openEditCampaign(campaign)}
+                                className="p-2 hover:bg-blue-50 rounded-lg text-gray-400 hover:text-[#003087] transition-all"
+                                title="Edit campaign"
+                              >
+                                <Settings className="w-5 h-5" />
+                              </button>
+                              <button 
+                                onClick={() => handleToggleCampaignVisibility(campaign.id, campaign.is_active || false)}
+                                className="p-2 hover:bg-yellow-50 rounded-lg text-gray-400 hover:text-yellow-600 transition-all"
+                                title={campaign.is_active ? "Hide campaign" : "Show campaign"}
+                              >
+                                {campaign.is_active ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
+                              </button>
+                              <button 
+                                onClick={() => handleDeleteCampaign(campaign.id)}
+                                className="p-2 hover:bg-red-50 rounded-lg text-gray-400 hover:text-red-500 transition-all"
+                                title="Delete campaign"
+                              >
+                                <Trash2 className="w-5 h-5" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              ) : managementView ? (
+                <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  <div className="space-y-2 border-b border-gray-100 pb-8">
+                    <h1 className="text-4xl font-bold text-gray-900">Manage Recurring Gifts</h1>
+                    <p className="text-gray-500">Update your giving preferences or payment methods.</p>
+                  </div>
+
+                  <div className="space-y-4">
+                    {activeGifts.map((gift) => (
+                      <div key={gift.id} className="p-6 border border-blue-100 rounded-3xl bg-blue-50/30 space-y-4">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <p className="text-sm font-bold text-[#003087] uppercase tracking-wider">{gift.freq} Gift</p>
+                            <h4 className="text-2xl font-bold text-gray-900">{gift.amount}</h4>
+                          </div>
+                          <span className="bg-green-100 text-green-700 text-xs font-bold px-3 py-1 rounded-full">Active</span>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-blue-100">
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <Calendar className="w-4 h-4 text-blue-500" /> Next Billing: {gift.nextDate}
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <Gift className="w-4 h-4 text-blue-500" /> Fund: {gift.designation}
+                          </div>
+                        </div>
+
+                        <div className="flex gap-3 pt-4">
+                          <button 
+                            onClick={() => setIsEditingAmount(true)}
+                            className="flex-1 py-3 bg-white border border-gray-200 rounded-xl text-sm font-bold hover:bg-gray-50 transition-all shadow-sm"
+                          >
+                            Update Amount
+                          </button>
+                          <button 
+                            onClick={() => window.confirm("Are you sure you want to cancel this recurring gift?")}
+                            className="px-4 py-3 border border-red-200 text-red-500 rounded-xl hover:bg-red-50 transition-all"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="bg-gray-50 p-6 rounded-2xl border border-dashed border-gray-300">
+                    <div className="flex items-center gap-4 text-gray-500">
+                      <CreditCard className="w-6 h-6" />
+                      <div className="flex-1">
+                        <p className="text-sm font-bold text-gray-900">Default Payment Method</p>
+                        <p className="text-xs">{selectedPayment === 'Credit Card' ? 'Visa ending in 4242' : selectedPayment}</p>
+                      </div>
+                      <button 
+                        onClick={() => setIsChangingPayment(true)}
+                        className="text-[#003087] text-xs font-bold underline"
+                      >
+                        Change
+                      </button>
                     </div>
                   </div>
                 </div>
+              ) : (
+                <>
+                  <div className="space-y-2 border-b border-gray-100 pb-8">
+                    <h1 className="text-4xl font-bold text-gray-900">Make Your Gift</h1>
+                    <p className="text-gray-500">Thank you for supporting ADDU. Your generosity makes a lasting difference.</p>
+                  </div>
 
-                {/* Blue & Gold Circle */}
-                <div className="bg-white rounded-2xl shadow-lg border-2 border-gray-200 overflow-hidden">
-                  <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-6 text-white flex items-center justify-between">
-                    <div>
-                      <h3 className="text-2xl font-bold">Blue & Gold Circle</h3>
-                      <p className="text-blue-100 font-semibold">₱25,000 - ₱99,999</p>
+                  <div className="p-6 border border-gray-200 rounded-2xl bg-gray-50/50 flex flex-col md:flex-row justify-between items-center gap-4">
+                    <div className="space-y-1">
+                      <h4 className="font-bold text-gray-900">Manage Your Giving</h4>
+                      <p className="text-sm text-gray-500">Track and update your existing contributions</p>
                     </div>
-                    <Heart className="w-12 h-12" />
-                  </div>
-                  <div className="p-6 space-y-3">
-                    <div className="flex items-start gap-3">
-                      <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                      <span className="text-gray-700">Recognition in donor honor roll</span>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                      <span className="text-gray-700">Annual impact summary</span>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                      <span className="text-gray-700">University event invitations</span>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                      <span className="text-gray-700">Tax receipt and thank you letter</span>
+                    <div className="flex gap-3 shrink-0">
+                      <button onClick={() => setManagementView(true)} className="px-6 py-2 bg-white border border-gray-300 text-slate-700 font-bold rounded-xl hover:bg-gray-50 transition-all shadow-sm">Manage Gifts</button>
+                      <button onClick={() => { if(window.confirm("Are you sure you want to cancel your recurring gift?")) { setSelectedFreq('One-Time'); } }} className="px-6 py-2 bg-white border border-red-500 text-red-500 font-bold rounded-xl hover:bg-red-50 transition-all">Cancel</button>
                     </div>
                   </div>
-                </div>
-              </div>
-            </div>
+
+                  <div className="space-y-12">
+                    <div className="space-y-6">
+                      <h3 className="text-xl font-bold flex items-center gap-3"><span className="w-8 h-8 rounded-full bg-[#003087] text-white flex items-center justify-center text-sm">1</span>Select Your Gift Amount</h3>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        {['₱50', '₱100', '₱200', '₱1,000'].map((amt) => (
+                          <button key={amt} onClick={() => handleToggle(selectedAmount, amt, setSelectedAmount)} className={`py-4 rounded-2xl font-bold border-2 transition-all ${selectedAmount === amt ? 'bg-[#003087] border-[#003087] text-white' : 'bg-white border-gray-100 text-gray-600 hover:border-blue-200'}`}>{amt}</button>
+                        ))}
+                      </div>
+                      <input type="text" placeholder="Enter Amount" className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none font-bold" />
+                    </div>
+
+                    <div className="space-y-6">
+                      <div className="flex justify-between items-center">
+                        <h3 className="text-xl font-bold flex items-center gap-3"><span className="w-8 h-8 rounded-full bg-[#003087] text-white flex items-center justify-center text-sm">2</span>Choose Gift Frequency</h3>
+                        {selectedFreq && selectedFreq !== 'One-Time' && (
+                          <span className="text-xs font-bold text-orange-600 bg-orange-50 px-3 py-1 rounded-full flex items-center gap-1 animate-pulse">
+                            <Heart className="w-3 h-3 fill-current" /> Recurring Active
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap gap-4">
+                        {['One-Time', 'Monthly', 'Annual'].map((freq) => (
+                          <button key={freq} onClick={() => handleToggle(selectedFreq, freq, setSelectedFreq)} className={`px-8 py-3 rounded-xl border-2 font-bold transition-all ${selectedFreq === freq ? 'bg-[#003087] border-[#003087] text-white' : 'bg-white border-gray-200 text-gray-600'}`}>{freq}</button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-6">
+                      <h3 className="text-xl font-bold flex items-center gap-3"><span className="w-8 h-8 rounded-full bg-[#003087] text-white flex items-center justify-center text-sm">3</span>Designate Your Gift</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {["Where it's needed most (Unrestricted)", "Student Financial Aid", "Faculty Excellence", "Research & Innovation", "Campus Infrastructure", "Academic Programs", "Global Engagement"].map((dest) => (
+                          <button key={dest} onClick={() => handleToggle(selectedDesignation, dest, setSelectedDesignation)} className={`flex items-center gap-3 p-4 border-2 rounded-xl transition-all text-left ${selectedDesignation === dest ? 'bg-blue-50 border-[#003087] text-[#003087]' : 'bg-white border-gray-100 text-gray-600'}`}>
+                            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${selectedDesignation === dest ? 'border-[#003087] bg-[#003087]' : 'border-gray-300'}`}>{selectedDesignation === dest && <div className="w-1.5 h-1.5 rounded-full bg-white" />}</div>
+                            <span className="text-sm font-bold">{dest}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-6">
+                      <h3 className="text-xl font-bold flex items-center gap-3"><span className="w-8 h-8 rounded-full bg-[#003087] text-white flex items-center justify-center text-sm">4</span>Your Information</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input type="text" placeholder="First Name *" className="p-4 bg-gray-50 border border-gray-100 rounded-xl" />
+                        <input type="text" placeholder="Last Name *" className="p-4 bg-gray-50 border border-gray-100 rounded-xl" />
+                        <input type="email" placeholder="Email Address *" className="p-4 bg-gray-50 border border-gray-100 rounded-xl md:col-span-2" />
+                      </div>
+                    </div>
+
+                    <div className="space-y-6">
+                      <h3 className="text-xl font-bold flex items-center gap-3"><span className="w-8 h-8 rounded-full bg-[#003087] text-white flex items-center justify-center text-sm">5</span>Payment Details</h3>
+                      <div className="space-y-4">
+                        <div className="flex gap-4">
+                          {['Credit Card', 'GCash', 'Bank Transfer'].map(m => (
+                            <button key={m} onClick={() => setSelectedPayment(m)} className={`px-6 py-3 border-2 rounded-xl text-sm font-bold transition-all ${selectedPayment === m ? 'bg-[#003087] border-[#003087] text-white' : 'bg-white border-gray-200 text-gray-600'}`}>{m}</button>
+                          ))}
+                        </div>
+                        <input type="text" placeholder="Card Number *" className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl" />
+                        <div className="grid grid-cols-2 gap-4">
+                          <input type="text" placeholder="Expiry Date *" className="p-4 bg-gray-50 border border-gray-100 rounded-xl" />
+                          <input type="text" placeholder="CVV *" className="p-4 bg-gray-50 border border-gray-100 rounded-xl" />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="pt-10 border-t border-gray-100 space-y-6">
+                      <button className="w-full py-5 bg-[#003087] text-white rounded-2xl font-bold text-xl shadow-xl hover:bg-[#002566] transition-all">
+                        {selectedFreq === 'One-Time' || !selectedFreq ? 'Complete My Gift' : `Start My ${selectedFreq} Gift`}
+                      </button>
+                      <div className="grid grid-cols-3 gap-4 text-[11px] text-gray-400 font-bold uppercase text-center">
+                        <div className="flex items-center justify-center gap-2"><Lock className="w-3 h-3" /> Secure</div>
+                        <div>📧 Receipt via Email</div>
+                        <div>💳 Tax-Deductible</div>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </main>
@@ -778,160 +872,349 @@ export function DonationsView({ userRole = 'alumni' }: DonationsViewProps) {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#F8FAFC]">
-      <main className="flex-1 p-8">
-        <div className="max-w-2xl mx-auto">
-          {/* Back Button */}
-          <button 
-            onClick={() => {
-              setShowDonationForm(false);
-              setSelectedCampaign(null);
-              setSelectedAmount('');
-              setCustomAmount('');
-              setFirstName('');
-              setLastName('');
-              setEmail('');
-              setCardNumber('');
-              setExpiryDate('');
-              setCvv('');
-            }} 
-            className="flex items-center gap-2 text-gray-500 font-bold mb-6 hover:text-[#003087] transition-all"
-          >
-            <ChevronLeft className="w-5 h-5" /> Back to Campaigns
-          </button>
-
-          <div className="bg-white rounded-[40px] shadow-xl p-12 border border-gray-100">
-            <div className="space-y-8">
-              {/* Header */}
-              <div className="text-center space-y-4 pb-8 border-b border-gray-100">
-                <div className="w-16 h-16 bg-[#003087] rounded-full flex items-center justify-center mx-auto">
-                  <Heart className="w-8 h-8 text-white fill-current" />
-                </div>
-                <h1 className="text-4xl font-bold text-gray-900">Make a Donation</h1>
-                <p className="text-gray-500">Support ADDU and make a lasting difference</p>
-              </div>
-
-              <form onSubmit={handleSubmit} className="space-y-8">
-                {/* Amount Selection */}
-                <div className="space-y-4">
-                  <label className="block text-lg font-bold text-gray-900">Select Amount</label>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {['₱100', '₱500', '₱1,000', '₱5,000'].map((amt) => (
-                      <button
-                        key={amt}
-                        type="button"
-                        onClick={() => handleAmountSelect(amt)}
-                        className={`py-4 rounded-xl font-bold border-2 transition-all ${
-                          selectedAmount === amt 
-                            ? 'bg-[#003087] border-[#003087] text-white' 
-                            : 'bg-white border-gray-200 text-gray-600 hover:border-blue-300'
-                        }`}
-                      >
-                        {amt}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold">₱</span>
-                    <input
-                      type="number"
-                      placeholder="Or enter custom amount"
-                      value={customAmount}
-                      onChange={(e) => {
-                        setCustomAmount(e.target.value);
-                        setSelectedAmount(null);
-                      }}
-                      className="w-full pl-10 pr-4 py-4 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-[#003087] transition-all"
-                    />
-                  </div>
-                </div>
-
-                {/* Personal Information */}
-                <div className="space-y-4">
-                  <label className="block text-lg font-bold text-gray-900">Your Information</label>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <input
-                      type="text"
-                      placeholder="First Name *"
-                      value={firstName}
-                      onChange={(e) => setFirstName(e.target.value)}
-                      required
-                      className="p-4 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-[#003087] transition-all"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Last Name *"
-                      value={lastName}
-                      onChange={(e) => setLastName(e.target.value)}
-                      required
-                      className="p-4 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-[#003087] transition-all"
-                    />
-                  </div>
-                  <input
-                    type="email"
-                    placeholder="Email Address *"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-[#003087] transition-all"
-                  />
-                </div>
-
-                {/* Payment Information */}
-                <div className="space-y-4">
-                  <label className="block text-lg font-bold text-gray-900 flex items-center gap-2">
-                    <CreditCard className="w-5 h-5" />
-                    Payment Information
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Card Number *"
-                    value={cardNumber}
-                    onChange={(e) => setCardNumber(e.target.value)}
-                    required
-                    maxLength={19}
-                    className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-[#003087] transition-all"
-                  />
-                  <div className="grid grid-cols-2 gap-4">
-                    <input
-                      type="text"
-                      placeholder="MM/YY *"
-                      value={expiryDate}
-                      onChange={(e) => setExpiryDate(e.target.value)}
-                      required
-                      maxLength={5}
-                      className="p-4 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-[#003087] transition-all"
-                    />
-                    <input
-                      type="text"
-                      placeholder="CVV *"
-                      value={cvv}
-                      onChange={(e) => setCvv(e.target.value)}
-                      required
-                      maxLength={4}
-                      className="p-4 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-[#003087] transition-all"
-                    />
-                  </div>
-                </div>
-
-                {/* Security Note */}
-                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center gap-3">
-                  <Lock className="w-5 h-5 text-blue-600" />
-                  <p className="text-sm text-blue-900">Your payment information is secure and encrypted</p>
-                </div>
-
-                {/* Submit Button */}
-                <button
-                  type="submit"
-                  disabled={!finalAmount || !firstName || !lastName || !email || !cardNumber || !expiryDate || !cvv}
-                  className="w-full py-5 bg-[#003087] text-white rounded-xl font-bold text-lg shadow-lg hover:bg-[#002566] transition-all disabled:bg-gray-300 disabled:cursor-not-allowed"
+    <div className="flex flex-col min-h-screen bg-white">
+      <main className="flex-1">
+        {/* HERO */}
+        <div className="bg-[#003087] text-white py-24 px-8 text-center">
+          <div className="max-w-4xl mx-auto space-y-6">
+            <h1 className="text-5xl font-bold leading-tight">Supporting Excellence at ADDU</h1>
+            <p className="text-xl text-blue-100 leading-relaxed max-w-3xl mx-auto">Your generosity empowers students, advances research, and strengthens our Jesuit mission of service and excellence.</p>
+            <div className="pt-4 flex flex-col items-center gap-4">
+              {userRole === "admin" ? (
+                <button 
+                  onClick={() => {
+                    setShowForm(true);
+                    setAdminManagementView(true);
+                  }} 
+                  className="bg-blue-600 hover:bg-blue-500 text-white px-10 py-4 rounded-2xl font-bold text-lg transition-all shadow-lg shadow-black/20"
                 >
-                  Donate ₱{finalAmount || '0'}
+                  <Settings className="w-4 h-4 inline mr-2" /> Manage Campaigns
                 </button>
-              </form>
+              ) : (
+                <button onClick={() => setShowForm(true)} className="bg-orange-600 hover:bg-orange-500 text-white px-10 py-4 rounded-2xl font-bold text-lg transition-all shadow-lg shadow-black/20">Make a Gift Today</button>
+              )}
             </div>
           </div>
         </div>
+
+        {/* TAB NAVIGATION */}
+        <div className="max-w-7xl mx-auto px-8 mt-16 border-b border-gray-200">
+          <div className="flex gap-12">
+            <button 
+              onClick={() => setActiveTab('gift')}
+              className={`pb-4 text-base font-bold transition-all border-b-4 ${activeTab === 'gift' ? 'border-[#003087] text-[#003087]' : 'border-transparent text-gray-400 hover:text-gray-600'}`}
+            >
+              Make a Gift
+            </button>
+            <button 
+              onClick={() => setActiveTab('needs')}
+              className={`pb-4 text-base font-bold transition-all border-b-4 ${activeTab === 'needs' ? 'border-[#003087] text-[#003087]' : 'border-transparent text-gray-400 hover:text-gray-600'}`}
+            >
+              Areas of Greatest Need
+            </button>
+          </div>
+        </div>
+
+        {activeTab === 'gift' && (
+          <>
+            <div className="max-w-7xl mx-auto px-8 py-20">
+              <div className="flex flex-col sm:flex-row justify-center gap-8">
+                {[["Active Donors", "4,250"], ["Alumni Participation", "35%"]].map(([label, val], i) => (
+                  <div key={i} className="flex-1 max-w-sm space-y-2 border-2 border-blue-500 p-10 rounded-[32px] shadow-lg shadow-blue-100/50 hover:shadow-xl transition-all bg-white text-center">
+                    <p className="text-5xl font-extrabold text-[#003087]">{val}</p>
+                    <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">{label}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-[#003087] py-24 px-8">
+              <div className="max-w-7xl mx-auto">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
+                  <div className="lg:col-span-7 space-y-12">
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3 text-orange-400 font-bold uppercase tracking-widest text-sm">
+                        <Award className="w-5 h-5" /> Recognition Tiers
+                      </div>
+                      <h2 className="text-4xl font-bold text-white">Honoring Our Donors</h2>
+                      <p className="text-blue-200 text-lg">We honor our generous supporters who make our mission possible.</p>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {[
+                        { name: "Founder's Circle", price: "₱1,000,000+", perks: ["Named endowment opportunities", "Private events with leadership", "Campus naming rights", "Lifetime recognition on Founder's Wall"] },
+                        { name: "President's Council", price: "₱500,000 - ₱999,999", perks: ["Exclusive event invitations", "Annual donor report recognition", "Personal thank you from President", "Priority access"] },
+                        { name: "Loyola Society", price: "₱100,000 - ₱499,999", perks: ["Recognition event invitations", "Name in publications", "Donor appreciation events", "Semi-annual impact reports"] },
+                        { name: "Blue & Gold Circle", price: "₱25,000 - ₱99,999", perks: ["Donor honor roll", "Annual impact summary", "University invitations", "Official tax receipt"] }
+                      ].map((tier, i) => (
+                        <div key={i} className="bg-white/5 p-8 rounded-[32px] border border-white/10 hover:bg-white/10 transition-all">
+                          <h3 className="text-xl font-bold text-white mb-1">{tier.name}</h3>
+                          <p className="text-orange-400 font-bold mb-6 text-sm">{tier.price}</p>
+                          <ul className="space-y-3">
+                            {tier.perks.map((p, pi) => (
+                              <li key={pi} className="text-[11px] text-blue-100 flex items-start gap-2 leading-relaxed">
+                                <CheckCircle2 className="w-3 h-3 text-orange-500 mt-0.5 shrink-0" /> {p}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="lg:col-span-5">
+                    <div className="bg-white rounded-[40px] p-10 h-full shadow-2xl">
+                      <div className="flex items-center gap-3 text-[#003087] font-bold uppercase tracking-widest text-sm mb-4"><Gift className="w-5 h-5" /> Giving Methods</div>
+                      <h3 className="text-3xl font-bold text-gray-900 mb-8">Ways to Give</h3>
+                      <div className="space-y-10">
+                        {[{ t: "Cash Gifts", d: "Immediate impact via credit card, GCash, or bank transfer." }, { t: "Planned Giving", d: "Create a legacy through bequests or trusts." }].map((way, i) => (
+                          <div key={i} className="group">
+                            <h4 className="text-lg font-bold text-gray-900 group-hover:text-[#003087] transition-colors">{way.t}</h4>
+                            <p className="text-gray-500 text-sm mb-3 leading-relaxed">{way.d}</p>
+                            <button onClick={() => setShowForm(true)} className="text-[#003087] text-sm font-bold flex items-center gap-2 group-hover:gap-4 transition-all">Give Now <ArrowRight className="w-4 h-4" /></button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {activeTab === 'needs' && (
+          <>
+            {/* ACTIVE CAMPAIGNS SECTION */}
+            <div className="max-w-7xl mx-auto px-8 py-24">
+              <div className="space-y-8">
+                <div>
+                  <h2 className="text-4xl font-bold text-gray-900 mb-4">Active Fundraising Campaigns</h2>
+                  <p className="text-gray-500 text-lg">Support our ongoing initiatives and make a direct impact</p>
+                </div>
+
+                {loading ? (
+                  <div className="text-center py-12">
+                    <p className="text-gray-500 font-semibold text-lg">Loading campaigns...</p>
+                  </div>
+                ) : campaigns.length === 0 ? (
+                  <div className="text-center py-12">
+                    <p className="text-gray-500 font-semibold text-lg">No active campaigns at the moment</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {campaigns.map((campaign) => (
+                      <div key={campaign.id} className="bg-white p-8 rounded-[24px] border border-gray-200 shadow-sm hover:shadow-lg transition-all flex flex-col">
+                        <div className="flex justify-between items-start mb-4">
+                          <h3 className="text-xl font-bold text-gray-900 flex-1">{campaign.title}</h3>
+                          <span className="bg-green-100 text-green-700 text-xs font-bold px-3 py-1 rounded-full">Active</span>
+                        </div>
+
+                        <p className="text-gray-600 text-sm mb-6 flex-1">Support this important initiative</p>
+
+                        <div className="space-y-4">
+                          <div>
+                            <div className="flex justify-between mb-2">
+                              <span className="text-sm text-gray-600 font-medium">Progress</span>
+                              <span className="text-sm font-bold text-[#003087]">{campaign.raised} / {campaign.goal}</span>
+                            </div>
+                            <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-[#003087] rounded-full transition-all"
+                                style={{ width: `${Math.min(100, (parseInt(campaign.raised.replace(/\D/g, '')) || 0) / (parseInt(campaign.goal.replace(/\D/g, '')) || 1) * 100)}%` }}
+                              ></div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-4 text-sm text-gray-600">
+                            <span className="font-medium">👥 {campaign.backers} supporters</span>
+                          </div>
+
+                          <button
+                            onClick={() => openDonationModal(campaign)}
+                            className="w-full py-3 bg-[#003087] text-white rounded-xl font-bold hover:bg-[#002566] transition-all"
+                          >
+                            Donate Now
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* AREAS OF GREATEST NEED */}
+            <div className="bg-gray-50/50 py-16">
+              <div className="max-w-7xl mx-auto px-8 text-center">
+                <h2 className="text-4xl font-bold text-gray-900 mb-16">Areas of Greatest Need</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 text-left">
+                {[
+                  { title: "Student Financial Aid", desc: "Ensure every deserving student can access education.", stats: ["₱12.5M annually", "450+ scholars"], icon: <GraduationCap /> },
+                  { title: "Faculty Excellence", desc: "Attract and retain world-class educators.", stats: ["₱8M development", "180+ faculty"], icon: <Presentation /> },
+                  { title: "Research & Innovation", desc: "Advance breakthrough research.", stats: ["₱6.2M grants", "45 projects"], icon: <Microscope /> },
+                  { title: "Campus Infrastructure", desc: "Build state-of-the-art facilities.", stats: ["₱28M improvements", "5 facilities"], icon: <Building2 /> },
+                  { title: "Academic Programs", desc: "Prepare students for tomorrow.", stats: ["₱4.8M support", "12 programs"], icon: <BookOpen /> },
+                  { title: "Global Engagement", desc: "Expand international partnerships.", stats: ["₱3.5M exchanges", "85 experiences"], icon: <Globe /> }
+                ].map((area, i) => (
+                  <div key={i} className="bg-white p-10 rounded-[32px] border border-gray-100 flex flex-col shadow-sm">
+                    <div className="bg-blue-50 text-[#003087] w-14 h-14 rounded-2xl flex items-center justify-center mb-6">{area.icon}</div>
+                    <h3 className="text-2xl font-bold mb-4">{area.title}</h3>
+                    <p className="text-gray-500 mb-8 flex-1 leading-relaxed">{area.desc}</p>
+                    <div className="space-y-3 mb-10 pt-6 border-t border-gray-100">
+                      {area.stats.map((s, si) => (
+                        <div key={si} className="text-sm font-bold text-gray-700 flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-orange-500" />{s}</div>
+                      ))}
+                    </div>
+                    <button onClick={() => setShowForm(true)} className="w-full py-4 rounded-xl border-2 border-[#003087] text-[#003087] font-bold text-sm hover:bg-[#003087] hover:text-white transition-all">Support This Area</button>
+                  </div>
+                ))}
+              </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        <div className="max-w-7xl mx-auto px-8 py-24">
+          <div className="relative overflow-hidden flex flex-col gap-12 rounded-[48px] p-12 md:p-20 shadow-2xl bg-[#003087]">
+            <div className="relative z-10 text-center space-y-6">
+              <h2 className="text-4xl md:text-5xl font-bold text-white">Ready to Make an Impact?</h2>
+              <p className="text-blue-100 text-lg max-w-2xl mx-auto leading-relaxed">Your gift today will transform lives for generations to come.</p>
+              <div className="pt-4">
+                <button onClick={() => setShowForm(true)} className="bg-orange-600 text-white px-12 py-5 rounded-2xl font-bold text-xl shadow-xl hover:bg-orange-500 transition-all transform hover:-translate-y-1">Give Now</button>
+              </div>
+            </div>
+            <div className="relative z-10 pt-12 border-t border-white/10 text-center">
+              <h3 className="text-2xl font-bold text-white mb-2">Questions?</h3>
+              <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
+                <a href="mailto:development@addu.edu.ph" className="flex items-center gap-3 px-8 py-4 rounded-xl border-2 border-white/10 text-white font-bold hover:bg-white hover:text-[#003087] transition-all"><Mail className="w-5 h-5" /> development@addu.edu.ph</a>
+                <a href="tel:+63822212411" className="flex items-center gap-3 px-8 py-4 rounded-xl border-2 border-white/10 text-white font-bold hover:bg-white hover:text-[#003087] transition-all"><Phone className="w-5 h-5" /> +63 (82) 221-2411</a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* DONATION MODAL */}
+        {showDonationModal && selectedCampaignForDonation && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-[32px] p-10 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-8">
+                <h2 className="text-3xl font-bold text-gray-900">Donate to {selectedCampaignForDonation.title}</h2>
+                <button
+                  onClick={() => setShowDonationModal(false)}
+                  className="p-2 hover:bg-gray-100 rounded-full"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                {/* Campaign Info */}
+                <div className="bg-gray-50 p-6 rounded-2xl">
+                  <div className="flex justify-between mb-3">
+                    <span className="text-gray-600 font-medium">Progress</span>
+                    <span className="font-bold text-[#003087]">{selectedCampaignForDonation.raised} / {selectedCampaignForDonation.goal}</span>
+                  </div>
+                  <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-[#003087] rounded-full"
+                      style={{ width: `${Math.min(100, (parseInt(selectedCampaignForDonation.raised.replace(/\D/g, '')) || 0) / (parseInt(selectedCampaignForDonation.goal.replace(/\D/g, '')) || 1) * 100)}%` }}
+                    ></div>
+                  </div>
+                  <p className="text-sm text-gray-600 mt-3">{selectedCampaignForDonation.backers} supporters already donated</p>
+                </div>
+
+                {/* Donation Amount */}
+                <div className="space-y-3">
+                  <label className="text-sm font-bold text-gray-700">Donation Amount (₱) *</label>
+                  <input
+                    type="number"
+                    value={donationAmount}
+                    onChange={(e) => setDonationAmount(e.target.value)}
+                    placeholder="Enter amount"
+                    className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-[#003087] transition-all"
+                  />
+                </div>
+
+                {/* Personal Information */}
+                <div className="space-y-3">
+                  <label className="text-sm font-bold text-gray-700">First Name *</label>
+                  <input
+                    type="text"
+                    value={donationFirstName}
+                    onChange={(e) => setDonationFirstName(e.target.value)}
+                    placeholder="Your first name"
+                    className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-[#003087] transition-all"
+                  />
+                </div>
+
+                <div className="space-y-3">
+                  <label className="text-sm font-bold text-gray-700">Last Name *</label>
+                  <input
+                    type="text"
+                    value={donationLastName}
+                    onChange={(e) => setDonationLastName(e.target.value)}
+                    placeholder="Your last name"
+                    className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-[#003087] transition-all"
+                  />
+                </div>
+
+                <div className="space-y-3">
+                  <label className="text-sm font-bold text-gray-700">Email Address *</label>
+                  <input
+                    type="email"
+                    value={donationEmail}
+                    onChange={(e) => setDonationEmail(e.target.value)}
+                    placeholder="your@email.com"
+                    className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-[#003087] transition-all"
+                  />
+                </div>
+
+                {/* Payment Method */}
+                <div className="space-y-3">
+                  <label className="text-sm font-bold text-gray-700">Payment Method</label>
+                  <div className="grid grid-cols-3 gap-3">
+                    {['Credit Card', 'GCash', 'Bank Transfer'].map((method) => (
+                      <button
+                        key={method}
+                        onClick={() => setDonationPaymentMethod(method)}
+                        className={`p-3 border-2 rounded-xl font-bold text-sm transition-all ${
+                          donationPaymentMethod === method
+                            ? 'bg-[#003087] border-[#003087] text-white'
+                            : 'bg-white border-gray-200 text-gray-600 hover:border-[#003087]'
+                        }`}
+                      >
+                        {method}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Buttons */}
+                <div className="flex gap-3 pt-6">
+                  <button
+                    onClick={() => setShowDonationModal(false)}
+                    className="flex-1 py-4 border border-gray-200 rounded-xl font-bold text-gray-600 hover:bg-gray-50 transition-all"
+                    disabled={isDonating}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleDonateToCampaign}
+                    disabled={isDonating}
+                    className="flex-1 py-4 bg-[#003087] text-white rounded-xl font-bold shadow-lg shadow-blue-900/20 hover:bg-[#002566] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isDonating ? 'Processing...' : `Donate ₱${donationAmount || '0'}`}
+                  </button>
+                </div>
+
+                <p className="text-xs text-gray-500 text-center">
+                  Your donation is secure and tax-deductible. You will receive a receipt via email.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
       <Footer />
     </div>
