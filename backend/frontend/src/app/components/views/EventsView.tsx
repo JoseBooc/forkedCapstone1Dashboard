@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Calendar, Clock, MapPin, Users, Eye, Award, User, FileText, Plus, X, CheckCircle, XCircle, Trash2 } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, Eye, Award, User, FileText, Plus, X, CheckCircle, XCircle, Trash2, Edit } from 'lucide-react';
 import { Footer } from '../Footer';
 import { EventRegistrationModal } from '../EventRegistrationModal';
 
@@ -92,7 +92,7 @@ const INITIAL_EVENTS: Event[] = [
   { id: '33', title: "Pharmacy Trends 2026", category: "Healthcare", date: "September 15, 2026", time: "2:00 PM - 5:00 PM", location: "ADDU School of Nursing", participants: 55, description: "Updating clinical knowledge on emerging pharmaceuticals and patient care.", image: PharmaBG, tab: 'Seminars & Workshops' },
 ];
 
-function EventCard({ event, userRole, onApprove, onReject, onView, onRemove, activeTab }: any) {
+function EventCard({ event, userRole, onApprove, onReject, onView, onRemove, onEdit, activeTab }: any) {
   const isPast = event.tab === 'Past Events';
   const isTeaching = event.tab === 'Teaching Opportunities';
   const isProposalTab = event.tab === 'Alumni Proposals';
@@ -105,12 +105,20 @@ function EventCard({ event, userRole, onApprove, onReject, onView, onRemove, act
         <img src={event.image} alt={event.title} className="w-full h-full object-cover" />
         <div className="absolute top-4 right-4 flex flex-col gap-2 items-end">
           {isAdmin && (
-            <button 
-              onClick={() => onRemove(event.id)}
-              className="p-2 bg-red-600 text-white rounded-full shadow-lg hover:bg-red-700 transition-transform active:scale-95"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
+            <>
+              <button 
+                onClick={() => onEdit(event)}
+                className="p-2 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-transform active:scale-95"
+              >
+                <Edit className="w-4 h-4" />
+              </button>
+              <button 
+                onClick={() => onRemove(event.id)}
+                className="p-2 bg-red-600 text-white rounded-full shadow-lg hover:bg-red-700 transition-transform active:scale-95"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </>
           )}
           <span className="px-4 py-1.5 bg-[#003087] text-white text-[10px] rounded-full font-bold uppercase tracking-wider shadow-lg">
             {event.category}
@@ -211,6 +219,7 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [registrationEvent, setRegistrationEvent] = useState<Event | null>(null);
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
 
   const [events, setEvents] = useState<Event[]>(() => {
     const saved = localStorage.getItem('addu_events');
@@ -218,6 +227,18 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
   });
 
   const [newEvent, setNewEvent] = useState({
+    title: '',
+    category: '',
+    date: '',
+    startTime: '',
+    endTime: '',
+    location: '',
+    description: '',
+    capacity: '',
+    image: ''
+  });
+
+  const [editEvent, setEditEvent] = useState({
     title: '',
     category: '',
     date: '',
@@ -267,6 +288,76 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
     }
   };
 
+  const handleEdit = (event: Event) => {
+    setEditingEvent(event);
+    const timeParts = event.time.split(' - ');
+    setEditEvent({
+      title: event.title,
+      category: event.category,
+      date: event.date,
+      startTime: timeParts[0] || '',
+      endTime: timeParts[1] || '',
+      location: event.location,
+      description: event.description,
+      capacity: event.participants.toString(),
+      image: event.image
+    });
+    setActiveTab('Edit Event');
+  };
+
+  const handleUpdateEvent = () => {
+    if (!editEvent.title || !editEvent.category || !editEvent.date || !editEvent.startTime || !editEvent.endTime || !editEvent.location || !editEvent.description) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    if (!editingEvent) return;
+
+    const updatedEvent: Event = {
+      ...editingEvent,
+      title: editEvent.title,
+      category: editEvent.category,
+      date: editEvent.date,
+      time: `${editEvent.startTime} - ${editEvent.endTime}`,
+      location: editEvent.location,
+      participants: parseInt(editEvent.capacity) || editingEvent.participants,
+      description: editEvent.description,
+      image: editEvent.image || editingEvent.image,
+    };
+
+    setEvents(prev => prev.map(ev => ev.id === editingEvent.id ? updatedEvent : ev));
+    setEditingEvent(null);
+    setEditEvent({
+      title: '',
+      category: '',
+      date: '',
+      startTime: '',
+      endTime: '',
+      location: '',
+      description: '',
+      capacity: '',
+      image: ''
+    });
+    setActiveTab('Upcoming Events');
+    triggerToast();
+  };
+
+  const handleCancelEdit = () => {
+    setEditingEvent(null);
+    setEditEvent({
+      title: '',
+      category: '',
+      date: '',
+      startTime: '',
+      endTime: '',
+      location: '',
+      description: '',
+      capacity: '',
+      image: ''
+    });
+    setActiveTab('Upcoming Events');
+  };
+
   const handleCreateEvent = () => {
     if (!newEvent.title || !newEvent.category || !newEvent.date || !newEvent.startTime || !newEvent.endTime || !newEvent.location || !newEvent.description) {
       alert('Please fill in all required fields');
@@ -303,11 +394,14 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
   };
 
   const baseTabs = ['Upcoming Events', 'Past Events', 'Teaching Opportunities', 'Seminars & Workshops'];
-  const tabs = userRole === 'admin' ? [...baseTabs, 'Alumni Proposals', 'Create Event'] : [...baseTabs, 'My Submissions'];
+  let tabs = userRole === 'admin' ? [...baseTabs, 'Alumni Proposals', 'Create Event'] : [...baseTabs, 'My Submissions'];
+  if (editingEvent && activeTab === 'Edit Event') {
+    tabs = [...tabs, 'Edit Event'];
+  }
 
   const filteredEvents = events.filter(event => {
     if (activeTab === 'My Submissions') return event.status !== undefined && event.submittedBy === userName;
-    if (activeTab === 'Create Event' || activeTab === 'Submit Proposal') return false;
+    if (activeTab === 'Create Event' || activeTab === 'Submit Proposal' || activeTab === 'Edit Event') return false;
     return event.tab === activeTab;
   });
 
@@ -393,7 +487,7 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
           </div>
         )}
 
-        {activeTab !== 'Create Event' && activeTab !== 'Submit Proposal' && (
+        {activeTab !== 'Create Event' && activeTab !== 'Submit Proposal' && activeTab !== 'Edit Event' && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredEvents.map((event) => (
               <EventCard 
@@ -404,6 +498,7 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
                 onReject={handleReject} 
                 onView={setSelectedEvent}
                 onRemove={handleRemove}
+                onEdit={handleEdit}
                 activeTab={activeTab}
               />
             ))}
@@ -550,6 +645,143 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
                     });
                     setActiveTab('Upcoming Events');
                   }}
+                  className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-semibold"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'Edit Event' && userRole === 'admin' && editingEvent && (
+          <div className="bg-white rounded-xl border-2 border-blue-200 p-8 shadow-sm">
+            <h3 className="text-2xl font-bold text-gray-900 mb-6">Edit Event</h3>
+            <p className="text-gray-600 text-sm mb-6">Update the event details below. Changes will be saved immediately.</p>
+            
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Event Title *</label>
+                <input 
+                  type="text" 
+                  placeholder="Enter event title"
+                  value={editEvent.title}
+                  onChange={(e) => setEditEvent({ ...editEvent, title: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
+                />
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Event Date *</label>
+                  <input 
+                    type="date" 
+                    value={editEvent.date}
+                    onChange={(e) => setEditEvent({ ...editEvent, date: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Category *</label>
+                  <select 
+                    value={editEvent.category}
+                    onChange={(e) => setEditEvent({ ...editEvent, category: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
+                  >
+                    <option value="">Select category</option>
+                    <option value="Networking">Networking</option>
+                    <option value="Professional Dev">Professional Development</option>
+                    <option value="Social Event">Social Event</option>
+                    <option value="Academic">Academic</option>
+                    <option value="Career">Career</option>
+                    <option value="Sports">Sports</option>
+                    <option value="Technology">Technology</option>
+                    <option value="Leadership">Leadership</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Start Time *</label>
+                  <input 
+                    type="time" 
+                    value={editEvent.startTime}
+                    onChange={(e) => setEditEvent({ ...editEvent, startTime: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">End Time *</label>
+                  <input 
+                    type="time" 
+                    value={editEvent.endTime}
+                    onChange={(e) => setEditEvent({ ...editEvent, endTime: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Location *</label>
+                <input 
+                  type="text" 
+                  placeholder="e.g., ADDU Campus or Virtual Event"
+                  value={editEvent.location}
+                  onChange={(e) => setEditEvent({ ...editEvent, location: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Event Description *</label>
+                <textarea 
+                  rows={6}
+                  placeholder="Describe the event details..."
+                  value={editEvent.description}
+                  onChange={(e) => setEditEvent({ ...editEvent, description: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent resize-none"
+                ></textarea>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Event Capacity</label>
+                <input 
+                  type="number" 
+                  placeholder="Maximum number of attendees"
+                  value={editEvent.capacity}
+                  onChange={(e) => setEditEvent({ ...editEvent, capacity: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Event Banner Image</label>
+                <input 
+                  type="file" 
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const imageUrl = URL.createObjectURL(file);
+                      setEditEvent({ ...editEvent, image: imageUrl });
+                    }
+                  }}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
+                />
+              </div>
+              
+              <div className="flex gap-3 pt-6 border-t border-gray-200">
+                <button 
+                  onClick={handleUpdateEvent}
+                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+                >
+                  Update Event
+                </button>
+                <button 
+                  onClick={handleCancelEdit}
                   className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-semibold"
                 >
                   Cancel
