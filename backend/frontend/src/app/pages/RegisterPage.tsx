@@ -12,6 +12,7 @@ export function RegisterPage() {
     email: '',
     password: '',
     currentAddress: '',
+    country: '',
     phoneNumber: '',
     telephoneNumber: '',
     geocode: '',
@@ -90,6 +91,7 @@ export function RegisterPage() {
         phone_number: formData.phoneNumber.trim(),
         telephone_number: formData.telephoneNumber && formData.telephoneNumber.trim() !== '' ? formData.telephoneNumber.trim() : null,
         current_address: formData.currentAddress.trim(),
+        country: formData.country,
         geocode: formData.geocode.trim(),
         sex: formData.sex,
         religion: formData.religion,
@@ -100,9 +102,9 @@ export function RegisterPage() {
         intended_marriage_age: formData.intendedMarriageAge && formData.intendedMarriageAge.trim() !== '' ? formData.intendedMarriageAge.trim() : null,
         no_marriage_reason: formData.noMarriageReason && formData.noMarriageReason.trim() !== '' ? formData.noMarriageReason.trim() : null,
         birth_date: formData.birthDate,
-        region: formData.region,
-        province: formData.province.trim(),
-        city: formData.city.trim(),
+        region: formData.country === 'Philippines' ? formData.region : null,
+        province: formData.country === 'Philippines' ? formData.province.trim() : null,
+        city: formData.country === 'Philippines' ? formData.city.trim() : null,
         course: formData.course,
         batch_year: formData.batchYear,
         name: fullName
@@ -117,7 +119,7 @@ export function RegisterPage() {
       });
 
       if (response.ok) {
-        const result = await response.json();
+        await response.json();
         alert('Registration successful! You can now log in with your credentials.');
         navigate('/login');
       } else {
@@ -338,6 +340,143 @@ export function RegisterPage() {
               </div>
             </div>
 
+            {/* Country/Location & Zipcode */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              {/* Country/Location */}
+              <div>
+                <label htmlFor="country" className="block text-gray-700 font-medium mb-2">Country/Location</label>
+                <div className="relative">
+                  <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <select
+                    id="country"
+                    name="country"
+                    value={formData.country}
+                    onChange={handleChange}
+                    className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition"
+                    required
+                  >
+                    <option value="">Select your country</option>
+                    <option value="Philippines">Philippines</option>
+                    <option value="United States">United States</option>
+                    <option value="Canada">Canada</option>
+                    <option value="United Kingdom">United Kingdom</option>
+                    <option value="Australia">Australia</option>
+                    <option value="Japan">Japan</option>
+                    <option value="South Korea">South Korea</option>
+                    <option value="Singapore">Singapore</option>
+                    <option value="Malaysia">Malaysia</option>
+                    <option value="Thailand">Thailand</option>
+                    <option value="Vietnam">Vietnam</option>
+                    <option value="Indonesia">Indonesia</option>
+                    <option value="China">China</option>
+                    <option value="Hong Kong">Hong Kong</option>
+                    <option value="Taiwan">Taiwan</option>
+                    <option value="United Arab Emirates">United Arab Emirates</option>
+                    <option value="Saudi Arabia">Saudi Arabia</option>
+                    <option value="Qatar">Qatar</option>
+                    <option value="Kuwait">Kuwait</option>
+                    <option value="New Zealand">New Zealand</option>
+                    <option value="Germany">Germany</option>
+                    <option value="France">France</option>
+                    <option value="Italy">Italy</option>
+                    <option value="Spain">Spain</option>
+                    <option value="Netherlands">Netherlands</option>
+                    <option value="Switzerland">Switzerland</option>
+                    <option value="Norway">Norway</option>
+                    <option value="Sweden">Sweden</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Geocode/Zipcode */}
+              <div>
+                <label htmlFor="geocode" className="block text-gray-700 font-medium mb-2">Geocode/Zipcode</label>
+                <input
+                  id="geocode"
+                  type="text"
+                  name="geocode"
+                  value={formData.geocode}
+                  onChange={handleChange}
+                  placeholder="Enter your geocode/zipcode"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Philippine Location Fields - Only show when Philippines is selected */}
+            {formData.country === 'Philippines' && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                {/* Region of Origin */}
+                <div>
+                  <label htmlFor="region" className="block text-gray-700 font-medium mb-2">Region of Origin</label>
+                  <select
+                    id="region"
+                    name="region"
+                    value={formData.region}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition"
+                    required
+                  >
+                    <option value="">Select your region</option>
+                    <option value="region-11">Region XI - Davao Region</option>
+                    <option value="ncr">NCR</option>
+                    <option value="region-1">Region I - Ilocos Region</option>
+                    <option value="region-2">Region II - Cagayan Valley</option>
+                    <option value="region-3">Region III - Central Luzon</option>
+                    <option value="region-4a">Region IV-A - CALABARZON</option>
+                    <option value="region-5">Region V - Bicol Region</option>
+                    <option value="region-6">Region VI - Western Visayas</option>
+                    <option value="region-7">Region VII - Central Visayas</option>
+                    <option value="region-8">Region VIII - Eastern Visayas</option>
+                    <option value="region-9">Region IX - Zamboanga Peninsula</option>
+                    <option value="region-10">Region X - Northern Mindanao</option>
+                    <option value="region-12">Region XII - SOCCSKSARGEN</option>
+                    <option value="region-13">Region XIII - Caraga</option>
+                    <option value="barmm">BARMM</option>
+                    <option value="car">CAR - Cordillera Administrative Region</option>
+                  </select>
+                </div>
+
+                {/* Province */}
+                <div>
+                  <label htmlFor="province" className="block text-gray-700 font-medium mb-2">Province</label>
+                  <div className="relative">
+                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      id="province"
+                      type="text"
+                      name="province"
+                      value={formData.province}
+                      onChange={handleChange}
+                      placeholder="e.g., Davao del Sur"
+                      className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition"
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* Location of Town/City */}
+                <div>
+                  <label htmlFor="city" className="block text-gray-700 font-medium mb-2">Location of Town/City</label>
+                  <div className="relative">
+                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      id="city"
+                      type="text"
+                      name="city"
+                      value={formData.city}
+                      onChange={handleChange}
+                      placeholder="e.g., Davao City"
+                      className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Phone Number & Telephone */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
               {/* Phone Number */}
@@ -376,38 +515,20 @@ export function RegisterPage() {
               </div>
             </div>
 
-            {/* Geocode/Zipcode & Birth Date */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-              {/* Geocode/Zipcode */}
-              <div>
-                <label htmlFor="geocode" className="block text-gray-700 font-medium mb-2">Geocode/Zipcode</label>
+            {/* Birth Date */}
+            <div className="mb-6">
+              <label htmlFor="birthDate" className="block text-gray-700 font-medium mb-2">Birth Date</label>
+              <div className="relative">
+                <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
-                  id="geocode"
-                  type="text"
-                  name="geocode"
-                  value={formData.geocode}
+                  id="birthDate"
+                  type="date"
+                  name="birthDate"
+                  value={formData.birthDate}
                   onChange={handleChange}
-                  placeholder="Enter your geocode/zipcode"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition"
+                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition"
                   required
                 />
-              </div>
-
-              {/* Birth Date */}
-              <div>
-                <label htmlFor="birthDate" className="block text-gray-700 font-medium mb-2">Birth Date</label>
-                <div className="relative">
-                  <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
-                    id="birthDate"
-                    type="date"
-                    name="birthDate"
-                    value={formData.birthDate}
-                    onChange={handleChange}
-                    className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition"
-                    required
-                  />
-                </div>
               </div>
             </div>
 
@@ -594,76 +715,6 @@ export function RegisterPage() {
                 )}
               </div>
             )}
-
-            {/* Region, Province, Location */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              {/* Region of Origin */}
-              <div>
-                <label htmlFor="region" className="block text-gray-700 font-medium mb-2">Region of Origin</label>
-                <select
-                  id="region"
-                  name="region"
-                  value={formData.region}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition"
-                  required
-                >
-                  <option value="">Select your region</option>
-                  <option value="region-11">Region XI - Davao Region</option>
-                  <option value="ncr">NCR</option>
-                  <option value="region-1">Region I - Ilocos Region</option>
-                  <option value="region-2">Region II - Cagayan Valley</option>
-                  <option value="region-3">Region III - Central Luzon</option>
-                  <option value="region-4a">Region IV-A - CALABARZON</option>
-                  <option value="region-5">Region V - Bicol Region</option>
-                  <option value="region-6">Region VI - Western Visayas</option>
-                  <option value="region-7">Region VII - Central Visayas</option>
-                  <option value="region-8">Region VIII - Eastern Visayas</option>
-                  <option value="region-9">Region IX - Zamboanga Peninsula</option>
-                  <option value="region-10">Region X - Northern Mindanao</option>
-                  <option value="region-12">Region XII - SOCCSKSARGEN</option>
-                  <option value="region-13">Region XIII - Caraga</option>
-                  <option value="barmm">BARMM</option>
-                  <option value="car">CAR - Cordillera Administrative Region</option>
-                </select>
-              </div>
-
-              {/* Province */}
-              <div>
-                <label htmlFor="province" className="block text-gray-700 font-medium mb-2">Province</label>
-                <div className="relative">
-                  <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
-                    id="province"
-                    type="text"
-                    name="province"
-                    value={formData.province}
-                    onChange={handleChange}
-                    placeholder="e.g., Davao del Sur"
-                    className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition"
-                    required
-                  />
-                </div>
-              </div>
-
-              {/* Location of Town/City */}
-              <div>
-                <label htmlFor="city" className="block text-gray-700 font-medium mb-2">Location of Town/City</label>
-                <div className="relative">
-                  <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
-                    id="city"
-                    type="text"
-                    name="city"
-                    value={formData.city}
-                    onChange={handleChange}
-                    placeholder="e.g., Davao City"
-                    className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition"
-                    required
-                  />
-                </div>
-              </div>
-            </div>
 
             {/* Course & Batch Year */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">

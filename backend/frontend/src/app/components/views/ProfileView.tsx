@@ -19,6 +19,7 @@ export function ProfileView({ userRole }: ProfileViewProps) {
     phone: "",
     telephone: "",
     address: "",
+    country: "",
     geocode: "",
     sex: "",
     religion: "",
@@ -62,6 +63,7 @@ export function ProfileView({ userRole }: ProfileViewProps) {
         phone: userData.phone_number || '',
         telephone: userData.telephone_number || '',
         address: userData.current_address || '',
+        country: userData.country || '',
         geocode: userData.geocode || '',
         sex: userData.sex || '',
         religion: userData.religion || '',
@@ -138,6 +140,7 @@ export function ProfileView({ userRole }: ProfileViewProps) {
           phone_number: formData.phone,
           telephone_number: formData.telephone,
           current_address: formData.address,
+          country: formData.country,
           geocode: formData.geocode,
           sex: formData.sex,
           religion: formData.religion,
@@ -148,9 +151,9 @@ export function ProfileView({ userRole }: ProfileViewProps) {
           intended_marriage_age: formData.intendedMarriageAge,
           no_marriage_reason: formData.noMarriageReason,
           birth_date: formData.birthDate,
-          region: formData.region,
-          province: formData.province,
-          city: formData.city,
+          region: formData.country === 'Philippines' ? formData.region : null,
+          province: formData.country === 'Philippines' ? formData.province : null,
+          city: formData.country === 'Philippines' ? formData.city : null,
           course: formData.course,
           batch_year: formData.batchYear,
         }),
@@ -239,7 +242,11 @@ export function ProfileView({ userRole }: ProfileViewProps) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-y-3 gap-x-12">
                 <div className="flex items-center gap-3 text-gray-600"><Mail className="w-4 h-4 text-[#003087]" /><span className="text-sm">{formData.email || 'Not provided'}</span></div>
                 <div className="flex items-center gap-3 text-gray-600"><Phone className="w-4 h-4 text-[#003087]" /><span className="text-sm">{formData.phone || 'Not provided'}</span></div>
-                <div className="flex items-center gap-3 text-gray-600"><MapPin className="w-4 h-4 text-[#003087]" /><span className="text-sm">{formData.city || 'City not set'}, {formData.province || 'Province not set'}</span></div>
+                <div className="flex items-center gap-3 text-gray-600"><MapPin className="w-4 h-4 text-[#003087]" /><span className="text-sm">
+                  {formData.country === 'Philippines' 
+                    ? `${formData.city || 'City not set'}, ${formData.province || 'Province not set'}`
+                    : formData.country || 'Location not set'}
+                </span></div>
                 <div className="flex items-center gap-3 text-gray-600"><Briefcase className="w-4 h-4 text-[#003087]" /><span className="text-sm">{formData.jobTitle || 'Job title not set'} {formData.company && `at ${formData.company}`}</span></div>
               </div>
             </div>
@@ -479,58 +486,105 @@ export function ProfileView({ userRole }: ProfileViewProps) {
               </>
             )}
 
-            {/* Region */}
+            {/* Country/Location */}
             <div className="space-y-1">
-              <label className="text-sm font-semibold text-gray-700">Region</label>
+              <label className="text-sm font-semibold text-gray-700">Country/Location</label>
               <select
-                value={formData.region || ''}
-                onChange={(e) => setFormData({...formData, region: e.target.value})}
+                value={formData.country || ''}
+                onChange={(e) => setFormData({...formData, country: e.target.value})}
                 disabled={!isEditing}
                 className={`w-full px-3 py-2 border rounded-lg transition-all text-sm ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
               >
-                <option value="">Select your region</option>
-                <option value="region-11">Region XI - Davao Region</option>
-                <option value="ncr">NCR</option>
-                <option value="region-1">Region I - Ilocos Region</option>
-                <option value="region-2">Region II - Cagayan Valley</option>
-                <option value="region-3">Region III - Central Luzon</option>
-                <option value="region-4a">Region IV-A - CALABARZON</option>
-                <option value="region-5">Region V - Bicol Region</option>
-                <option value="region-6">Region VI - Western Visayas</option>
-                <option value="region-7">Region VII - Central Visayas</option>
-                <option value="region-8">Region VIII - Eastern Visayas</option>
-                <option value="region-9">Region IX - Zamboanga Peninsula</option>
-                <option value="region-10">Region X - Northern Mindanao</option>
-                <option value="region-12">Region XII - SOCCSKSARGEN</option>
-                <option value="region-13">Region XIII - Caraga</option>
-                <option value="barmm">BARMM</option>
-                <option value="car">CAR - Cordillera Administrative Region</option>
+                <option value="">Select your country</option>
+                <option value="Philippines">Philippines</option>
+                <option value="United States">United States</option>
+                <option value="Canada">Canada</option>
+                <option value="United Kingdom">United Kingdom</option>
+                <option value="Australia">Australia</option>
+                <option value="Japan">Japan</option>
+                <option value="South Korea">South Korea</option>
+                <option value="Singapore">Singapore</option>
+                <option value="Malaysia">Malaysia</option>
+                <option value="Thailand">Thailand</option>
+                <option value="Vietnam">Vietnam</option>
+                <option value="Indonesia">Indonesia</option>
+                <option value="China">China</option>
+                <option value="Hong Kong">Hong Kong</option>
+                <option value="Taiwan">Taiwan</option>
+                <option value="United Arab Emirates">United Arab Emirates</option>
+                <option value="Saudi Arabia">Saudi Arabia</option>
+                <option value="Qatar">Qatar</option>
+                <option value="Kuwait">Kuwait</option>
+                <option value="New Zealand">New Zealand</option>
+                <option value="Germany">Germany</option>
+                <option value="France">France</option>
+                <option value="Italy">Italy</option>
+                <option value="Spain">Spain</option>
+                <option value="Netherlands">Netherlands</option>
+                <option value="Switzerland">Switzerland</option>
+                <option value="Norway">Norway</option>
+                <option value="Sweden">Sweden</option>
+                <option value="Other">Other</option>
               </select>
             </div>
 
-            {/* Province */}
-            <div className="space-y-1">
-              <label className="text-sm font-semibold text-gray-700">Province</label>
-              <input 
-                type="text"
-                value={formData.province || ''}
-                onChange={(e) => setFormData({...formData, province: e.target.value})}
-                disabled={!isEditing}
-                className={`w-full px-3 py-2 border rounded-lg transition-all text-sm ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
-              />
-            </div>
+            {/* Philippine Location Fields - Only show when Philippines is selected */}
+            {formData.country === 'Philippines' && (
+              <>
+                {/* Region */}
+                <div className="space-y-1">
+                  <label className="text-sm font-semibold text-gray-700">Region</label>
+                  <select
+                    value={formData.region || ''}
+                    onChange={(e) => setFormData({...formData, region: e.target.value})}
+                    disabled={!isEditing}
+                    className={`w-full px-3 py-2 border rounded-lg transition-all text-sm ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
+                  >
+                    <option value="">Select your region</option>
+                    <option value="region-11">Region XI - Davao Region</option>
+                    <option value="ncr">NCR</option>
+                    <option value="region-1">Region I - Ilocos Region</option>
+                    <option value="region-2">Region II - Cagayan Valley</option>
+                    <option value="region-3">Region III - Central Luzon</option>
+                    <option value="region-4a">Region IV-A - CALABARZON</option>
+                    <option value="region-5">Region V - Bicol Region</option>
+                    <option value="region-6">Region VI - Western Visayas</option>
+                    <option value="region-7">Region VII - Central Visayas</option>
+                    <option value="region-8">Region VIII - Eastern Visayas</option>
+                    <option value="region-9">Region IX - Zamboanga Peninsula</option>
+                    <option value="region-10">Region X - Northern Mindanao</option>
+                    <option value="region-12">Region XII - SOCCSKSARGEN</option>
+                    <option value="region-13">Region XIII - Caraga</option>
+                    <option value="barmm">BARMM</option>
+                    <option value="car">CAR - Cordillera Administrative Region</option>
+                  </select>
+                </div>
 
-            {/* City */}
-            <div className="space-y-1">
-              <label className="text-sm font-semibold text-gray-700">City</label>
-              <input 
-                type="text"
-                value={formData.city || ''}
-                onChange={(e) => setFormData({...formData, city: e.target.value})}
-                disabled={!isEditing}
-                className={`w-full px-3 py-2 border rounded-lg transition-all text-sm ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
-              />
-            </div>
+                {/* Province */}
+                <div className="space-y-1">
+                  <label className="text-sm font-semibold text-gray-700">Province</label>
+                  <input 
+                    type="text"
+                    value={formData.province || ''}
+                    onChange={(e) => setFormData({...formData, province: e.target.value})}
+                    disabled={!isEditing}
+                    className={`w-full px-3 py-2 border rounded-lg transition-all text-sm ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
+                  />
+                </div>
+
+                {/* City */}
+                <div className="space-y-1">
+                  <label className="text-sm font-semibold text-gray-700">City</label>
+                  <input 
+                    type="text"
+                    value={formData.city || ''}
+                    onChange={(e) => setFormData({...formData, city: e.target.value})}
+                    disabled={!isEditing}
+                    className={`w-full px-3 py-2 border rounded-lg transition-all text-sm ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
+                  />
+                </div>
+              </>
+            )}
 
             {/* Course */}
             <div className="space-y-1">

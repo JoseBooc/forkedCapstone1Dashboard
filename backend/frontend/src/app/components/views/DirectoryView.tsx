@@ -97,7 +97,7 @@ export function DirectoryView({ userRole }: { userRole: string }) {
       else if (yearFilter === "2010-2014") matchesYear = year >= 2010 && year <= 2014;
       return matchesSearch && matchesYear && (courseFilter === "All Courses" || a.program === courseFilter) && (locationFilter === "All Locations" || a.location.includes(locationFilter));
     });
-  }, [searchQuery, yearFilter, courseFilter, locationFilter]);
+  }, [searchQuery, yearFilter, courseFilter, locationFilter, allAlumni]);
 
   return (
     <div className="flex flex-col min-h-screen bg-[#F8FAFC]">

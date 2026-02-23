@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { 
-  GraduationCap, Users, Globe, Heart, MapPin, Clock, Calendar,
+  Users, Globe, Heart, MapPin, Clock, Calendar,
   Briefcase, BookOpen, Award, UserCheck, Phone, Mail, Facebook,
   Twitter, Instagram, Linkedin
 } from 'lucide-react';

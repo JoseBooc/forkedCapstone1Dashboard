@@ -103,6 +103,7 @@ export function DonationsView({ userRole, onNavigate }: DonationsViewProps) {
   // Fetch campaigns from API
   useEffect(() => {
     fetchCampaigns();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userRole]);
 
   const fetchCampaigns = async () => {
@@ -174,7 +175,7 @@ export function DonationsView({ userRole, onNavigate }: DonationsViewProps) {
       });
 
       if (response.ok) {
-        const createdCampaign = await response.json();
+        await response.json();
         fetchCampaigns(); // Refresh the campaigns list
         setIsCreatingCampaign(false);
         setNewCampaign({

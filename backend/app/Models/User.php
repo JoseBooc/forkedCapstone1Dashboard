@@ -27,6 +27,7 @@ class User extends Authenticatable
         'middle_name',
         'last_name',
         'current_address',
+        'country',
         'phone_number',
         'telephone_number',
         'geocode',

@@ -112,7 +112,7 @@ export function UserManagementView({ userRole }: UserManagementViewProps) {
       });
 
       if (response.ok) {
-        const updatedUser = await response.json();
+        await response.json();
         setUsers(users.map(u => u.id === user.id ? { ...u, is_active: newStatus } : u));
         alert(`User ${newStatus === 1 ? 'unblocked' : 'blocked'} successfully!`);
       } else {

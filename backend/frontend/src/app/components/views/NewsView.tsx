@@ -153,43 +153,43 @@ export function NewsView({ userRole }: { userRole: string }) {
     alert('Article published successfully!');
   };
 
-  const newsFeed = [
-    {
-      category: "Programs",
-      title: "New Alumni Mentorship Program Launches",
-      excerpt: "Connect with fellow Ateneans and share your expertise with the next generation through our expanded mentorship initiative.",
-      date: "January 5, 2026",
-      image: mentorProgram
-    },
-    {
-      category: "Community",
-      title: "Global Alumni Chapters Expand to 15 Cities",
-      excerpt: "From Manila to New York, our international network continues to grow, bringing Ateneans together across continents.",
-      date: "December 28, 2025",
-      image: globalAlumni
-    },
-    {
-      category: "Achievements",
-      title: "Congratulations to the AdDU College of Law for their outstanding performance in the 2025 Bar Exam!",
-      excerpt: "AdDU is TOP 1 among law schools with 51-100 candidates! Our university has produced 82 new Attorneys this year with a 100% passing rate.",
-      date: "January 7, 2026",
-      image: achievements1
-    },
-    {
-      category: "Achievements",
-      title: "ADDU 26th in the Webometrics Philippines Ranking January 2026!",
-      excerpt: "Congratulations to the Ateneo de Davao University Community on ranking 26th out of 356 universities in the Philippines!",
-      date: "January 24, 2026",
-      image: achievements2
-    },
-    {
-      category: "Achievements",
-      title: "WHO MADE THE CUT? ⚖️📚",
-      excerpt: "Ateneo schools dominate the 2025 Bar exams as Ateneo de Manila University tops law schools with over 100 examinees.",
-      date: "January 7, 2026",
-      image: whoMadeCut
-    }
-  ];
+  // const newsFeed = [
+  //   {
+  //     category: "Programs",
+  //     title: "New Alumni Mentorship Program Launches",
+  //     excerpt: "Connect with fellow Ateneans and share your expertise with the next generation through our expanded mentorship initiative.",
+  //     date: "January 5, 2026",
+  //     image: mentorProgram
+  //   },
+  //   {
+  //     category: "Community",
+  //     title: "Global Alumni Chapters Expand to 15 Cities",
+  //     excerpt: "From Manila to New York, our international network continues to grow, bringing Ateneans together across continents.",
+  //     date: "December 28, 2025",
+  //     image: globalAlumni
+  //   },
+  //   {
+  //     category: "Achievements",
+  //     title: "Congratulations to the AdDU College of Law for their outstanding performance in the 2025 Bar Exam!",
+  //     excerpt: "AdDU is TOP 1 among law schools with 51-100 candidates! Our university has produced 82 new Attorneys this year with a 100% passing rate.",
+  //     date: "January 7, 2026",
+  //     image: achievements1
+  //   },
+  //   {
+  //     category: "Achievements",
+  //     title: "ADDU 26th in the Webometrics Philippines Ranking January 2026!",
+  //     excerpt: "Congratulations to the Ateneo de Davao University Community on ranking 26th out of 356 universities in the Philippines!",
+  //     date: "January 24, 2026",
+  //     image: achievements2
+  //   },
+  //   {
+  //     category: "Achievements",
+  //     title: "WHO MADE THE CUT? ⚖️📚",
+  //     excerpt: "Ateneo schools dominate the 2025 Bar exams as Ateneo de Manila University tops law schools with over 100 examinees.",
+  //     date: "January 7, 2026",
+  //     image: whoMadeCut
+  //   }
+  // ];
 
   return (
     <div className="flex flex-col min-h-screen bg-[#F8FAFC]">
