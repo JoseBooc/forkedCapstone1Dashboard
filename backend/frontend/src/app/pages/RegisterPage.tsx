@@ -80,42 +80,50 @@ export function RegisterPage() {
         ? `${formData.firstName} ${cleanMiddleName} ${formData.lastName}`.trim()
         : `${formData.firstName} ${formData.lastName}`.trim();
       
-      // Prepare user data
-      const userData = {
-        first_name: formData.firstName.trim(),
-        middle_name: cleanMiddleName,
-        last_name: formData.lastName.trim(),
-        email: formData.email.trim(),
-        password: formData.password,
-        role: 'alumni',
-        phone_number: formData.phoneNumber.trim(),
-        telephone_number: formData.telephoneNumber && formData.telephoneNumber.trim() !== '' ? formData.telephoneNumber.trim() : null,
-        current_address: formData.currentAddress.trim(),
-        country: formData.country,
-        geocode: formData.geocode.trim(),
-        sex: formData.sex,
-        religion: formData.religion,
-        religion_other: formData.religionOther && formData.religionOther.trim() !== '' ? formData.religionOther.trim() : null,
-        marital_status: formData.maritalStatus,
-        marriage_date: formData.marriageDate && formData.marriageDate !== '' ? formData.marriageDate : null,
-        intend_to_marry: formData.intendToMarry,
-        intended_marriage_age: formData.intendedMarriageAge && formData.intendedMarriageAge.trim() !== '' ? formData.intendedMarriageAge.trim() : null,
-        no_marriage_reason: formData.noMarriageReason && formData.noMarriageReason.trim() !== '' ? formData.noMarriageReason.trim() : null,
-        birth_date: formData.birthDate,
-        region: formData.country === 'Philippines' ? formData.region : null,
-        province: formData.country === 'Philippines' ? formData.province.trim() : null,
-        city: formData.country === 'Philippines' ? formData.city.trim() : null,
-        course: formData.course,
-        batch_year: formData.batchYear,
-        name: fullName
-      };
+      // Create FormData to handle file uploads
+      const formDataToSend = new FormData();
+      
+      // Append all user data fields
+      formDataToSend.append('first_name', formData.firstName.trim());
+      formDataToSend.append('middle_name', cleanMiddleName || '');
+      formDataToSend.append('last_name', formData.lastName.trim());
+      formDataToSend.append('email', formData.email.trim());
+      formDataToSend.append('password', formData.password);
+      formDataToSend.append('role', 'alumni');
+      formDataToSend.append('phone_number', formData.phoneNumber.trim());
+      formDataToSend.append('telephone_number', formData.telephoneNumber && formData.telephoneNumber.trim() !== '' ? formData.telephoneNumber.trim() : '');
+      formDataToSend.append('current_address', formData.currentAddress.trim());
+      formDataToSend.append('country', formData.country);
+      formDataToSend.append('geocode', formData.geocode.trim());
+      formDataToSend.append('sex', formData.sex);
+      formDataToSend.append('religion', formData.religion);
+      formDataToSend.append('religion_other', formData.religionOther && formData.religionOther.trim() !== '' ? formData.religionOther.trim() : '');
+      formDataToSend.append('marital_status', formData.maritalStatus);
+      formDataToSend.append('marriage_date', formData.marriageDate && formData.marriageDate !== '' ? formData.marriageDate : '');
+      formDataToSend.append('intend_to_marry', formData.intendToMarry || '');
+      formDataToSend.append('intended_marriage_age', formData.intendedMarriageAge && formData.intendedMarriageAge.trim() !== '' ? formData.intendedMarriageAge.trim() : '');
+      formDataToSend.append('no_marriage_reason', formData.noMarriageReason && formData.noMarriageReason.trim() !== '' ? formData.noMarriageReason.trim() : '');
+      formDataToSend.append('birth_date', formData.birthDate);
+      formDataToSend.append('region', formData.country === 'Philippines' ? formData.region : '');
+      formDataToSend.append('province', formData.country === 'Philippines' ? formData.province.trim() : '');
+      formDataToSend.append('city', formData.country === 'Philippines' ? formData.city.trim() : '');
+      formDataToSend.append('course', formData.course);
+      formDataToSend.append('batch_year', formData.batchYear);
+      formDataToSend.append('name', fullName);
+      
+      // Append file upload fields
+      formDataToSend.append('has_diploma', formData.hasDiploma);
+      if (diplomaFile) {
+        formDataToSend.append('diploma_file', diplomaFile);
+      }
+      formDataToSend.append('id_type', formData.idType);
+      if (validIdFile) {
+        formDataToSend.append('valid_id_file', validIdFile);
+      }
 
       const response = await fetch('http://localhost:8000/api/users', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(userData),
+        body: formDataToSend, // Send FormData instead of JSON
       });
 
       if (response.ok) {

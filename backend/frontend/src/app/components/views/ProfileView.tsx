@@ -128,6 +128,16 @@ export function ProfileView({ userRole }: ProfileViewProps) {
         return;
       }
 
+      // Clean middle name - convert empty string to null
+      const cleanMiddleName = formData.middleName && formData.middleName.trim() !== '' ? formData.middleName.trim() : null;
+      
+      // Clean other optional fields
+      const cleanTelephone = formData.telephone && formData.telephone.trim() !== '' ? formData.telephone.trim() : null;
+      const cleanReligionOther = formData.religionOther && formData.religionOther.trim() !== '' ? formData.religionOther.trim() : null;
+      const cleanMarriageDate = formData.marriageDate && formData.marriageDate !== '' ? formData.marriageDate : null;
+      const cleanIntendedMarriageAge = formData.intendedMarriageAge && formData.intendedMarriageAge.trim() !== '' ? formData.intendedMarriageAge.trim() : null;
+      const cleanNoMarriageReason = formData.noMarriageReason && formData.noMarriageReason.trim() !== '' ? formData.noMarriageReason.trim() : null;
+
       const response = await fetch(`http://localhost:8000/api/users/${encodeURIComponent(userEmail)}`, {
         method: 'PUT',
         headers: {
@@ -135,21 +145,21 @@ export function ProfileView({ userRole }: ProfileViewProps) {
         },
         body: JSON.stringify({
           first_name: formData.firstName,
-          middle_name: formData.middleName,
+          middle_name: cleanMiddleName,
           last_name: formData.lastName,
           phone_number: formData.phone,
-          telephone_number: formData.telephone,
+          telephone_number: cleanTelephone,
           current_address: formData.address,
           country: formData.country,
           geocode: formData.geocode,
           sex: formData.sex,
           religion: formData.religion,
-          religion_other: formData.religionOther,
+          religion_other: cleanReligionOther,
           marital_status: formData.maritalStatus,
-          marriage_date: formData.marriageDate,
+          marriage_date: cleanMarriageDate,
           intend_to_marry: formData.intendToMarry,
-          intended_marriage_age: formData.intendedMarriageAge,
-          no_marriage_reason: formData.noMarriageReason,
+          intended_marriage_age: cleanIntendedMarriageAge,
+          no_marriage_reason: cleanNoMarriageReason,
           birth_date: formData.birthDate,
           region: formData.country === 'Philippines' ? formData.region : null,
           province: formData.country === 'Philippines' ? formData.province : null,
@@ -160,8 +170,8 @@ export function ProfileView({ userRole }: ProfileViewProps) {
       });
 
       if (response.ok) {
-        // Update localStorage with the new full name
-        const fullName = `${formData.firstName}${formData.middleName ? ' ' + formData.middleName : ''} ${formData.lastName}`.trim();
+        // Update localStorage with the new full name (only include middle name if not empty)
+        const fullName = `${formData.firstName}${cleanMiddleName ? ' ' + cleanMiddleName : ''} ${formData.lastName}`.trim();
         localStorage.setItem('userName', fullName);
         
         // Trigger a storage event to update sidebar in real-time

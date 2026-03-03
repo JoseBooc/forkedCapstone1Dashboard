@@ -53,19 +53,23 @@ class UserController extends Controller
             'last_name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
             'password' => 'required|string|min:6',
-            'phone_number' => 'required|string',
-            'current_address' => 'required|string',
-            'country' => 'required|string',
-            'geocode' => 'required|string',
-            'sex' => 'required|string',
-            'religion' => 'required|string',
-            'marital_status' => 'required|string',
-            'birth_date' => 'required|date',
+            'phone_number' => 'nullable|string',
+            'current_address' => 'nullable|string',
+            'country' => 'nullable|string',
+            'geocode' => 'nullable|string',
+            'sex' => 'nullable|string',
+            'religion' => 'nullable|string',
+            'marital_status' => 'nullable|string',
+            'birth_date' => 'nullable|date',
             'region' => 'nullable|string',
             'province' => 'nullable|string',
             'city' => 'nullable|string',
-            'course' => 'required|string',
-            'batch_year' => 'required|string',
+            'course' => 'nullable|string',
+            'batch_year' => 'nullable|string',
+            'has_diploma' => 'nullable|string|in:yes,no',
+            'diploma_file' => 'nullable|file|mimes:png,jpg,jpeg,pdf|max:10240',
+            'id_type' => 'nullable|string',
+            'valid_id_file' => 'nullable|file|mimes:png,jpg,jpeg,pdf|max:10240',
         ]);
 
         // Handle middle name - set to null if empty
@@ -76,6 +80,22 @@ class UserController extends Controller
 
         // Construct full name properly
         $fullName = trim($request->first_name . ($middleName ? ' ' . $middleName : '') . ' ' . $request->last_name);
+
+        // Handle diploma file upload
+        $diplomaFilePath = null;
+        if ($request->hasFile('diploma_file')) {
+            $diplomaFile = $request->file('diploma_file');
+            $diplomaFileName = time() . '_diploma_' . $diplomaFile->getClientOriginalName();
+            $diplomaFilePath = $diplomaFile->storeAs('uploads/diplomas', $diplomaFileName, 'public');
+        }
+
+        // Handle valid ID file upload
+        $validIdFilePath = null;
+        if ($request->hasFile('valid_id_file')) {
+            $validIdFile = $request->file('valid_id_file');
+            $validIdFileName = time() . '_id_' . $validIdFile->getClientOriginalName();
+            $validIdFilePath = $validIdFile->storeAs('uploads/ids', $validIdFileName, 'public');
+        }
 
         $user = User::create([
             'name' => $fullName,
@@ -104,6 +124,10 @@ class UserController extends Controller
             'city' => $request->city,
             'course' => $request->course,
             'batch_year' => $request->batch_year,
+            'has_diploma' => $request->has_diploma ?? 'no',
+            'diploma_file_path' => $diplomaFilePath,
+            'id_type' => $request->id_type,
+            'valid_id_file_path' => $validIdFilePath,
             'is_active' => 1,
             'email_verified_at' => now(),
         ]);
@@ -135,7 +159,30 @@ class UserController extends Controller
             return response()->json(['error' => 'User not found'], 404);
         }
         
-        $user->update($request->all());
+        // Handle middle name - set to null if empty
+        $updateData = $request->all();
+        if (isset($updateData['middle_name'])) {
+            $middleName = $updateData['middle_name'];
+            if (empty($middleName) || trim($middleName) === '') {
+                $updateData['middle_name'] = null;
+            }
+        }
+        
+        // Reconstruct full name if first_name or last_name is being updated
+        if (isset($updateData['first_name']) || isset($updateData['last_name']) || isset($updateData['middle_name'])) {
+            $firstName = $updateData['first_name'] ?? $user->first_name;
+            $middleName = isset($updateData['middle_name']) ? $updateData['middle_name'] : $user->middle_name;
+            $lastName = $updateData['last_name'] ?? $user->last_name;
+            
+            // Clean middle name again for name construction
+            if (empty($middleName) || trim($middleName) === '') {
+                $middleName = null;
+            }
+            
+            $updateData['name'] = trim($firstName . ($middleName ? ' ' . $middleName : '') . ' ' . $lastName);
+        }
+        
+        $user->update($updateData);
         
         return response()->json([
             'message' => 'Profile updated successfully',
@@ -152,7 +199,30 @@ class UserController extends Controller
             return response()->json(['error' => 'User not found'], 404);
         }
         
-        $user->update($request->all());
+        // Handle middle name - set to null if empty
+        $updateData = $request->all();
+        if (isset($updateData['middle_name'])) {
+            $middleName = $updateData['middle_name'];
+            if (empty($middleName) || trim($middleName) === '') {
+                $updateData['middle_name'] = null;
+            }
+        }
+        
+        // Reconstruct full name if first_name or last_name is being updated
+        if (isset($updateData['first_name']) || isset($updateData['last_name']) || isset($updateData['middle_name'])) {
+            $firstName = $updateData['first_name'] ?? $user->first_name;
+            $middleName = isset($updateData['middle_name']) ? $updateData['middle_name'] : $user->middle_name;
+            $lastName = $updateData['last_name'] ?? $user->last_name;
+            
+            // Clean middle name again for name construction
+            if (empty($middleName) || trim($middleName) === '') {
+                $middleName = null;
+            }
+            
+            $updateData['name'] = trim($firstName . ($middleName ? ' ' . $middleName : '') . ' ' . $lastName);
+        }
+        
+        $user->update($updateData);
         
         return response()->json([
             'message' => 'User updated successfully',

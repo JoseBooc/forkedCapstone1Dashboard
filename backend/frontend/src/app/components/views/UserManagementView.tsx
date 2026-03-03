@@ -149,12 +149,18 @@ export function UserManagementView({ userRole }: UserManagementViewProps) {
     if (!selectedUser) return;
 
     try {
+      // Clean middle name before sending - convert empty string to null
+      const cleanedUser = {
+        ...selectedUser,
+        middle_name: selectedUser.middle_name && selectedUser.middle_name.trim() !== '' ? selectedUser.middle_name.trim() : null
+      };
+      
       const response = await fetch(`http://localhost:8000/api/users/id/${selectedUser.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(selectedUser),
+        body: JSON.stringify(cleanedUser),
       });
 
       if (response.ok) {
@@ -182,18 +188,27 @@ export function UserManagementView({ userRole }: UserManagementViewProps) {
     }
 
     try {
+      // Clean middle name - convert empty string to null
+      const cleanMiddleName = newUser.middle_name && newUser.middle_name.trim() !== '' ? newUser.middle_name.trim() : null;
+      
+      // Clean other optional fields
+      const cleanPhoneNumber = newUser.phone_number && newUser.phone_number.trim() !== '' ? newUser.phone_number.trim() : null;
+      const cleanCurrentAddress = newUser.current_address && newUser.current_address.trim() !== '' ? newUser.current_address.trim() : null;
+      const cleanCourse = newUser.course && newUser.course.trim() !== '' ? newUser.course.trim() : null;
+      const cleanBatchYear = newUser.batch_year && newUser.batch_year.trim() !== '' ? newUser.batch_year.trim() : null;
+      
       const userData = {
-        name: `${newUser.first_name} ${newUser.middle_name ? newUser.middle_name + ' ' : ''}${newUser.last_name}`,
+        name: `${newUser.first_name}${cleanMiddleName ? ' ' + cleanMiddleName : ''} ${newUser.last_name}`.trim(),
         first_name: newUser.first_name,
-        middle_name: newUser.middle_name,
+        middle_name: cleanMiddleName,
         last_name: newUser.last_name,
         email: newUser.email,
         password: newUser.password,
         role: 'alumni',
-        phone_number: newUser.phone_number,
-        current_address: newUser.current_address,
-        course: newUser.course,
-        batch_year: newUser.batch_year
+        phone_number: cleanPhoneNumber,
+        current_address: cleanCurrentAddress,
+        course: cleanCourse,
+        batch_year: cleanBatchYear
       };
 
       const response = await fetch('http://localhost:8000/api/users', {
