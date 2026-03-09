@@ -49,6 +49,7 @@ class User extends Authenticatable
         'diploma_file_path',
         'id_type',
         'valid_id_file_path',
+        'approval_status',
     ];
 
     /**

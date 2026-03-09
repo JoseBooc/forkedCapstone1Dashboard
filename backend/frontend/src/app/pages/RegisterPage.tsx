@@ -36,6 +36,7 @@ export function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [diplomaFile, setDiplomaFile] = useState<File | null>(null);
   const [validIdFile, setValidIdFile] = useState<File | null>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -128,8 +129,7 @@ export function RegisterPage() {
 
       if (response.ok) {
         await response.json();
-        alert('Registration successful! You can now log in with your credentials.');
-        navigate('/login');
+        setShowSuccessModal(true);
       } else {
         const error = await response.json();
         alert(error.message || 'Registration failed. Please check your information and try again.');
@@ -251,7 +251,7 @@ export function RegisterPage() {
 
               {/* Middle Name */}
               <div>
-                <label htmlFor="middleName" className="block text-gray-700 font-medium mb-2">Middle Name</label>
+                <label htmlFor="middleName" className="block text-gray-700 font-medium mb-2">Middle Name <span className="text-gray-400 font-normal text-sm">(Optional)</span></label>
                 <div className="relative">
                   <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
@@ -260,7 +260,8 @@ export function RegisterPage() {
                     name="middleName"
                     value={formData.middleName}
                     onChange={handleChange}
-                    placeholder="Middle Name"
+                    placeholder="Middle Name (if applicable)"
+                    autoComplete="off"
                     className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition"
                   />
                 </div>
@@ -875,6 +876,35 @@ export function RegisterPage() {
           </form>
         </div>
       </div>
+
+      {/* Registration Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 flex flex-col items-center text-center">
+            {/* Checkmark Icon */}
+            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-6">
+              <svg className="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+
+            <h2 className="text-2xl font-bold text-gray-900 mb-3">Registration Submitted Successfully!</h2>
+
+            <p className="text-gray-600 leading-relaxed mb-8">
+              Your registered account will be verified by an administrator within{' '}
+              <span className="font-semibold text-[#003087]">24 to 48 hours</span>. You will be able to
+              log in once your account has been approved.
+            </p>
+
+            <button
+              onClick={() => navigate('/login')}
+              className="w-full py-3 bg-[#003087] text-white rounded-xl font-semibold text-base hover:bg-[#002066] transition-colors shadow-md"
+            >
+              Go to Login
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

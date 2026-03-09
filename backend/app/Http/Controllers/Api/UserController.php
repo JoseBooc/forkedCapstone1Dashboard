@@ -25,6 +25,20 @@ class UserController extends Controller
             ], 401);
         }
 
+        // Check if account is pending approval
+        if ($user->approval_status === 'pending') {
+            return response()->json([
+                'message' => 'Your account is currently pending verification. An administrator will verify your account within 24 to 48 hours.'
+            ], 403);
+        }
+
+        // Check if account was disapproved
+        if ($user->approval_status === 'disapproved') {
+            return response()->json([
+                'message' => 'Your account registration has been disapproved. Please contact the administrator for more information.'
+            ], 403);
+        }
+
         // Check if user account is blocked
         if ($user->is_active === 0) {
             return response()->json([
@@ -128,7 +142,8 @@ class UserController extends Controller
             'diploma_file_path' => $diplomaFilePath,
             'id_type' => $request->id_type,
             'valid_id_file_path' => $validIdFilePath,
-            'is_active' => 1,
+            'is_active' => $request->approval_status === 'approved' ? 1 : 0,
+            'approval_status' => $request->approval_status ?? 'pending',
             'email_verified_at' => now(),
         ]);
 
@@ -243,6 +258,51 @@ class UserController extends Controller
         
         return response()->json([
             'message' => 'User deleted successfully'
+        ]);
+    }
+
+    // Get all pending approval users
+    public function getPendingUsers()
+    {
+        $users = User::where('approval_status', 'pending')->get();
+        return response()->json($users);
+    }
+
+    // Approve a user
+    public function approveUser($id)
+    {
+        $user = User::find($id);
+
+        if (!$user) {
+            return response()->json(['error' => 'User not found'], 404);
+        }
+
+        $user->approval_status = 'approved';
+        $user->is_active = 1;
+        $user->save();
+
+        return response()->json([
+            'message' => 'User approved successfully',
+            'user' => $user
+        ]);
+    }
+
+    // Disapprove a user
+    public function disapproveUser($id)
+    {
+        $user = User::find($id);
+
+        if (!$user) {
+            return response()->json(['error' => 'User not found'], 404);
+        }
+
+        $user->approval_status = 'disapproved';
+        $user->is_active = 0;
+        $user->save();
+
+        return response()->json([
+            'message' => 'User disapproved successfully',
+            'user' => $user
         ]);
     }
 
