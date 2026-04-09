@@ -3,6 +3,55 @@ import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, ArrowLeft, Eye, EyeOff, User, Phone, Calendar, MapPin, Upload } from 'lucide-react';
 import ADDULogo from '../../assets/ADDULogo.jpg';
 
+const PROGRAM_OPTIONS = [
+  'AB Anthropology',
+  'AB Communication',
+  'AB Development Studies',
+  'AB Economics',
+  'AB English Language',
+  'AB Interdisciplinary Studies',
+  'AB International Studies',
+  'AB Islamic Studies',
+  'AB Philosophy',
+  'AB Political Science',
+  'AB Psychology',
+  'AB Sociology',
+  'BS Biology',
+  'BS Chemistry',
+  'BS Computer Science',
+  'BS Data Science',
+  'BS Environmental Science',
+  'BS Information Management',
+  'BS Information Systems',
+  'BS Information Technology',
+  'BS Mathematics',
+  'BS Social Work',
+  'Bachelor of Public Management',
+  'BS Accountancy',
+  'BS Management Accounting',
+  'BS Business Management',
+  'BS Entrepreneurship',
+  'BS Entrepreneurship (Agri-Business)',
+  'BS Finance',
+  'BS Human Resource Development Management',
+  'BS Marketing',
+  'Bachelor of Early Childhood Education',
+  'Bachelor of Elementary Education',
+  'Bachelor of Secondary Education',
+  'BS Aerospace Engineering',
+  'BS Architecture',
+  'BS Chemical Engineering',
+  'BS Civil Engineering',
+  'BS Computer Engineering',
+  'BS Electrical Engineering',
+  'BS Electronics Engineering',
+  'BS Industrial Engineering',
+  'BS Management Engineering',
+  'BS Mechanical Engineering',
+  'BS Robotics Engineering',
+  'BS Nursing',
+];
+
 export function RegisterPage() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
@@ -730,22 +779,22 @@ export function RegisterPage() {
               {/* Course Graduated */}
               <div>
                 <label htmlFor="course" className="block text-gray-700 font-medium mb-2">Degree Program Completed:</label>
-                <select
+                <input
                   id="course"
+                  list="program-options"
+                  type="text"
                   name="course"
                   value={formData.course}
                   onChange={handleChange}
+                  placeholder="Type to search or select your program"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition"
                   required
-                >
-                  <option value="">Select your program</option>
-                  <option value="bs-computer-science">BS Computer Science</option>
-                  <option value="bs-information-technology">BS Information Technology</option>
-                  <option value="bs-information-systems">BS Information Systems</option>
-                  <option value="bs-information-management">BS Information Management</option>
-                  <option value="bs-data-science">BS Data Science</option>
-                  <option value="other">Other</option>
-                </select>
+                />
+                <datalist id="program-options">
+                  {PROGRAM_OPTIONS.map((program) => (
+                    <option key={program} value={program} />
+                  ))}
+                </datalist>
               </div>
 
               {/* Batch Year */}

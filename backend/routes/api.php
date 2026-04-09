@@ -21,6 +21,7 @@ Route::post('/users', [UserController::class, 'store']); // Create new user
 Route::get('/users/pending/list', [UserController::class, 'getPendingUsers']); // Get pending approval users (must be before wildcard route)
 Route::get('/users/{email}', [UserController::class, 'show']); // Get user by email
 Route::put('/users/{email}', [UserController::class, 'update']); // Update user by email
+Route::post('/users/{email}/profile-image', [UserController::class, 'uploadProfileImage']); // Upload profile image by email
 Route::put('/users/id/{id}', [UserController::class, 'updateById']); // Update user by ID
 Route::delete('/users/{id}', [UserController::class, 'destroy']); // Delete user by ID
 Route::patch('/users/{id}/toggle-active', [UserController::class, 'toggleActive']); // Block/Unblock user

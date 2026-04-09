@@ -1,6 +1,55 @@
 import { useState, useEffect } from 'react';
 import { Users, Search, Edit, Trash2, Plus, X, Mail, Phone, MapPin, GraduationCap, Calendar, Shield, Lock, Unlock, Check, XCircle, Eye } from 'lucide-react';
 
+const PROGRAM_OPTIONS = [
+  'AB Anthropology',
+  'AB Communication',
+  'AB Development Studies',
+  'AB Economics',
+  'AB English Language',
+  'AB Interdisciplinary Studies',
+  'AB International Studies',
+  'AB Islamic Studies',
+  'AB Philosophy',
+  'AB Political Science',
+  'AB Psychology',
+  'AB Sociology',
+  'BS Biology',
+  'BS Chemistry',
+  'BS Computer Science',
+  'BS Data Science',
+  'BS Environmental Science',
+  'BS Information Management',
+  'BS Information Systems',
+  'BS Information Technology',
+  'BS Mathematics',
+  'BS Social Work',
+  'Bachelor of Public Management',
+  'BS Accountancy',
+  'BS Management Accounting',
+  'BS Business Management',
+  'BS Entrepreneurship',
+  'BS Entrepreneurship (Agri-Business)',
+  'BS Finance',
+  'BS Human Resource Development Management',
+  'BS Marketing',
+  'Bachelor of Early Childhood Education',
+  'Bachelor of Elementary Education',
+  'Bachelor of Secondary Education',
+  'BS Aerospace Engineering',
+  'BS Architecture',
+  'BS Chemical Engineering',
+  'BS Civil Engineering',
+  'BS Computer Engineering',
+  'BS Electrical Engineering',
+  'BS Electronics Engineering',
+  'BS Industrial Engineering',
+  'BS Management Engineering',
+  'BS Mechanical Engineering',
+  'BS Robotics Engineering',
+  'BS Nursing',
+];
+
 interface User {
   id: number;
   name: string;
@@ -34,6 +83,7 @@ interface User {
   diploma_file_path?: string;
   id_type?: string;
   valid_id_file_path?: string;
+  profile_image_path?: string;
   created_at?: string;
 }
 
@@ -42,6 +92,7 @@ interface UserManagementViewProps {
 }
 
 export function UserManagementView({ userRole }: UserManagementViewProps) {
+  const apiBaseUrl = 'http://localhost:8000';
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'all' | 'approval'>('all');
@@ -58,6 +109,18 @@ export function UserManagementView({ userRole }: UserManagementViewProps) {
       return `${user.first_name}${user.middle_name ? ' ' + user.middle_name : ''} ${user.last_name}`.trim();
     }
     return user.name;
+  };
+
+  const getInitials = (displayName: string) => {
+    const nameParts = displayName.split(' ').filter(n => n.length > 0);
+    if (nameParts.length === 0) return 'U';
+    if (nameParts.length === 1) return nameParts[0][0].toUpperCase();
+    return `${nameParts[0][0]}${nameParts[nameParts.length - 1][0]}`.toUpperCase();
+  };
+
+  const getProfileImageUrl = (user: User) => {
+    if (!user.profile_image_path) return null;
+    return `${apiBaseUrl}/storage/${user.profile_image_path}`;
   };
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<'all' | 'alumni' | 'admin'>('all');
@@ -357,9 +420,6 @@ export function UserManagementView({ userRole }: UserManagementViewProps) {
     return matchesSearch && matchesRole && matchesCourse;
   });
 
-  // Get unique courses for the filter dropdown
-  const uniqueCourses = Array.from(new Set(users.map(u => u.course).filter(Boolean))).sort();
-
   const getRoleBadgeColor = (role: string) => {
     return role === 'admin' 
       ? 'bg-purple-100 text-purple-700 border-purple-200' 
@@ -476,7 +536,7 @@ export function UserManagementView({ userRole }: UserManagementViewProps) {
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent appearance-none bg-white cursor-pointer"
             >
               <option value="all">All Courses</option>
-              {uniqueCourses.map((course) => (
+              {PROGRAM_OPTIONS.map((course) => (
                 <option key={course} value={course}>
                   {course}
                 </option>
@@ -526,17 +586,21 @@ export function UserManagementView({ userRole }: UserManagementViewProps) {
               <tbody className="divide-y divide-gray-200">
                 {filteredUsers.map((user) => {
                   const displayName = getDisplayName(user);
+                  const profileImageUrl = getProfileImageUrl(user);
                   return (
                   <tr key={user.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-[#003087] rounded-full flex items-center justify-center text-white font-bold text-sm">
-                          {(() => {
-                            const nameParts = displayName.split(' ').filter(n => n.length > 0);
-                            if (nameParts.length === 0) return 'U';
-                            if (nameParts.length === 1) return nameParts[0][0];
-                            return nameParts[0][0] + nameParts[nameParts.length - 1][0];
-                          })()}
+                        <div className="w-10 h-10 bg-[#003087] rounded-full flex items-center justify-center text-white font-bold text-sm overflow-hidden">
+                          {profileImageUrl ? (
+                            <img
+                              src={profileImageUrl}
+                              alt={`${displayName} profile`}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            getInitials(displayName)
+                          )}
                         </div>
                         <div>
                           <p className="font-semibold text-gray-900">{displayName}</p>
@@ -667,15 +731,27 @@ export function UserManagementView({ userRole }: UserManagementViewProps) {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {pendingUsers.map((user) => (
+                  {pendingUsers.map((user) => {
+                    const displayName = getDisplayName(user);
+                    const profileImageUrl = getProfileImageUrl(user);
+
+                    return (
                     <tr key={user.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
-                            <span className="text-amber-700 font-bold text-sm">{getDisplayName(user).charAt(0).toUpperCase()}</span>
+                          <div className="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                            {profileImageUrl ? (
+                              <img
+                                src={profileImageUrl}
+                                alt={`${displayName} profile`}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <span className="text-amber-700 font-bold text-sm">{getInitials(displayName)}</span>
+                            )}
                           </div>
                           <div>
-                            <p className="font-semibold text-gray-900">{getDisplayName(user)}</p>
+                            <p className="font-semibold text-gray-900">{displayName}</p>
                             <span className="text-xs bg-amber-100 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full font-medium">Pending</span>
                           </div>
                         </div>
@@ -712,7 +788,8 @@ export function UserManagementView({ userRole }: UserManagementViewProps) {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                  );
+                  })}
                 </tbody>
               </table>
             </div>

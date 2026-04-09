@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Search, Filter, MessageSquare, Mail, MapPin, Briefcase, Award, Facebook, Twitter, Linkedin, Instagram } from 'lucide-react';
 
 interface Alumnus {
@@ -6,12 +6,165 @@ interface Alumnus {
   name: string;
   class: string;
   program: string;
+  programValue?: string;
   role: string;
   company?: string;
   location: string;
+  country?: string;
   email: string;
   initials: string;
+  profileImageUrl?: string;
   officerRole?: string;
+}
+
+interface DirectoryUser {
+  id: number;
+  name?: string;
+  first_name?: string;
+  middle_name?: string;
+  last_name?: string;
+  email: string;
+  role?: string;
+  course?: string;
+  batch_year?: string;
+  city?: string;
+  province?: string;
+  country?: string;
+  current_address?: string;
+  profile_image_path?: string;
+  approval_status?: 'pending' | 'approved' | 'disapproved';
+  is_active?: number;
+}
+
+const DEFAULT_ROLE_LABEL = 'Alumni';
+const API_BASE_URL = 'http://localhost:8000';
+
+const REGISTER_COURSES = [
+  { value: 'AB Anthropology', label: 'AB Anthropology' },
+  { value: 'AB Communication', label: 'AB Communication' },
+  { value: 'AB Development Studies', label: 'AB Development Studies' },
+  { value: 'AB Economics', label: 'AB Economics' },
+  { value: 'AB English Language', label: 'AB English Language' },
+  { value: 'AB Interdisciplinary Studies', label: 'AB Interdisciplinary Studies' },
+  { value: 'AB International Studies', label: 'AB International Studies' },
+  { value: 'AB Islamic Studies', label: 'AB Islamic Studies' },
+  { value: 'AB Philosophy', label: 'AB Philosophy' },
+  { value: 'AB Political Science', label: 'AB Political Science' },
+  { value: 'AB Psychology', label: 'AB Psychology' },
+  { value: 'AB Sociology', label: 'AB Sociology' },
+  { value: 'BS Biology', label: 'BS Biology' },
+  { value: 'BS Chemistry', label: 'BS Chemistry' },
+  { value: 'BS Computer Science', label: 'BS Computer Science' },
+  { value: 'BS Data Science', label: 'BS Data Science' },
+  { value: 'BS Environmental Science', label: 'BS Environmental Science' },
+  { value: 'BS Information Management', label: 'BS Information Management' },
+  { value: 'BS Information Systems', label: 'BS Information Systems' },
+  { value: 'BS Information Technology', label: 'BS Information Technology' },
+  { value: 'BS Mathematics', label: 'BS Mathematics' },
+  { value: 'BS Social Work', label: 'BS Social Work' },
+  { value: 'Bachelor of Public Management', label: 'Bachelor of Public Management' },
+  { value: 'BS Accountancy', label: 'BS Accountancy' },
+  { value: 'BS Management Accounting', label: 'BS Management Accounting' },
+  { value: 'BS Business Management', label: 'BS Business Management' },
+  { value: 'BS Entrepreneurship', label: 'BS Entrepreneurship' },
+  { value: 'BS Entrepreneurship (Agri-Business)', label: 'BS Entrepreneurship (Agri-Business)' },
+  { value: 'BS Finance', label: 'BS Finance' },
+  { value: 'BS Human Resource Development Management', label: 'BS Human Resource Development Management' },
+  { value: 'BS Marketing', label: 'BS Marketing' },
+  { value: 'Bachelor of Early Childhood Education', label: 'Bachelor of Early Childhood Education' },
+  { value: 'Bachelor of Elementary Education', label: 'Bachelor of Elementary Education' },
+  { value: 'Bachelor of Secondary Education', label: 'Bachelor of Secondary Education' },
+  { value: 'BS Aerospace Engineering', label: 'BS Aerospace Engineering' },
+  { value: 'BS Architecture', label: 'BS Architecture' },
+  { value: 'BS Chemical Engineering', label: 'BS Chemical Engineering' },
+  { value: 'BS Civil Engineering', label: 'BS Civil Engineering' },
+  { value: 'BS Computer Engineering', label: 'BS Computer Engineering' },
+  { value: 'BS Electrical Engineering', label: 'BS Electrical Engineering' },
+  { value: 'BS Electronics Engineering', label: 'BS Electronics Engineering' },
+  { value: 'BS Industrial Engineering', label: 'BS Industrial Engineering' },
+  { value: 'BS Management Engineering', label: 'BS Management Engineering' },
+  { value: 'BS Mechanical Engineering', label: 'BS Mechanical Engineering' },
+  { value: 'BS Robotics Engineering', label: 'BS Robotics Engineering' },
+  { value: 'BS Nursing', label: 'BS Nursing' },
+];
+
+const LEGACY_COURSE_MAP: Record<string, string> = {
+  'bs-computer-science': 'BS Computer Science',
+  'bs-information-technology': 'BS Information Technology',
+  'bs-information-systems': 'BS Information Systems',
+  'bs-information-management': 'BS Information Management',
+  'bs-data-science': 'BS Data Science',
+  other: 'Other',
+};
+
+const REGISTER_COUNTRIES = [
+  'Philippines',
+  'United States',
+  'Canada',
+  'United Kingdom',
+  'Australia',
+  'Japan',
+  'South Korea',
+  'Singapore',
+  'Malaysia',
+  'Thailand',
+  'Vietnam',
+  'Indonesia',
+  'China',
+  'Hong Kong',
+  'Taiwan',
+  'United Arab Emirates',
+  'Saudi Arabia',
+  'Qatar',
+  'Kuwait',
+  'New Zealand',
+  'Germany',
+  'France',
+  'Italy',
+  'Spain',
+  'Netherlands',
+  'Switzerland',
+  'Norway',
+  'Sweden',
+  'Other',
+];
+
+const BATCH_YEARS = Array.from({ length: 2025 - 1950 + 1 }, (_, i) => String(2025 - i));
+
+function getCourseLabel(course?: string) {
+  if (!course) return 'Not specified';
+  const normalizedCourse = course.trim();
+  if (LEGACY_COURSE_MAP[normalizedCourse]) return LEGACY_COURSE_MAP[normalizedCourse];
+  const matched = REGISTER_COURSES.find((item) => item.value === normalizedCourse || item.label === normalizedCourse);
+  return matched ? matched.label : normalizedCourse;
+}
+
+function getInitials(name: string) {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return 'AL';
+  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+  return `${words[0][0]}${words[words.length - 1][0]}`.toUpperCase();
+}
+
+function mapUserToAlumnus(user: DirectoryUser): Alumnus {
+  const fullName = user.name?.trim() || [user.first_name, user.middle_name, user.last_name].filter(Boolean).join(' ').trim() || user.email;
+  const country = user.country?.trim();
+  const locationParts = [user.city, user.province, user.country].filter(Boolean);
+  const location = locationParts.length > 0 ? locationParts.join(', ') : (user.current_address?.trim() || 'Not specified');
+
+  return {
+    id: user.id,
+    name: fullName,
+    class: user.batch_year?.trim() || 'N/A',
+    program: getCourseLabel(user.course),
+    programValue: user.course?.trim(),
+    role: DEFAULT_ROLE_LABEL,
+    location,
+    country,
+    email: user.email,
+    initials: getInitials(fullName),
+    profileImageUrl: user.profile_image_path ? `${API_BASE_URL}/storage/${user.profile_image_path}` : undefined,
+  };
 }
 
 export function DirectoryView({ userRole }: { userRole: string }) {
@@ -21,45 +174,47 @@ export function DirectoryView({ userRole }: { userRole: string }) {
   const [courseFilter, setCourseFilter] = useState("All Courses");
   const [locationFilter, setLocationFilter] = useState("All Locations");
   const [showFilters, setShowFilters] = useState(true);
+  const [allAlumni, setAllAlumni] = useState<Alumnus[]>([]);
+  const [loadingAlumni, setLoadingAlumni] = useState(true);
+  const [alumniError, setAlumniError] = useState<string | null>(null);
 
-  const allAlumni: Alumnus[] = [
-    { id: 1, name: "Maria Santos", class: "2015", program: "Data Structures and Algorithms", role: "CEO", company: "Tech Innovations Inc.", location: "Manila, Philippines", email: "maria.s@email.com", initials: "MS" },
-    { id: 2, name: "Roberto Cruz", class: "2018", program: "Web Development", role: "Full Stack Developer", company: "Digital Solutions", location: "Davao City, Philippines", email: "roberto.c@email.com", initials: "RC" },
-    { id: 3, name: "Jennifer Lim", class: "2012", program: "Database Management Systems", role: "Database Administrator", company: "TechCorp", location: "Cebu City, Philippines", email: "jennifer.l@email.com", initials: "JL" },
-    { id: 4, name: "Carlos Mendoza", class: "2020", program: "Software Engineering", role: "Software Engineer", company: "Global Corp", location: "Makati, Philippines", email: "carlos.m@email.com", initials: "CM" },
-    { id: 5, name: "Sofia Reyes", class: "2016", program: "Mobile Application Development", role: "Mobile Developer", company: "AppWorks Inc.", location: "Davao City, Philippines", email: "sofia.r@email.com", initials: "SR" },
-    { id: 6, name: "Miguel Torres", class: "2019", program: "Computer Networks and Security", role: "Network Security Specialist", company: "CyberSafe", location: "Cagayan de Oro, Philippines", email: "miguel.t@email.com", initials: "MT" },
-    { id: 7, name: "Anna Garcia", class: "2021", program: "Artificial Intelligence", role: "ML Engineer", company: "AI Solutions", location: "Manila, Philippines", email: "anna.g@email.com", initials: "AG" },
-    { id: 8, name: "David Lee", class: "2017", program: "Human Computer Interaction", role: "UX Designer", company: "Creative Studio", location: "Davao City, Philippines", email: "david.l@email.com", initials: "DL" },
-    { id: 9, name: "Patricia Aquino", class: "2014", program: "Information Systems", role: "IT Consultant", company: "Accenture Philippines", location: "Taguig City, Philippines", email: "patricia.a@email.com", initials: "PA" },
-    { id: 10, name: "Raphael Domingo", class: "2019", program: "Cloud Computing", role: "DevOps Engineer", company: "Amazon Web Services", location: "Singapore", email: "raphael.d@email.com", initials: "RD" },
-    { id: 11, name: "Isabella Martinez", class: "2013", program: "Business Administration", role: "Marketing Director", company: "Unilever Philippines", location: "Makati City, Philippines", email: "isabella.m@email.com", initials: "IM" },
-    { id: 12, name: "Francisco Bautista", class: "2016", program: "Entrepreneurship", role: "Founder & CEO", company: "StartUp Davao Hub", location: "Davao City, Philippines", email: "francisco.b@email.com", initials: "FB" },
-    { id: 13, name: "Catherine Velasco", class: "2018", program: "Accounting", role: "Senior Auditor", company: "SGV & Co.", location: "Manila, Philippines", email: "catherine.v@email.com", initials: "CV" },
-    { id: 14, name: "Vincent Ramos", class: "2015", program: "Finance", role: "Investment Banker", company: "BPI Capital", location: "Makati City, Philippines", email: "vincent.r@email.com", initials: "VR" },
-    { id: 15, name: "Samantha Ocampo", class: "2020", program: "Human Resource Management", role: "HR Manager", company: "Jollibee Foods Corporation", location: "Pasig City, Philippines", email: "samantha.o@email.com", initials: "SO" },
-    { id: 16, name: "Engineer Mark Fernandez", class: "2011", program: "Civil Engineering", role: "Project Manager", company: "DMCI Holdings", location: "Davao City, Philippines", email: "mark.f@email.com", initials: "EMF" },
-    { id: 17, name: "Engineer Lisa Castillo", class: "2017", program: "Electrical Engineering", role: "Electrical Engineer", company: "Meralco", location: "Quezon City, Philippines", email: "lisa.c@email.com", initials: "ELC" },
-    { id: 18, name: "Engineer Daniel Villar", class: "2019", program: "Mechanical Engineering", role: "Automotive Engineer", company: "Toyota Motor Philippines", location: "Laguna, Philippines", email: "daniel.v@email.com", initials: "EDV" },
-    { id: 19, name: "Engineer Grace Navarro", class: "2014", program: "Electronics Engineering", role: "R&D Engineer", company: "Texas Instruments Philippines", location: "Baguio City, Philippines", email: "grace.n@email.com", initials: "EGN" },
-    { id: 20, name: "Engineer Raymond Sy", class: "2016", program: "Industrial Engineering", role: "Operations Manager", company: "San Miguel Corporation", location: "Bulacan, Philippines", email: "raymond.s@email.com", initials: "ERS" },
-    { id: 21, name: "Dr. Gabriel Rivera", class: "2010", program: "Medicine", role: "Cardiologist", company: "Davao Doctors Hospital", location: "Davao City, Philippines", email: "gabriel.r@email.com", initials: "DGR" },
-    { id: 22, name: "Dr. Olivia Santiago", class: "2012", program: "Nursing", role: "Head Nurse", company: "St. Luke's Medical Center", location: "Quezon City, Philippines", email: "olivia.s@email.com", initials: "DOS" },
-    { id: 23, name: "Dr. Benjamin Torres", class: "2015", program: "Physical Therapy", role: "Physical Therapist", company: "The Medical City", location: "Pasig City, Philippines", email: "benjamin.t@email.com", initials: "DBT" },
-    { id: 24, name: "Pharmacist Elena Cruz", class: "2018", program: "Pharmacy", role: "Clinical Pharmacist", company: "Mercury Drug Corporation", location: "Manila, Philippines", email: "elena.c@email.com", initials: "PEC" },
-    { id: 25, name: "Prof. Amanda Reyes", class: "2008", program: "Elementary Education", role: "Principal", company: "ADDU Grade School", location: "Davao City, Philippines", email: "amanda.r@email.com", initials: "PAR" },
-    { id: 26, name: "Prof. Jonathan Pascual", class: "2013", program: "Secondary Education - Mathematics", role: "Math Teacher", company: "Philippine Science High School", location: "Quezon City, Philippines", email: "jonathan.p@email.com", initials: "PJP" },
-    { id: 27, name: "Prof. Christina Morales", class: "2016", program: "Special Education", role: "SPED Coordinator", company: "Ateneo de Manila University", location: "Quezon City, Philippines", email: "christina.m@email.com", initials: "PCM" },
-    { id: 28, name: "Atty. Marco Gonzales", class: "2009", program: "Political Science", role: "Corporate Lawyer", company: "Romulo Mabanta Law Firm", location: "Makati City, Philippines", email: "marco.g@email.com", initials: "AMG" },
-    { id: 29, name: "Atty. Jessica Lim", class: "2014", program: "Legal Management", role: "Human Rights Lawyer", company: "Public Attorney's Office", location: "Manila, Philippines", email: "jessica.l@email.com", initials: "AJL" },
-    { id: 30, name: "Dr. Thomas Valdez", class: "2011", program: "Psychology", role: "Clinical Psychologist", company: "Mind You Clinic", location: "Davao City, Philippines", email: "thomas.v@email.com", initials: "DTV" },
-    { id: 31, name: "Michelle Chen", class: "2017", program: "International Relations", role: "Diplomat", company: "Department of Foreign Affairs", location: "Singapore", email: "michelle.c@email.com", initials: "MC" },
-    { id: 32, name: "Alexander Wong", class: "2015", program: "Software Engineering", role: "Software Architect", company: "Google", location: "San Francisco, USA", email: "alex.w@email.com", initials: "AW" },
-    { id: 33, name: "Sophia Ahmed", class: "2016", program: "Business Administration", role: "Management Consultant", company: "McKinsey & Company", location: "Dubai, UAE", email: "sophia.a@email.com", initials: "SA" },
-    { id: 34, name: "Ricardo Fernandez", class: "2014", program: "Mechanical Engineering", role: "Aerospace Engineer", company: "Boeing", location: "Seattle, USA", email: "ricardo.f@email.com", initials: "RF" },
-    { id: 35, name: "Victoria Tan", class: "2018", program: "Data Science", role: "Data Scientist", company: "Microsoft", location: "Vancouver, Canada", email: "victoria.t@email.com", initials: "VT" },
-    { id: 36, name: "Nathan Park", class: "2019", program: "Computer Science", role: "Backend Engineer", company: "Shopify", location: "Toronto, Canada", email: "nathan.p@email.com", initials: "NP" },
-  ];
+  useEffect(() => {
+    const fetchAlumni = async () => {
+      try {
+        setLoadingAlumni(true);
+        setAlumniError(null);
+
+        const response = await fetch('http://localhost:8000/api/users');
+        if (!response.ok) {
+          throw new Error('Failed to load alumni accounts.');
+        }
+
+        const users = (await response.json()) as DirectoryUser[];
+        const alumniUsers = users.filter((user) => {
+          const isAlumni = user.role === 'alumni';
+          const isApproved = user.approval_status ? user.approval_status === 'approved' : true;
+          const isActive = user.is_active !== 0;
+          return isAlumni && isApproved && isActive;
+        });
+
+        setAllAlumni(alumniUsers.map(mapUserToAlumnus));
+      } catch (error) {
+        console.error('Error fetching alumni directory:', error);
+        setAlumniError('Unable to fetch alumni accounts from the database.');
+      } finally {
+        setLoadingAlumni(false);
+      }
+    };
+
+    fetchAlumni();
+
+    const handleProfileUpdate = () => {
+      fetchAlumni();
+    };
+
+    window.addEventListener('userProfileUpdated', handleProfileUpdate);
+    return () => window.removeEventListener('userProfileUpdated', handleProfileUpdate);
+  }, []);
 
   const chapters = [
     {
@@ -88,14 +243,19 @@ export function DirectoryView({ userRole }: { userRole: string }) {
   ];
 
   const filteredAlumni = useMemo(() => {
+    const normalizedSearch = searchQuery.trim().toLowerCase();
     return allAlumni.filter(a => {
-      const matchesSearch = a.name.toLowerCase().includes(searchQuery.toLowerCase()) || a.program.toLowerCase().includes(searchQuery.toLowerCase());
-      const year = parseInt(a.class);
-      let matchesYear = true;
-      if (yearFilter === "2020-2025") matchesYear = year >= 2020;
-      else if (yearFilter === "2015-2019") matchesYear = year >= 2015 && year <= 2019;
-      else if (yearFilter === "2010-2014") matchesYear = year >= 2010 && year <= 2014;
-      return matchesSearch && matchesYear && (courseFilter === "All Courses" || a.program === courseFilter) && (locationFilter === "All Locations" || a.location.includes(locationFilter));
+      const matchesSearch =
+        !normalizedSearch ||
+        a.name.toLowerCase().includes(normalizedSearch) ||
+        a.program.toLowerCase().includes(normalizedSearch) ||
+        (a.company || '').toLowerCase().includes(normalizedSearch) ||
+        a.email.toLowerCase().includes(normalizedSearch);
+      const matchesYear = yearFilter === "All Years" || a.class === yearFilter;
+      const alumnusCountry = a.country?.trim();
+      const matchesCourse = courseFilter === "All Courses" || a.programValue === courseFilter;
+      const matchesLocation = locationFilter === "All Locations" || alumnusCountry === locationFilter;
+      return matchesSearch && matchesYear && matchesCourse && matchesLocation;
     });
   }, [searchQuery, yearFilter, courseFilter, locationFilter, allAlumni]);
 
@@ -126,22 +286,42 @@ export function DirectoryView({ userRole }: { userRole: string }) {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-gray-50">
                   <div className="space-y-2 text-left">
                     <label className="text-xs font-bold text-gray-400 uppercase">Graduation Year</label>
-                    <select value={yearFilter} onChange={(e) => setYearFilter(e.target.value)} className="w-full p-3 bg-[#F1F5F9] rounded-xl text-sm outline-none appearance-none"><option>All Years</option><option>2020-2025</option><option>2015-2019</option><option>2010-2014</option></select>
+                    <select value={yearFilter} onChange={(e) => setYearFilter(e.target.value)} className="w-full p-3 bg-[#F1F5F9] rounded-xl text-sm outline-none appearance-none">
+                      <option>All Years</option>
+                      {BATCH_YEARS.map((year) => (
+                        <option key={year} value={year}>{year}</option>
+                      ))}
+                    </select>
                   </div>
                   <div className="space-y-2 text-left">
-                    <label className="text-xs font-bold text-gray-400 uppercase">CS Course</label>
-                    <select value={courseFilter} onChange={(e) => setCourseFilter(e.target.value)} className="w-full p-3 bg-[#F1F5F9] rounded-xl text-sm outline-none"><option>All Courses</option><option>Data Structures and Algorithms</option><option>Web Development</option><option>Software Engineering</option></select>
+                    <label className="text-xs font-bold text-gray-400 uppercase">Course</label>
+                    <select value={courseFilter} onChange={(e) => setCourseFilter(e.target.value)} className="w-full p-3 bg-[#F1F5F9] rounded-xl text-sm outline-none">
+                      <option>All Courses</option>
+                      {REGISTER_COURSES.map((course) => (
+                        <option key={course.value} value={course.value}>{course.label}</option>
+                      ))}
+                    </select>
                   </div>
                   <div className="space-y-2 text-left">
                     <label className="text-xs font-bold text-gray-400 uppercase">Location</label>
-                    <select value={locationFilter} onChange={(e) => setLocationFilter(e.target.value)} className="w-full p-3 bg-[#F1F5F9] rounded-xl text-sm outline-none"><option>All Locations</option><option>Manila</option><option>Davao City</option><option>Singapore</option></select>
+                    <select value={locationFilter} onChange={(e) => setLocationFilter(e.target.value)} className="w-full p-3 bg-[#F1F5F9] rounded-xl text-sm outline-none">
+                      <option>All Locations</option>
+                      {REGISTER_COUNTRIES.map((country) => (
+                        <option key={country} value={country}>{country}</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
               )}
             </div>
             <div className="text-left py-2 text-sm text-gray-400">Showing {filteredAlumni.length} alumni</div>
             <div className="bg-white rounded-2xl border border-gray-100 divide-y divide-gray-50 overflow-hidden">
-              {filteredAlumni.map((alumnus) => <AlumniRow key={alumnus.id} alumnus={alumnus} />)}
+              {loadingAlumni && <div className="p-6 text-sm text-gray-500 text-left">Loading alumni accounts...</div>}
+              {!loadingAlumni && alumniError && <div className="p-6 text-sm text-red-600 text-left">{alumniError}</div>}
+              {!loadingAlumni && !alumniError && filteredAlumni.length === 0 && (
+                <div className="p-6 text-sm text-gray-500 text-left">No alumni accounts found in the database for the selected filters.</div>
+              )}
+              {!loadingAlumni && !alumniError && filteredAlumni.map((alumnus) => <AlumniRow key={alumnus.id} alumnus={alumnus} />)}
             </div>
           </div>
         ) : (
@@ -169,9 +349,23 @@ export function DirectoryView({ userRole }: { userRole: string }) {
 }
 
 function AlumniRow({ alumnus, isOfficer }: { alumnus: any, isOfficer?: boolean }) {
+  const [imageFailed, setImageFailed] = useState(false);
+  const hasProfileImage = Boolean(alumnus.profileImageUrl) && !imageFailed;
+
   return (
     <div className="p-6 flex flex-col lg:flex-row items-center gap-6 text-left transition-colors hover:bg-gray-50/50">
-      <div className="w-12 h-12 bg-[#003087] rounded-full flex items-center justify-center text-white font-bold text-xs shrink-0">{alumnus.initials}</div>
+      <div className="w-12 h-12 bg-[#003087] rounded-full flex items-center justify-center text-white font-bold text-xs shrink-0 overflow-hidden">
+        {hasProfileImage ? (
+          <img
+            src={alumnus.profileImageUrl}
+            alt={`${alumnus.name} profile`}
+            className="w-full h-full object-cover"
+            onError={() => setImageFailed(true)}
+          />
+        ) : (
+          alumnus.initials
+        )}
+      </div>
       <div className="flex-1 min-w-[180px]">
         <h3 className="text-[#003087] font-bold text-sm hover:underline cursor-pointer">{alumnus.name}</h3>
         <p className="text-gray-400 text-[11px]">Class of {alumnus.class}</p>

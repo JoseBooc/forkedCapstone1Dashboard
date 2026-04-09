@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Mail, Phone, MapPin, Briefcase, GraduationCap, Edit3, Save, X, Trash2 } from 'lucide-react';
+import { useState, useEffect, useRef, type ChangeEvent } from 'react';
+import { Mail, Phone, MapPin, Briefcase, GraduationCap, Edit3, Save, X, Trash2, Camera } from 'lucide-react';
 import { Footer } from '../Footer';
 
 interface ProfileViewProps {
@@ -9,6 +9,9 @@ interface ProfileViewProps {
 export function ProfileView({ userRole }: ProfileViewProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [profileImageUrl, setProfileImageUrl] = useState('');
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   
   // Main State
   const [formData, setFormData] = useState({
@@ -82,6 +85,8 @@ export function ProfileView({ userRole }: ProfileViewProps) {
         jobTitle: '',
         company: ''
       });
+
+      setProfileImageUrl(userData.profile_image_path ? `http://localhost:8000/storage/${userData.profile_image_path}` : '');
       
       // Update localStorage with the current name from database
       const fullName = `${userData.first_name || ''}${userData.middle_name ? ' ' + userData.middle_name : ''} ${userData.last_name || ''}`.trim();
@@ -196,6 +201,84 @@ export function ProfileView({ userRole }: ProfileViewProps) {
     setIsEditing(false);
   };
 
+  const getInitials = () => {
+    if (!formData.firstName && !formData.lastName) {
+      return 'U';
+    }
+
+    const firstInitial = formData.firstName ? formData.firstName[0].toUpperCase() : '';
+    const lastInitial = formData.lastName ? formData.lastName[0].toUpperCase() : '';
+    return `${firstInitial}${lastInitial}` || 'U';
+  };
+
+  const handleProfileImageSelect = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      alert('Please upload a JPG, PNG, or WEBP image.');
+      event.target.value = '';
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Image must be 5MB or smaller.');
+      event.target.value = '';
+      return;
+    }
+
+    const userEmail = localStorage.getItem('userEmail');
+    if (!userEmail) {
+      alert('No user email found');
+      event.target.value = '';
+      return;
+    }
+
+    try {
+      setUploadingImage(true);
+      const uploadData = new FormData();
+      uploadData.append('profile_image', file);
+
+      const response = await fetch(`http://localhost:8000/api/users/${encodeURIComponent(userEmail)}/profile-image`, {
+        method: 'POST',
+        body: uploadData,
+      });
+
+      if (!response.ok) {
+        let errorMessage = 'Failed to upload profile image';
+        try {
+          const errorData = await response.json();
+          if (errorData?.message) {
+            errorMessage = errorData.message;
+          } else if (errorData?.error) {
+            errorMessage = errorData.error;
+          }
+        } catch {
+          // Keep fallback message if response is not JSON.
+        }
+        alert(errorMessage);
+        return;
+      }
+
+      const result = await response.json();
+      const newImageUrl = result.user?.profile_image_path
+        ? `http://localhost:8000/storage/${result.user.profile_image_path}`
+        : '';
+
+      setProfileImageUrl(newImageUrl);
+      window.dispatchEvent(new CustomEvent('userProfileUpdated'));
+      alert('Profile image updated successfully!');
+    } catch (error) {
+      console.error('Error uploading profile image:', error);
+      alert('Error uploading profile image');
+    } finally {
+      setUploadingImage(false);
+      event.target.value = '';
+    }
+  };
+
   const addEducation = () => {
     const newId = education.length > 0 ? Math.max(...education.map(e => e.id)) + 1 : 1;
     setEducation([...education, { id: newId, degree: "New Degree", school: "University Name", period: "Year - Year" }]);
@@ -241,8 +324,32 @@ export function ProfileView({ userRole }: ProfileViewProps) {
           </div>
         ) : (
           <div className="bg-white rounded-[32px] p-8 border border-gray-100 shadow-sm flex flex-col md:flex-row items-center gap-8 text-left">
-            <div className="w-32 h-32 bg-[#003087] rounded-full flex items-center justify-center text-white text-4xl font-bold shrink-0">
-              {formData.firstName && formData.lastName ? `${formData.firstName[0]}${formData.lastName[0]}` : 'U'}
+            <div className="relative shrink-0">
+              <button
+                type="button"
+                onClick={() => isEditing && !uploadingImage && fileInputRef.current?.click()}
+                disabled={!isEditing || uploadingImage}
+                className={`w-32 h-32 rounded-full overflow-hidden border-4 border-white shadow-md bg-[#003087] flex items-center justify-center text-white text-4xl font-bold ${isEditing ? 'cursor-pointer' : 'cursor-default'}`}
+                title={isEditing ? 'Change profile image' : 'Profile image'}
+              >
+                {profileImageUrl ? (
+                  <img src={profileImageUrl} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  getInitials()
+                )}
+              </button>
+              {isEditing && (
+                <div className="absolute -bottom-1 -right-1 w-9 h-9 rounded-full bg-[#003087] text-white flex items-center justify-center shadow-md border-2 border-white">
+                  <Camera className="w-4 h-4" />
+                </div>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                onChange={handleProfileImageSelect}
+                className="hidden"
+              />
             </div>
             <div className="flex-1 space-y-4">
               <div>
