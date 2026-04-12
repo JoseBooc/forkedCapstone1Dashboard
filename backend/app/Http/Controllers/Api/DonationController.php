@@ -24,6 +24,7 @@ class DonationController extends Controller
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
             'email' => 'required|email|max:255',
+            'payment_method' => 'nullable|string|max:255',
         ]);
 
         $donation = Donation::create([
@@ -32,7 +33,7 @@ class DonationController extends Controller
             'last_name' => $validated['last_name'],
             'email' => $validated['email'],
             'amount' => $validated['amount'],
-            'payment_method' => 'card',
+            'payment_method' => $validated['payment_method'] ?? 'Credit Card',
         ]);
         
         return response()->json([

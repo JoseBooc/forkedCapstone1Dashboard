@@ -24,7 +24,12 @@ import {
   Image as ImageIcon,
   Upload,
   Eye,
-  EyeOff
+  EyeOff,
+  Target,
+  TrendingUp,
+  BarChart3,
+  Users,
+  TrendingDown
 } from 'lucide-react';
 import { Footer } from '../Footer';
 
@@ -36,11 +41,47 @@ interface DonationsViewProps {
 interface Campaign {
   id: number;
   title: string;
+  description?: string;
+  category?: string;
+  image_url?: string;
+  goal_amount?: number;
+  raised_amount?: number;
+  end_date?: string;
+  is_active?: boolean;
   goal: string;
   raised: string;
   backers: number;
   status: string;
-  is_active?: boolean;
+  donors_count?: number;
+  progress_percentage?: number;
+  days_left?: number;
+  remaining_amount?: number;
+}
+
+interface Donor {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  amount: string;
+  created_at: string;
+}
+
+interface AnalyticsData {
+  all_donations: Donor[];
+  general_donations: {
+    donations: Donor[];
+    total: number;
+    count: number;
+  };
+  campaign_donations: {
+    campaign: Campaign;
+    donations: Donor[];
+    total: number;
+    count: number;
+  }[];
+  overall_total: number;
+  overall_count: number;
 }
 
 export function DonationsView({ userRole, onNavigate }: DonationsViewProps) {
@@ -81,6 +122,17 @@ export function DonationsView({ userRole, onNavigate }: DonationsViewProps) {
   const [donationPaymentMethod, setDonationPaymentMethod] = useState('Credit Card');
   const [isDonating, setIsDonating] = useState(false);
 
+  // Dashboard States
+  const [dashboardView, setDashboardView] = useState(false);
+  const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
+  const [loadingAnalytics, setLoadingAnalytics] = useState(false);
+
+  // Image upload states
+  const [newCampaignImage, setNewCampaignImage] = useState<File | null>(null);
+  const [newCampaignImagePreview, setNewCampaignImagePreview] = useState<string | null>(null);
+  const [editCampaignImage, setEditCampaignImage] = useState<File | null>(null);
+  const [editCampaignImagePreview, setEditCampaignImagePreview] = useState<string | null>(null);
+
   // Form States for New Campaign
   const [newCampaign, setNewCampaign] = useState({
     title: '',
@@ -103,8 +155,11 @@ export function DonationsView({ userRole, onNavigate }: DonationsViewProps) {
   // Fetch campaigns from API
   useEffect(() => {
     fetchCampaigns();
+    if (dashboardView && userRole === 'admin') {
+      fetchAnalytics();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userRole]);
+  }, [userRole, dashboardView]);
 
   const fetchCampaigns = async () => {
     try {
@@ -129,6 +184,23 @@ export function DonationsView({ userRole, onNavigate }: DonationsViewProps) {
       console.error('Error fetching campaigns:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchAnalytics = async () => {
+    setLoadingAnalytics(true);
+    try {
+      const response = await fetch('http://localhost:8000/api/donations/analytics');
+      if (response.ok) {
+        const data = await response.json();
+        setAnalyticsData(data);
+      } else {
+        console.error('Failed to fetch analytics');
+      }
+    } catch (error) {
+      console.error('Error fetching analytics:', error);
+    } finally {
+      setLoadingAnalytics(false);
     }
   };
 
@@ -158,20 +230,19 @@ export function DonationsView({ userRole, onNavigate }: DonationsViewProps) {
     }
 
     try {
+      const formData = new FormData();
+      formData.append('title', newCampaign.title);
+      formData.append('description', newCampaign.description || 'No description provided');
+      formData.append('category', newCampaign.category);
+      formData.append('goal_amount', newCampaign.goalAmount);
+      formData.append('end_date', newCampaign.endDate);
+      if (newCampaignImage) {
+        formData.append('image', newCampaignImage);
+      }
+
       const response = await fetch('http://localhost:8000/api/campaigns', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title: newCampaign.title,
-          description: newCampaign.description || 'No description provided',
-          category: newCampaign.category,
-          goal_amount: parseFloat(newCampaign.goalAmount),
-          end_date: newCampaign.endDate,
-          image_url: newCampaign.imageUrl || null,
-          is_active: true
-        })
+        body: formData
       });
 
       if (response.ok) {
@@ -186,11 +257,20 @@ export function DonationsView({ userRole, onNavigate }: DonationsViewProps) {
           goalAmount: '',
           endDate: ''
         });
+        setNewCampaignImage(null);
+        setNewCampaignImagePreview(null);
         alert("Campaign created successfully!");
       } else {
-        const errorData = await response.json();
-        console.error('Server error:', errorData);
-        alert(`Failed to create campaign: ${errorData.message || 'Unknown error'}`);
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const errorData = await response.json();
+          console.error('Server error:', errorData);
+          alert(`Failed to create campaign: ${errorData.message || 'Unknown error'}`);
+        } else {
+          const errorText = await response.text();
+          console.error('Server error (non-JSON):', errorText);
+          alert('Failed to create campaign. Please check the console for details.');
+        }
       }
     } catch (error) {
       console.error('Error creating campaign:', error);
@@ -205,19 +285,20 @@ export function DonationsView({ userRole, onNavigate }: DonationsViewProps) {
     }
 
     try {
+      const formData = new FormData();
+      formData.append('title', editCampaignData.title);
+      formData.append('description', editCampaignData.description || 'No description provided');
+      formData.append('category', editCampaignData.category);
+      formData.append('goal_amount', editCampaignData.goalAmount);
+      formData.append('end_date', editCampaignData.endDate || new Date().toISOString().split('T')[0]);
+      formData.append('_method', 'PUT');
+      if (editCampaignImage) {
+        formData.append('image', editCampaignImage);
+      }
+
       const response = await fetch(`http://localhost:8000/api/campaigns/${editingCampaignId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title: editCampaignData.title,
-          description: editCampaignData.description || 'No description provided',
-          category: editCampaignData.category,
-          goal_amount: parseFloat(editCampaignData.goalAmount),
-          end_date: editCampaignData.endDate || new Date().toISOString().split('T')[0],
-          image_url: editCampaignData.imageUrl || null
-        })
+        method: 'POST',
+        body: formData
       });
 
       if (response.ok) {
@@ -232,11 +313,20 @@ export function DonationsView({ userRole, onNavigate }: DonationsViewProps) {
           goalAmount: '',
           endDate: ''
         });
+        setEditCampaignImage(null);
+        setEditCampaignImagePreview(null);
         alert("Campaign updated successfully!");
       } else {
-        const errorData = await response.json();
-        console.error('Server error:', errorData);
-        alert(`Failed to update campaign: ${errorData.message || 'Unknown error'}`);
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const errorData = await response.json();
+          console.error('Server error:', errorData);
+          alert(`Failed to update campaign: ${errorData.message || 'Unknown error'}`);
+        } else {
+          const errorText = await response.text();
+          console.error('Server error (non-JSON):', errorText);
+          alert('Failed to update campaign. Please check the console for details.');
+        }
       }
     } catch (error) {
       console.error('Error updating campaign:', error);
@@ -348,6 +438,299 @@ export function DonationsView({ userRole, onNavigate }: DonationsViewProps) {
       setIsDonating(false);
     }
   };
+
+  // Image upload handlers
+  const handleNewCampaignImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        alert('File size must be less than 2MB');
+        return;
+      }
+      setNewCampaignImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setNewCampaignImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleEditCampaignImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        alert('File size must be less than 2MB');
+        return;
+      }
+      setEditCampaignImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setEditCampaignImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleDonation = async () => {
+    if (!donationAmount || !donationFirstName || !donationLastName || !donationEmail) {
+      alert("Please fill in all required fields");
+      return;
+    }
+
+    if (!selectedPayment) {
+      alert("Please select a payment method");
+      return;
+    }
+
+    setIsDonating(true);
+    try {
+      const response = await fetch(`http://localhost:8000/api/donations`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          amount: parseFloat(donationAmount),
+          first_name: donationFirstName,
+          last_name: donationLastName,
+          email: donationEmail,
+          payment_method: selectedPayment
+        })
+      });
+
+      if (response.ok) {
+        alert("Thank you for your donation! Your generosity supports ADDU's mission of excellence.");
+        setShowForm(false);
+        setDonationAmount('');
+        setDonationFirstName('');
+        setDonationLastName('');
+        setDonationEmail('');
+        setSelectedAmount(null);
+        setSelectedPayment('Credit Card');
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to process donation: ${errorData.message || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error processing donation:', error);
+      alert(`Error processing donation: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsDonating(false);
+    }
+  };
+
+  // Dashboard View for Admin
+  if (dashboardView && userRole === 'admin') {
+    const topDonors = analyticsData?.all_donations
+      .reduce((acc: { email: string; name: string; total: number; count: number }[], donation) => {
+        const existing = acc.find(d => d.email === donation.email);
+        if (existing) {
+          existing.total += Number(donation.amount);
+          existing.count += 1;
+        } else {
+          acc.push({
+            email: donation.email,
+            name: `${donation.first_name} ${donation.last_name}`,
+            total: Number(donation.amount),
+            count: 1
+          });
+        }
+        return acc;
+      }, [])
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 10) || [];
+
+    return (
+      <div className="flex flex-col min-h-screen bg-[#F8FAFC]">
+        <main className="flex-1 p-8">
+          <div className="max-w-7xl mx-auto">
+            <div className="mb-8">
+              <button 
+                onClick={() => setDashboardView(false)} 
+                className="flex items-center gap-2 text-gray-500 font-bold mb-4 hover:text-[#003087] transition-all"
+              >
+                <ChevronLeft className="w-5 h-5" /> Back to Donations
+              </button>
+              
+              <div className="flex justify-between items-start">
+                <div>
+                  <h1 className="text-4xl font-bold text-gray-900 mb-2">Donation Analytics Dashboard</h1>
+                  <p className="text-gray-600">Comprehensive overview of donations and top contributors</p>
+                </div>
+              </div>
+            </div>
+
+            {loadingAnalytics ? (
+              <div className="text-center py-12">
+                <p className="text-gray-500 font-semibold">Loading analytics...</p>
+              </div>
+            ) : analyticsData ? (
+              <div className="space-y-8">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="p-3 bg-blue-50 rounded-xl">
+                        <BarChart3 className="w-6 h-6 text-[#003087]" />
+                      </div>
+                      <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Total Raised</h3>
+                    </div>
+                    <p className="text-3xl font-bold text-gray-900">₱{analyticsData.overall_total.toLocaleString()}</p>
+                    <p className="text-sm text-gray-500 mt-2">{analyticsData.overall_count} donations</p>
+                  </div>
+
+                  <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="p-3 bg-green-50 rounded-xl">
+                        <Users className="w-6 h-6 text-green-600" />
+                      </div>
+                      <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Unique Donors</h3>
+                    </div>
+                    <p className="text-3xl font-bold text-gray-900">{topDonors.length}</p>
+                    <p className="text-sm text-gray-500 mt-2">Active contributors</p>
+                  </div>
+
+                  <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="p-3 bg-orange-50 rounded-xl">
+                        <Target className="w-6 h-6 text-orange-600" />
+                      </div>
+                      <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Active Campaigns</h3>
+                    </div>
+                    <p className="text-3xl font-bold text-gray-900">{analyticsData.campaign_donations.length}</p>
+                    <p className="text-sm text-gray-500 mt-2">Fundraising initiatives</p>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm">
+                  <div className="p-6 border-b border-gray-200">
+                    <div className="flex items-center gap-3">
+                      <Award className="w-6 h-6 text-[#003087]" />
+                      <h2 className="text-2xl font-bold text-gray-900">Top 10 Donors</h2>
+                    </div>
+                    <p className="text-gray-600 mt-1">Our most generous contributors</p>
+                  </div>
+                  <div className="p-6">
+                    <div className="space-y-4">
+                      {topDonors.map((donor, index) => (
+                        <div key={donor.email} className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-all">
+                          <div className={`flex items-center justify-center w-10 h-10 rounded-full font-bold text-white ${
+                            index === 0 ? 'bg-yellow-500' : index === 1 ? 'bg-gray-400' : index === 2 ? 'bg-orange-600' : 'bg-[#003087]'
+                          }`}>
+                            {index + 1}
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="font-bold text-gray-900">{donor.name}</h3>
+                            <p className="text-sm text-gray-500">{donor.email}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xl font-bold text-[#003087]">₱{donor.total.toLocaleString()}</p>
+                            <p className="text-sm text-gray-500">{donor.count} donation{donor.count > 1 ? 's' : ''}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm">
+                  <div className="p-6 border-b border-gray-200">
+                    <div className="flex items-center gap-3">
+                      <TrendingUp className="w-6 h-6 text-[#003087]" />
+                      <h2 className="text-2xl font-bold text-gray-900">Campaign-wise Donations</h2>
+                    </div>
+                    <p className="text-gray-600 mt-1">Detailed breakdown by campaign</p>
+                  </div>
+                  <div className="p-6">
+                    <div className="space-y-6">
+                      {analyticsData.campaign_donations.map((campaignData) => (
+                        <div key={campaignData.campaign.id} className="border border-gray-200 rounded-xl overflow-hidden">
+                          <div className="bg-gray-50 p-4 border-b border-gray-200">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <h3 className="text-xl font-bold text-gray-900">{campaignData.campaign.title}</h3>
+                                <p className="text-sm text-gray-600 mt-1">{campaignData.campaign.category}</p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-2xl font-bold text-green-600">₱{campaignData.total.toLocaleString()}</p>
+                                <p className="text-sm text-gray-500">{campaignData.count} donation{campaignData.count > 1 ? 's' : ''}</p>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="p-4">
+                            <h4 className="font-semibold text-gray-700 mb-3">Donors:</h4>
+                            <div className="space-y-2">
+                              {campaignData.donations.slice(0, 5).map((donation) => (
+                                <div key={donation.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                                  <div>
+                                    <p className="font-medium text-gray-900">{donation.first_name} {donation.last_name}</p>
+                                    <p className="text-xs text-gray-500">{donation.email}</p>
+                                  </div>
+                                  <div className="text-right">
+                                    <p className="font-bold text-[#003087]">₱{Number(donation.amount).toLocaleString()}</p>
+                                    <p className="text-xs text-gray-500">{new Date(donation.created_at).toLocaleDateString()}</p>
+                                  </div>
+                                </div>
+                              ))}
+                              {campaignData.donations.length > 5 && (
+                                <p className="text-sm text-gray-500 text-center py-2">
+                                  + {campaignData.donations.length - 5} more donor{campaignData.donations.length - 5 > 1 ? 's' : ''}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {analyticsData.general_donations.count > 0 && (
+                  <div className="bg-white rounded-2xl border border-gray-200 shadow-sm">
+                    <div className="p-6 border-b border-gray-200">
+                      <div className="flex items-center gap-3">
+                        <Gift className="w-6 h-6 text-[#003087]" />
+                        <h2 className="text-2xl font-bold text-gray-900">General Donations</h2>
+                      </div>
+                      <p className="text-gray-600 mt-1">Donations not tied to specific campaigns</p>
+                    </div>
+                    <div className="p-6">
+                      <div className="bg-blue-50 rounded-xl p-4 mb-4">
+                        <div className="flex justify-between items-center">
+                          <span className="font-semibold text-gray-700">Total from General Donations:</span>
+                          <span className="text-2xl font-bold text-[#003087]">₱{analyticsData.general_donations.total.toLocaleString()}</span>
+                        </div>
+                        <p className="text-sm text-gray-600 mt-1">{analyticsData.general_donations.count} donation{analyticsData.general_donations.count > 1 ? 's' : ''}</p>
+                      </div>
+                      <div className="space-y-2">
+                        {analyticsData.general_donations.donations.slice(0, 10).map((donation) => (
+                          <div key={donation.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                            <div>
+                              <p className="font-medium text-gray-900">{donation.first_name} {donation.last_name}</p>
+                              <p className="text-xs text-gray-500">{donation.email}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-bold text-[#003087]">₱{Number(donation.amount).toLocaleString()}</p>
+                              <p className="text-xs text-gray-500">{new Date(donation.created_at).toLocaleDateString()}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-12 bg-white rounded-2xl border border-gray-200">
+                <p className="text-gray-500 font-semibold">No analytics data available</p>
+              </div>
+            )}
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   if (showForm) {
     // Prevent non-admins from accessing admin management view
@@ -504,11 +887,32 @@ export function DonationsView({ userRole, onNavigate }: DonationsViewProps) {
 
                       <div className="space-y-2">
                         <label className="text-sm font-bold text-gray-700">Upload Campaign Image</label>
-                        <div className="border-2 border-dashed border-gray-200 rounded-2xl p-8 flex flex-col items-center justify-center gap-2 hover:bg-gray-50 cursor-pointer transition-all">
-                          <Upload className="w-8 h-8 text-gray-400" />
-                          <p className="text-sm font-bold text-gray-500">Click to upload or drag and drop</p>
-                          <p className="text-xs text-gray-400">PNG, JPG or WEBP (max. 5MB)</p>
-                        </div>
+                        {newCampaignImagePreview ? (
+                          <div className="relative border-2 border-gray-200 rounded-2xl p-4">
+                            <img src={newCampaignImagePreview} alt="Preview" className="w-full h-48 object-cover rounded-xl" />
+                            <button 
+                              onClick={() => {
+                                setNewCampaignImage(null);
+                                setNewCampaignImagePreview(null);
+                              }}
+                              className="absolute top-6 right-6 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-all"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          <label className="border-2 border-dashed border-gray-200 rounded-2xl p-8 flex flex-col items-center justify-center gap-2 hover:bg-gray-50 cursor-pointer transition-all">
+                            <input 
+                              type="file" 
+                              accept="image/*"
+                              onChange={handleNewCampaignImageChange}
+                              className="hidden" 
+                            />
+                            <Upload className="w-8 h-8 text-gray-400" />
+                            <p className="text-sm font-bold text-gray-500">Click to upload or drag and drop</p>
+                            <p className="text-xs text-gray-400">PNG, JPG or WEBP (max. 2MB)</p>
+                          </label>
+                        )}
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
@@ -598,6 +1002,36 @@ export function DonationsView({ userRole, onNavigate }: DonationsViewProps) {
                             />
                           </div>
                         </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-bold text-gray-700">Upload Campaign Image</label>
+                        {editCampaignImagePreview ? (
+                          <div className="relative border-2 border-gray-200 rounded-2xl p-4">
+                            <img src={editCampaignImagePreview} alt="Preview" className="w-full h-48 object-cover rounded-xl" />
+                            <button 
+                              onClick={() => {
+                                setEditCampaignImage(null);
+                                setEditCampaignImagePreview(null);
+                              }}
+                              className="absolute top-6 right-6 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-all"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          <label className="border-2 border-dashed border-gray-200 rounded-2xl p-8 flex flex-col items-center justify-center gap-2 hover:bg-gray-50 cursor-pointer transition-all">
+                            <input 
+                              type="file" 
+                              accept="image/*"
+                              onChange={handleEditCampaignImageChange}
+                              className="hidden" 
+                            />
+                            <Upload className="w-8 h-8 text-gray-400" />
+                            <p className="text-sm font-bold text-gray-500">Click to upload or drag and drop</p>
+                            <p className="text-xs text-gray-400">PNG, JPG or WEBP (max. 2MB)</p>
+                          </label>
+                        )}
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
@@ -791,11 +1225,29 @@ export function DonationsView({ userRole, onNavigate }: DonationsViewProps) {
                     <div className="space-y-6">
                       <h3 className="text-xl font-bold flex items-center gap-3"><span className="w-8 h-8 rounded-full bg-[#003087] text-white flex items-center justify-center text-sm">1</span>Select Your Gift Amount</h3>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {['₱50', '₱100', '₱200', '₱1,000'].map((amt) => (
-                          <button key={amt} onClick={() => handleToggle(selectedAmount, amt, setSelectedAmount)} className={`py-4 rounded-2xl font-bold border-2 transition-all ${selectedAmount === amt ? 'bg-[#003087] border-[#003087] text-white' : 'bg-white border-gray-100 text-gray-600 hover:border-blue-200'}`}>{amt}</button>
+                        {['50', '100', '200', '1000'].map((amt) => (
+                          <button 
+                            key={amt} 
+                            onClick={() => {
+                              setSelectedAmount(`₱${amt}`);
+                              setDonationAmount(amt);
+                            }} 
+                            className={`py-4 rounded-2xl font-bold border-2 transition-all ${selectedAmount === `₱${amt}` ? 'bg-[#003087] border-[#003087] text-white' : 'bg-white border-gray-100 text-gray-600 hover:border-blue-200'}`}
+                          >
+                            ₱{amt}
+                          </button>
                         ))}
                       </div>
-                      <input type="text" placeholder="Enter Amount" className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none font-bold" />
+                      <input 
+                        type="number" 
+                        placeholder="Enter Amount" 
+                        value={donationAmount}
+                        onChange={(e) => {
+                          setDonationAmount(e.target.value);
+                          setSelectedAmount(null);
+                        }}
+                        className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none font-bold" 
+                      />
                     </div>
 
                     <div className="space-y-6">
@@ -815,28 +1267,34 @@ export function DonationsView({ userRole, onNavigate }: DonationsViewProps) {
                     </div>
 
                     <div className="space-y-6">
-                      <h3 className="text-xl font-bold flex items-center gap-3"><span className="w-8 h-8 rounded-full bg-[#003087] text-white flex items-center justify-center text-sm">3</span>Designate Your Gift</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {["Where it's needed most (Unrestricted)", "Student Financial Aid", "Faculty Excellence", "Research & Innovation", "Campus Infrastructure", "Academic Programs", "Global Engagement"].map((dest) => (
-                          <button key={dest} onClick={() => handleToggle(selectedDesignation, dest, setSelectedDesignation)} className={`flex items-center gap-3 p-4 border-2 rounded-xl transition-all text-left ${selectedDesignation === dest ? 'bg-blue-50 border-[#003087] text-[#003087]' : 'bg-white border-gray-100 text-gray-600'}`}>
-                            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${selectedDesignation === dest ? 'border-[#003087] bg-[#003087]' : 'border-gray-300'}`}>{selectedDesignation === dest && <div className="w-1.5 h-1.5 rounded-full bg-white" />}</div>
-                            <span className="text-sm font-bold">{dest}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="space-y-6">
-                      <h3 className="text-xl font-bold flex items-center gap-3"><span className="w-8 h-8 rounded-full bg-[#003087] text-white flex items-center justify-center text-sm">4</span>Your Information</h3>
+                      <h3 className="text-xl font-bold flex items-center gap-3"><span className="w-8 h-8 rounded-full bg-[#003087] text-white flex items-center justify-center text-sm">3</span>Your Information</h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <input type="text" placeholder="First Name *" className="p-4 bg-gray-50 border border-gray-100 rounded-xl" />
-                        <input type="text" placeholder="Last Name *" className="p-4 bg-gray-50 border border-gray-100 rounded-xl" />
-                        <input type="email" placeholder="Email Address *" className="p-4 bg-gray-50 border border-gray-100 rounded-xl md:col-span-2" />
+                        <input 
+                          type="text" 
+                          placeholder="First Name *" 
+                          value={donationFirstName}
+                          onChange={(e) => setDonationFirstName(e.target.value)}
+                          className="p-4 bg-gray-50 border border-gray-100 rounded-xl" 
+                        />
+                        <input 
+                          type="text" 
+                          placeholder="Last Name *" 
+                          value={donationLastName}
+                          onChange={(e) => setDonationLastName(e.target.value)}
+                          className="p-4 bg-gray-50 border border-gray-100 rounded-xl" 
+                        />
+                        <input 
+                          type="email" 
+                          placeholder="Email Address *" 
+                          value={donationEmail}
+                          onChange={(e) => setDonationEmail(e.target.value)}
+                          className="p-4 bg-gray-50 border border-gray-100 rounded-xl md:col-span-2" 
+                        />
                       </div>
                     </div>
 
                     <div className="space-y-6">
-                      <h3 className="text-xl font-bold flex items-center gap-3"><span className="w-8 h-8 rounded-full bg-[#003087] text-white flex items-center justify-center text-sm">5</span>Payment Details</h3>
+                      <h3 className="text-xl font-bold flex items-center gap-3"><span className="w-8 h-8 rounded-full bg-[#003087] text-white flex items-center justify-center text-sm">4</span>Payment Details</h3>
                       <div className="space-y-4">
                         <div className="flex gap-4">
                           {['Credit Card', 'GCash', 'Bank Transfer'].map(m => (
@@ -852,8 +1310,12 @@ export function DonationsView({ userRole, onNavigate }: DonationsViewProps) {
                     </div>
 
                     <div className="pt-10 border-t border-gray-100 space-y-6">
-                      <button className="w-full py-5 bg-[#003087] text-white rounded-2xl font-bold text-xl shadow-xl hover:bg-[#002566] transition-all">
-                        {selectedFreq === 'One-Time' || !selectedFreq ? 'Complete My Gift' : `Start My ${selectedFreq} Gift`}
+                      <button 
+                        onClick={handleDonation}
+                        disabled={isDonating}
+                        className="w-full py-5 bg-[#003087] text-white rounded-2xl font-bold text-xl shadow-xl hover:bg-[#002566] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {isDonating ? 'Processing...' : selectedFreq === 'One-Time' || !selectedFreq ? 'Complete My Gift' : `Start My ${selectedFreq} Gift`}
                       </button>
                       <div className="grid grid-cols-3 gap-4 text-[11px] text-gray-400 font-bold uppercase text-center">
                         <div className="flex items-center justify-center gap-2"><Lock className="w-3 h-3" /> Secure</div>
@@ -882,15 +1344,23 @@ export function DonationsView({ userRole, onNavigate }: DonationsViewProps) {
             <p className="text-xl text-blue-100 leading-relaxed max-w-3xl mx-auto">Your generosity empowers students, advances research, and strengthens our Jesuit mission of service and excellence.</p>
             <div className="pt-4 flex flex-col items-center gap-4">
               {userRole === "admin" ? (
-                <button 
-                  onClick={() => {
-                    setShowForm(true);
-                    setAdminManagementView(true);
-                  }} 
-                  className="bg-blue-600 hover:bg-blue-500 text-white px-10 py-4 rounded-2xl font-bold text-lg transition-all shadow-lg shadow-black/20"
-                >
-                  <Settings className="w-4 h-4 inline mr-2" /> Manage Campaigns
-                </button>
+                <div className="flex gap-4">
+                  <button 
+                    onClick={() => {
+                      setShowForm(true);
+                      setAdminManagementView(true);
+                    }} 
+                    className="bg-blue-600 hover:bg-blue-500 text-white px-10 py-4 rounded-2xl font-bold text-lg transition-all shadow-lg shadow-black/20"
+                  >
+                    <Settings className="w-4 h-4 inline mr-2" /> Manage Campaigns
+                  </button>
+                  <button 
+                    onClick={() => setDashboardView(true)} 
+                    className="bg-green-600 hover:bg-green-500 text-white px-10 py-4 rounded-2xl font-bold text-lg transition-all shadow-lg shadow-black/20"
+                  >
+                    <BarChart3 className="w-4 h-4 inline mr-2" /> View Dashboard
+                  </button>
+                </div>
               ) : (
                 <button onClick={() => setShowForm(true)} className="bg-orange-600 hover:bg-orange-500 text-white px-10 py-4 rounded-2xl font-bold text-lg transition-all shadow-lg shadow-black/20">Make a Gift Today</button>
               )}
@@ -1003,40 +1473,101 @@ export function DonationsView({ userRole, onNavigate }: DonationsViewProps) {
                     <p className="text-gray-500 font-semibold text-lg">No active campaigns at the moment</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 gap-8">
                     {campaigns.map((campaign) => (
-                      <div key={campaign.id} className="bg-white p-8 rounded-[24px] border border-gray-200 shadow-sm hover:shadow-lg transition-all flex flex-col">
-                        <div className="flex justify-between items-start mb-4">
-                          <h3 className="text-xl font-bold text-gray-900 flex-1">{campaign.title}</h3>
-                          <span className="bg-green-100 text-green-700 text-xs font-bold px-3 py-1 rounded-full">Active</span>
-                        </div>
-
-                        <p className="text-gray-600 text-sm mb-6 flex-1">Support this important initiative</p>
-
-                        <div className="space-y-4">
-                          <div>
-                            <div className="flex justify-between mb-2">
-                              <span className="text-sm text-gray-600 font-medium">Progress</span>
-                              <span className="text-sm font-bold text-[#003087]">{campaign.raised} / {campaign.goal}</span>
-                            </div>
-                            <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-                              <div
-                                className="h-full bg-[#003087] rounded-full transition-all"
-                                style={{ width: `${Math.min(100, (parseInt(campaign.raised.replace(/\D/g, '')) || 0) / (parseInt(campaign.goal.replace(/\D/g, '')) || 1) * 100)}%` }}
-                              ></div>
-                            </div>
+                      <div key={campaign.id} className="bg-white rounded-3xl border border-gray-200 shadow-sm hover:shadow-lg transition-all overflow-hidden">
+                        <div className="flex flex-col md:flex-row">
+                          {/* Left: Image */}
+                          <div className="md:w-2/5 bg-gray-100">
+                            {campaign.image_url ? (
+                              <img 
+                                src={`http://localhost:8000${campaign.image_url}`} 
+                                alt={campaign.title}
+                                className="w-full h-full object-cover min-h-[300px]" 
+                              />
+                            ) : (
+                              <div className="w-full h-full min-h-[300px] flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100">
+                                <ImageIcon className="w-20 h-20 text-gray-300" />
+                              </div>
+                            )}
                           </div>
 
-                          <div className="flex items-center gap-4 text-sm text-gray-600">
-                            <span className="font-medium">👥 {campaign.backers} supporters</span>
-                          </div>
+                          {/* Right: Content */}
+                          <div className="md:w-3/5 p-8 flex flex-col">
+                            <div className="flex items-start justify-between mb-4">
+                              <div className="flex-1">
+                                <span className="inline-block bg-blue-100 text-[#003087] text-xs font-bold px-3 py-1 rounded-full mb-3">
+                                  {campaign.category || 'General'}
+                                </span>
+                                <h3 className="text-2xl font-bold text-gray-900 mb-2">{campaign.title}</h3>
+                                <p className="text-gray-600 text-sm leading-relaxed">
+                                  {campaign.description || 'State-of-the-art equipment for our engineering students to conduct cutting-edge research and hands-on learning.'}
+                                </p>
+                              </div>
+                            </div>
 
-                          <button
-                            onClick={() => openDonationModal(campaign)}
-                            className="w-full py-3 bg-[#003087] text-white rounded-xl font-bold hover:bg-[#002566] transition-all"
-                          >
-                            Donate Now
-                          </button>
+                            {/* Progress Section */}
+                            <div className="mt-6">
+                              <div className="flex justify-between items-center mb-2">
+                                <span className="text-sm font-semibold text-gray-600">Progress</span>
+                                <span className="text-sm font-bold text-[#003087]">{campaign.progress_percentage?.toFixed(1) || 0}%</span>
+                              </div>
+                              <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden mb-4">
+                                <div
+                                  className="h-full bg-[#003087] rounded-full transition-all"
+                                  style={{ width: `${Math.min(100, campaign.progress_percentage || 0)}%` }}
+                                ></div>
+                              </div>
+                            </div>
+
+                            {/* Stats Grid */}
+                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-6">
+                              <div className="bg-blue-50 rounded-xl p-4">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <Target className="w-4 h-4 text-[#003087]" />
+                                  <span className="text-xs font-semibold text-gray-600">Goal</span>
+                                </div>
+                                <p className="text-lg font-bold text-[#003087]">{campaign.goal}</p>
+                              </div>
+                              
+                              <div className="bg-green-50 rounded-xl p-4">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <TrendingUp className="w-4 h-4 text-green-600" />
+                                  <span className="text-xs font-semibold text-gray-600">Raised</span>
+                                </div>
+                                <p className="text-lg font-bold text-green-600">{campaign.raised}</p>
+                              </div>
+                              
+                              <div className="bg-orange-50 rounded-xl p-4">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <Users className="w-4 h-4 text-orange-600" />
+                                  <span className="text-xs font-semibold text-gray-600">Donors</span>
+                                </div>
+                                <p className="text-lg font-bold text-orange-600">{campaign.donors_count || campaign.backers || 0}</p>
+                              </div>
+                              
+                              <div className="bg-red-50 rounded-xl p-4">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <Calendar className="w-4 h-4 text-red-600" />
+                                  <span className="text-xs font-semibold text-gray-600">Days Left</span>
+                                </div>
+                                <p className="text-lg font-bold text-red-600">{campaign.days_left || 0}</p>
+                              </div>
+                            </div>
+
+                            {/* Bottom Section */}
+                            <div className="mt-6 pt-6 border-t border-gray-100 flex items-center justify-between">
+                              <p className="text-sm text-gray-600">
+                                <span className="font-bold text-[#003087]">₱{(campaign.remaining_amount || 0).toLocaleString()}</span> remaining to reach goal
+                              </p>
+                              <button
+                                onClick={() => openDonationModal(campaign)}
+                                className="px-8 py-3 bg-[#003087] text-white rounded-xl font-bold hover:bg-[#002566] transition-all shadow-lg"
+                              >
+                                Donate Now
+                              </button>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     ))}
