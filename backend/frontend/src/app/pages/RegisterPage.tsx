@@ -52,6 +52,107 @@ const PROGRAM_OPTIONS = [
   'BS Nursing',
 ];
 
+type RegionKey = 'ncr' | 'car' | 'region-1' | 'region-2' | 'region-3' | 'region-4a' | 'region-4b' | 'region-5' | 'region-6' | 'region-7' | 'region-8' | 'nir' | 'region-9' | 'region-10' | 'region-11' | 'region-12' | 'region-13' | 'barmm';
+
+interface RegionData {
+  name: string;
+  provinces: string[];
+  cities: string[];
+}
+
+const PHILIPPINES_REGIONS_DATA: Record<RegionKey, RegionData> = {
+  'ncr': {
+    name: 'NCR (National Capital Region)',
+    provinces: [],
+    cities: ['Manila', 'Quezon City', 'Caloocan', 'Las Piñas', 'Makati', 'Malabon', 'Mandaluyong', 'Marikina', 'Muntinlupa', 'Navotas', 'Parañaque', 'Pasay', 'Pasig', 'San Juan', 'Taguig', 'Valenzuela']
+  },
+  'car': {
+    name: 'CAR (Cordillera Administrative Region)',
+    provinces: ['Abra', 'Apayao', 'Benguet', 'Ifugao', 'Kalinga', 'Mountain Province'],
+    cities: ['Baguio City']
+  },
+  'region-1': {
+    name: 'Region I (Ilocos Region)',
+    provinces: ['Ilocos Norte', 'Ilocos Sur', 'La Union', 'Pangasinan'],
+    cities: ['Laoag', 'Batac', 'Vigan', 'Candon', 'San Fernando', 'Dagupan', 'Alaminos', 'San Carlos', 'Urdaneta']
+  },
+  'region-2': {
+    name: 'Region II (Cagayan Valley)',
+    provinces: ['Batanes', 'Cagayan', 'Isabela', 'Nueva Vizcaya', 'Quirino'],
+    cities: ['Tuguegarao', 'Cauayan', 'Ilagan', 'Santiago']
+  },
+  'region-3': {
+    name: 'Region III (Central Luzon)',
+    provinces: ['Aurora', 'Bataan', 'Bulacan', 'Nueva Ecija', 'Pampanga', 'Tarlac', 'Zambales'],
+    cities: ['Angeles', 'Olongapo', 'Balanga', 'Malolos', 'Meycauayan', 'San Jose Del Monte', 'Mabalacat', 'Cabanatuan', 'Gapan', 'Palayan', 'San Jose', 'Muñoz', 'San Fernando', 'Tarlac City']
+  },
+  'region-4a': {
+    name: 'Region IV-A (CALABARZON)',
+    provinces: ['Batangas', 'Cavite', 'Laguna', 'Quezon', 'Rizal'],
+    cities: ['Antipolo', 'Batangas City', 'Lipa', 'Santo Tomas', 'Tanauan', 'Bacoor', 'Cavite City', 'Dasmariñas', 'Gen. Trias', 'Imus', 'Tagaytay', 'Trece Martires', 'Biñan', 'Cabuyao', 'Calamba', 'San Pablo', 'Santa Rosa', 'Lucena', 'Tayabas']
+  },
+  'region-4b': {
+    name: 'Region IV-B (MIMAROPA)',
+    provinces: ['Marinduque', 'Occidental Mindoro', 'Oriental Mindoro', 'Palawan', 'Romblon'],
+    cities: ['Calapan', 'Puerto Princesa']
+  },
+  'region-5': {
+    name: 'Region V (Bicol Region)',
+    provinces: ['Albay', 'Camarines Norte', 'Camarines Sur', 'Catanduanes', 'Masbate', 'Sorsogon'],
+    cities: ['Legazpi', 'Ligao', 'Tabaco', 'Iriga', 'Naga', 'Masbate City', 'Sorsogon City']
+  },
+  'region-6': {
+    name: 'Region VI (Western Visayas)',
+    provinces: ['Aklan', 'Antique', 'Capiz', 'Guimaras', 'Iloilo'],
+    cities: ['Iloilo City', 'Passi', 'Roxas City']
+  },
+  'region-7': {
+    name: 'Region VII (Central Visayas)',
+    provinces: ['Bohol', 'Cebu'],
+    cities: ['Cebu City', 'Lapu-Lapu', 'Mandaue', 'Tagbilaran', 'Bogo', 'Carcar', 'Danao', 'Naga', 'Talisay', 'Toledo']
+  },
+  'region-8': {
+    name: 'Region VIII (Eastern Visayas)',
+    provinces: ['Biliran', 'Eastern Samar', 'Leyte', 'Northern Samar', 'Samar', 'Southern Leyte'],
+    cities: ['Tacloban', 'Ormoc', 'Baybay', 'Borongan', 'Catbalogan', 'Calbayog', 'Maasin']
+  },
+  'nir': {
+    name: 'NIR (Negros Island Region)',
+    provinces: ['Negros Occidental', 'Negros Oriental', 'Siquijor'],
+    cities: ['Bacolod', 'Bago', 'Cadiz', 'Escalante', 'Himamaylan', 'Kabankalan', 'La Carlota', 'Sagay', 'San Carlos', 'Silay', 'Sipalay', 'Talisay', 'Victorias', 'Dumaguete', 'Bais', 'Bayawan', 'Canlaon', 'Guihulngan', 'Tanjay']
+  },
+  'region-9': {
+    name: 'Region IX (Zamboanga Peninsula)',
+    provinces: ['Zamboanga del Norte', 'Zamboanga del Sur', 'Zamboanga Sibugay'],
+    cities: ['Zamboanga City', 'Isabela City', 'Dapitan', 'Dipolog', 'Pagadian']
+  },
+  'region-10': {
+    name: 'Region X (Northern Mindanao)',
+    provinces: ['Bukidnon', 'Camiguin', 'Lanao del Norte', 'Misamis Occidental', 'Misamis Oriental'],
+    cities: ['Cagayan de Oro', 'Iligan', 'Malaybalay', 'Valencia', 'Oroquieta', 'Ozamiz', 'Tangub', 'El Salvador', 'Gingoog']
+  },
+  'region-11': {
+    name: 'Region XI (Davao Region)',
+    provinces: ['Davao de Oro', 'Davao del Norte', 'Davao del Sur', 'Davao Occidental', 'Davao Oriental'],
+    cities: ['Davao City', 'Panabo', 'Island Garden City of Samal', 'Tagum', 'Digos', 'Mati']
+  },
+  'region-12': {
+    name: 'Region XII (SOCCSKSARGEN)',
+    provinces: ['Cotabato', 'Sarangani', 'South Cotabato', 'Sultan Kudarat'],
+    cities: ['General Santos', 'Koronadal', 'Kidapawan', 'Tacurong']
+  },
+  'region-13': {
+    name: 'Region XIII (Caraga)',
+    provinces: ['Agusan del Norte', 'Agusan del Sur', 'Dinagat Islands', 'Surigao del Norte', 'Surigao del Sur'],
+    cities: ['Butuan', 'Cabadbaran', 'Bayugan', 'Surigao City', 'Bislig', 'Tandag']
+  },
+  'barmm': {
+    name: 'BARMM (Bangsamoro Autonomous Region)',
+    provinces: ['Basilan', 'Lanao del Sur', 'Maguindanao del Norte', 'Maguindanao del Sur', 'Sulu', 'Tawi-Tawi'],
+    cities: ['Cotabato City', 'Lamitan', 'Marawi']
+  }
+};
+
 export function RegisterPage() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
@@ -80,15 +181,44 @@ export function RegisterPage() {
     course: '',
     batchYear: '',
     hasDiploma: 'no',
-    idType: ''
+    idType: '',
+    confirmPassword: ''
   });
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [diplomaFile, setDiplomaFile] = useState<File | null>(null);
   const [validIdFile, setValidIdFile] = useState<File | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate password match
+    if (formData.password !== formData.confirmPassword) {
+      alert('Passwords do not match. Please ensure both passwords are identical.');
+      return;
+    }
+
+    // Validate password is not empty
+    if (!formData.password || formData.password.trim() === '') {
+      alert('Password cannot be empty.');
+      return;
+    }
+
+    // Validate phone number length
+    const phoneRegex = /^\d{7,15}$/;
+    if (!phoneRegex.test(formData.phoneNumber.replace(/\D/g, ''))) {
+      alert('Phone number must be between 7 and 15 digits.');
+      return;
+    }
+
+    // Validate telephone number length if provided
+    if (formData.telephoneNumber && formData.telephoneNumber.trim() !== '') {
+      if (!phoneRegex.test(formData.telephoneNumber.replace(/\D/g, ''))) {
+        alert('Telephone number must be between 7 and 15 digits.');
+        return;
+      }
+    }
     
     // Validate required file uploads
     if (!validIdFile) {
@@ -380,6 +510,31 @@ export function RegisterPage() {
               </div>
             </div>
 
+            {/* Confirm Password */}
+            <div className="mb-6">
+              <label htmlFor="confirmPassword" className="block text-gray-700 font-medium mb-2">Confirm Password</label>
+              <div className="relative">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  id="confirmPassword"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  name="confirmPassword"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  placeholder="Confirm your password"
+                  className="w-full pl-12 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
+            </div>
+
             {/* Current Address */}
             <div className="mb-6">
               <label htmlFor="currentAddress" className="block text-gray-700 font-medium mb-2">Current Address</label>
@@ -477,60 +632,72 @@ export function RegisterPage() {
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition"
                     required
                   >
-                    <option value="">Select your region</option>
-                    <option value="region-11">Region XI - Davao Region</option>
-                    <option value="ncr">NCR</option>
-                    <option value="region-1">Region I - Ilocos Region</option>
-                    <option value="region-2">Region II - Cagayan Valley</option>
-                    <option value="region-3">Region III - Central Luzon</option>
-                    <option value="region-4a">Region IV-A - CALABARZON</option>
-                    <option value="region-5">Region V - Bicol Region</option>
-                    <option value="region-6">Region VI - Western Visayas</option>
-                    <option value="region-7">Region VII - Central Visayas</option>
-                    <option value="region-8">Region VIII - Eastern Visayas</option>
-                    <option value="region-9">Region IX - Zamboanga Peninsula</option>
-                    <option value="region-10">Region X - Northern Mindanao</option>
-                    <option value="region-12">Region XII - SOCCSKSARGEN</option>
-                    <option value="region-13">Region XIII - Caraga</option>
-                    <option value="barmm">BARMM</option>
-                    <option value="car">CAR - Cordillera Administrative Region</option>
+                    <option value="" disabled hidden>Select your region</option>
+                    <option value="region-11">Region XI (Davao Region)</option>
+                    <option value="ncr">NCR (National Capital Region)</option>
+                    <option value="car">CAR (Cordillera Administrative Region)</option>
+                    <option value="region-1">Region I (Ilocos Region)</option>
+                    <option value="region-2">Region II (Cagayan Valley)</option>
+                    <option value="region-3">Region III (Central Luzon)</option>
+                    <option value="region-4a">Region IV-A (CALABARZON)</option>
+                    <option value="region-4b">Region IV-B (MIMAROPA)</option>
+                    <option value="region-5">Region V (Bicol Region)</option>
+                    <option value="region-6">Region VI (Western Visayas)</option>
+                    <option value="region-7">Region VII (Central Visayas)</option>
+                    <option value="region-8">Region VIII (Eastern Visayas)</option>
+                    <option value="nir">NIR (Negros Island Region)</option>
+                    <option value="region-9">Region IX (Zamboanga Peninsula)</option>
+                    <option value="region-10">Region X (Northern Mindanao)</option>
+                    <option value="region-12">Region XII (SOCCSKSARGEN)</option>
+                    <option value="region-13">Region XIII (Caraga)</option>
+                    <option value="barmm">BARMM (Bangsamoro Autonomous Region)</option>
                   </select>
                 </div>
 
-                {/* Province */}
-                <div>
-                  <label htmlFor="province" className="block text-gray-700 font-medium mb-2">Province</label>
-                  <div className="relative">
-                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input
+                {/* Province - Only show if region has provinces (not for NCR) */}
+                {formData.region !== 'ncr' && (
+                  <div>
+                    <label htmlFor="province" className="block text-gray-700 font-medium mb-2">Province</label>
+                    <select
                       id="province"
-                      type="text"
                       name="province"
                       value={formData.province}
                       onChange={handleChange}
-                      placeholder="e.g., Davao del Sur"
-                      className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition"
                       required
-                    />
+                    >
+                      <option value="" disabled hidden>Select your province</option>
+                      {formData.region && PHILIPPINES_REGIONS_DATA[formData.region as RegionKey]?.provinces.length > 0 ? (
+                        PHILIPPINES_REGIONS_DATA[formData.region as RegionKey].provinces.map((province: string) => (
+                          <option key={province} value={province}>{province}</option>
+                        ))
+                      ) : (
+                        <option disabled>No provinces available for this region</option>
+                      )}
+                    </select>
                   </div>
-                </div>
+                )}
 
                 {/* Location of Town/City */}
                 <div>
                   <label htmlFor="city" className="block text-gray-700 font-medium mb-2">Location of Town/City</label>
-                  <div className="relative">
-                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input
-                      id="city"
-                      type="text"
-                      name="city"
-                      value={formData.city}
-                      onChange={handleChange}
-                      placeholder="e.g., Davao City"
-                      className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition"
-                      required
-                    />
-                  </div>
+                  <select
+                    id="city"
+                    name="city"
+                    value={formData.city}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition"
+                    required
+                  >
+                    <option value="" disabled hidden>Select your city</option>
+                    {formData.region && PHILIPPINES_REGIONS_DATA[formData.region as RegionKey]?.cities.length > 0 ? (
+                      PHILIPPINES_REGIONS_DATA[formData.region as RegionKey].cities.map((city: string) => (
+                        <option key={city} value={city}>{city}</option>
+                      ))
+                    ) : (
+                      <option disabled>No cities available for this region</option>
+                    )}
+                  </select>
                 </div>
               </div>
             )}
@@ -549,6 +716,8 @@ export function RegisterPage() {
                     value={formData.phoneNumber}
                     onChange={handleChange}
                     placeholder="Enter your phone number"
+                    minLength={7}
+                    maxLength={15}
                     className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition"
                     required
                   />
@@ -567,6 +736,8 @@ export function RegisterPage() {
                     value={formData.telephoneNumber}
                     onChange={handleChange}
                     placeholder="Enter your telephone number"
+                    minLength={7}
+                    maxLength={15}
                     className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition"
                   />
                 </div>
@@ -642,7 +813,7 @@ export function RegisterPage() {
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition"
                 required
               >
-                <option value="">Select your religion</option>
+                <option value="" disabled hidden>Select your religion</option>
                 <option value="roman_catholic">Roman Catholic</option>
                 <option value="protestant">Protestant</option>
                 <option value="iglesia_ni_cristo">Iglesia ni Cristo</option>
@@ -678,7 +849,7 @@ export function RegisterPage() {
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition"
                 required
               >
-                <option value="">Select your marital status</option>
+                <option value="" disabled hidden>Select your marital status</option>
                 <option value="single">Single</option>
                 <option value="married">Married</option>
                 <option value="living_in">Living-in</option>
@@ -808,7 +979,7 @@ export function RegisterPage() {
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition"
                   required
                 >
-                  <option value="">Select batch year</option>
+                  <option value="" disabled hidden>Select batch year</option>
                   {years.map(year => (
                     <option key={year} value={year}>{year}</option>
                   ))}
@@ -869,7 +1040,7 @@ export function RegisterPage() {
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition"
                   required
                 >
-                  <option value="">Choose your valid ID</option>
+                  <option value="" disabled hidden>Choose your valid ID</option>
                   <option value="drivers-license">Driver's License</option>
                   <option value="passport">Passport</option>
                   <option value="umid">UMID</option>
