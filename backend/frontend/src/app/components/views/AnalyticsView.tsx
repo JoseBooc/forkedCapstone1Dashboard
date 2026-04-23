@@ -1,11 +1,21 @@
-import { BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { TrendingUp, Users, Briefcase, Heart, Download, BarChart3 } from 'lucide-react';
+import {
+  BarChart, Bar, PieChart, Pie, Cell,
+  LineChart, Line, XAxis, YAxis,
+  CartesianGrid, Tooltip, Legend,
+  ResponsiveContainer
+} from 'recharts';
+
+import {
+  TrendingUp, Users, Briefcase,
+  Heart, Download, BarChart3
+} from 'lucide-react';
 
 interface AnalyticsViewProps {
   userRole: 'alumni' | 'admin';
 }
 
 export function AnalyticsView({ userRole }: AnalyticsViewProps) {
+
   // Job/Internship Postings Data
   const careerPostingsData = [
     { month: 'Jan', jobs: 12, internships: 8 },
@@ -53,18 +63,39 @@ export function AnalyticsView({ userRole }: AnalyticsViewProps) {
     { month: 'Jun', rate: 90 }
   ];
 
+  // NEW: Website Visits Analytics
+  const visitsData = [
+    { month: 'Jan', alumni: 120, guests: 80 },
+    { month: 'Feb', alumni: 150, guests: 95 },
+    { month: 'Mar', alumni: 180, guests: 110 },
+    { month: 'Apr', alumni: 170, guests: 105 },
+    { month: 'May', alumni: 200, guests: 130 },
+    { month: 'Jun', alumni: 230, guests: 150 }
+  ];
+
+  // NEW: News Clicks Data
+  const newsClicksData = [
+    { title: 'Alumni Homecoming 2025', clicks: 320 },
+    { title: 'Scholarship Program Launch', clicks: 280 },
+    { title: 'New Campus Opening', clicks: 210 },
+    { title: 'Tech Conference Highlights', clicks: 260 },
+    { title: 'Sports Fest Recap', clicks: 190 }
+  ];
+
   const COLORS = ['#003087', '#0052CC', '#0066FF', '#3399FF', '#66B2FF', '#99CCFF'];
 
   return (
     <div className="p-8 relative">
-      {/* ADDU Decorative Shapes */}
+
+      {/* Decorative Shapes */}
       <div className="absolute top-0 right-0 w-64 h-64 bg-[#003087]/5 rounded-full blur-3xl -z-10"></div>
       <div className="absolute bottom-0 left-0 w-96 h-96 bg-orange-500/5 rounded-full blur-3xl -z-10"></div>
 
+      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Data Analytics & Reporting</h1>
-          <p className="text-gray-600">Career opportunities and donations insights</p>
+          <p className="text-gray-600">Insights on Overall System Data</p>
         </div>
         <button className="flex items-center gap-2 px-4 py-2 border-2 border-[#003087] text-[#003087] rounded-lg hover:bg-[#003087] hover:text-white transition-colors font-medium">
           <Download className="w-5 h-5" />
@@ -74,6 +105,8 @@ export function AnalyticsView({ userRole }: AnalyticsViewProps) {
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+
+        {/* Job Postings */}
         <div className="bg-gradient-to-br from-[#003087] to-[#0055cc] text-white rounded-xl p-6 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10"></div>
           <div className="relative">
@@ -89,6 +122,7 @@ export function AnalyticsView({ userRole }: AnalyticsViewProps) {
           </div>
         </div>
 
+        {/* Internships */}
         <div className="bg-gradient-to-br from-orange-400 to-orange-600 text-white rounded-xl p-6 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10"></div>
           <div className="relative">
@@ -104,6 +138,7 @@ export function AnalyticsView({ userRole }: AnalyticsViewProps) {
           </div>
         </div>
 
+        {/* Applications */}
         <div className="bg-white rounded-xl border-2 border-[#003087]/20 p-6">
           <div className="flex items-center justify-between mb-4">
             <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
@@ -116,6 +151,7 @@ export function AnalyticsView({ userRole }: AnalyticsViewProps) {
           <div className="text-xs text-green-600 mt-2">+32% from last period</div>
         </div>
 
+        {/* Donations */}
         <div className="bg-white rounded-xl border-2 border-[#003087]/20 p-6">
           <div className="flex items-center justify-between mb-4">
             <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
@@ -129,17 +165,17 @@ export function AnalyticsView({ userRole }: AnalyticsViewProps) {
         </div>
       </div>
 
-      {/* Section Header */}
+      {/* Career Section */}
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Career Opportunities Analytics</h2>
         <p className="text-gray-600">Track job and internship postings performance</p>
       </div>
 
-      {/* Career Analytics Charts */}
+      {/* Career Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        {/* Monthly Job/Internship Postings */}
-        <div className="bg-white rounded-xl border-2 border-[#003087]/20 p-6 shadow-sm">
-          <h3 className="text-xl font-bold text-gray-900 mb-4">Monthly Postings Trend</h3>
+
+        <div className="bg-white rounded-xl border-2 border-[#003087]/20 p-6">
+          <h3 className="text-xl font-bold mb-4">Monthly Postings Trend</h3>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={careerPostingsData}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -147,29 +183,19 @@ export function AnalyticsView({ userRole }: AnalyticsViewProps) {
               <YAxis />
               <Tooltip />
               <Legend />
-              <Bar dataKey="jobs" fill="#003087" name="Job Postings" />
-              <Bar dataKey="internships" fill="#ff8c42" name="Internship Postings" />
+              <Bar dataKey="jobs" fill="#003087" />
+              <Bar dataKey="internships" fill="#ff8c42" />
             </BarChart>
           </ResponsiveContainer>
         </div>
 
-        {/* Applications by Category */}
-        <div className="bg-white rounded-xl border-2 border-[#003087]/20 p-6 shadow-sm">
-          <h3 className="text-xl font-bold text-gray-900 mb-4">Applications by Category</h3>
+        <div className="bg-white rounded-xl border-2 border-[#003087]/20 p-6">
+          <h3 className="text-xl font-bold mb-4">Applications by Category</h3>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
-              <Pie
-                data={jobCategoryData}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
-                outerRadius={100}
-                fill="#8884d8"
-                dataKey="value"
-              >
-                {jobCategoryData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+              <Pie data={jobCategoryData} dataKey="value" outerRadius={100}>
+                {jobCategoryData.map((_, i) => (
+                  <Cell key={i} fill={COLORS[i % COLORS.length]} />
                 ))}
               </Pie>
               <Tooltip />
@@ -177,9 +203,8 @@ export function AnalyticsView({ userRole }: AnalyticsViewProps) {
           </ResponsiveContainer>
         </div>
 
-        {/* Career Success Rate */}
-        <div className="bg-white rounded-xl border-2 border-[#003087]/20 p-6 shadow-sm lg:col-span-2">
-          <h3 className="text-xl font-bold text-gray-900 mb-4">Application Success Rate (%)</h3>
+        <div className="bg-white rounded-xl border-2 border-[#003087]/20 p-6 lg:col-span-2">
+          <h3 className="text-xl font-bold mb-4">Application Success Rate (%)</h3>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={careerSuccessData}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -187,108 +212,90 @@ export function AnalyticsView({ userRole }: AnalyticsViewProps) {
               <YAxis domain={[70, 100]} />
               <Tooltip />
               <Legend />
-              <Line 
-                type="monotone" 
-                dataKey="rate" 
-                stroke="#003087" 
-                strokeWidth={3} 
-                name="Success Rate %" 
-                dot={{ fill: '#003087', r: 6 }}
-              />
+              <Line type="monotone" dataKey="rate" stroke="#003087" strokeWidth={3} />
             </LineChart>
           </ResponsiveContainer>
         </div>
+
       </div>
 
-      {/* Section Header */}
+      {/* Donations Section */}
       <div className="mb-6 mt-12">
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Donations Analytics</h2>
         <p className="text-gray-600">Track giving and fundraising performance</p>
       </div>
 
-      {/* Donations Analytics Charts */}
+      {/* Donation Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        {/* Quarterly Donations */}
-        <div className="bg-white rounded-xl border-2 border-[#003087]/20 p-6 shadow-sm">
-          <h3 className="text-xl font-bold text-gray-900 mb-4">Quarterly Donations (Millions ₱)</h3>
+
+        <div className="bg-white rounded-xl border-2 border-[#003087]/20 p-6">
+          <h3 className="text-xl font-bold mb-4">Quarterly Donations</h3>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={donationData}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="quarter" />
               <YAxis />
               <Tooltip />
-              <Legend />
-              <Bar dataKey="amount" fill="#8b5cf6" name="Donation Amount (M)" />
+              <Bar dataKey="amount" fill="#8b5cf6" />
             </BarChart>
           </ResponsiveContainer>
         </div>
 
-        {/* Donations by Purpose */}
-        <div className="bg-white rounded-xl border-2 border-[#003087]/20 p-6 shadow-sm">
-          <h3 className="text-xl font-bold text-gray-900 mb-4">Donations by Purpose</h3>
+        <div className="bg-white rounded-xl border-2 border-[#003087]/20 p-6">
+          <h3 className="text-xl font-bold mb-4">Donations by Purpose</h3>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
-              <Pie
-                data={donationPurposeData}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
-                outerRadius={100}
-                fill="#8884d8"
-                dataKey="value"
-              >
-                {donationPurposeData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+              <Pie data={donationPurposeData} dataKey="value" outerRadius={100}>
+                {donationPurposeData.map((_, i) => (
+                  <Cell key={i} fill={COLORS[i % COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip formatter={(value) => `₱${value}M`} />
+              <Tooltip />
             </PieChart>
           </ResponsiveContainer>
         </div>
+
       </div>
 
-      {/* Donation Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white rounded-xl border-2 border-[#003087]/20 p-6">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-              <Heart className="w-5 h-5 text-green-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Avg Donation</p>
-              <p className="text-2xl font-bold text-gray-900">₱2,850</p>
-            </div>
-          </div>
-          <p className="text-xs text-green-600">+15% from last year</p>
-        </div>
-
-        <div className="bg-white rounded-xl border-2 border-[#003087]/20 p-6">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-              <Users className="w-5 h-5 text-blue-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Total Donors</p>
-              <p className="text-2xl font-bold text-gray-900">3,508</p>
-            </div>
-          </div>
-          <p className="text-xs text-green-600">+28% from last year</p>
-        </div>
-
-        <div className="bg-white rounded-xl border-2 border-[#003087]/20 p-6">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-              <BarChart3 className="w-5 h-5 text-purple-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Scholarships Funded</p>
-              <p className="text-2xl font-bold text-gray-900">125</p>
-            </div>
-          </div>
-          <p className="text-xs text-green-600">+10% from last year</p>
-        </div>
+      {/* NEW SECTION: Website Engagement */}
+      <div className="mb-6 mt-12">
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Website Engagement Analytics</h2>
+        <p className="text-gray-600">Track alumni visits, guest traffic, and news engagement</p>
       </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+
+        <div className="bg-white rounded-xl border-2 border-[#003087]/20 p-6">
+          <h3 className="text-xl font-bold mb-4">Alumni vs Guest Visits</h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={visitsData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="month" />
+              <YAxis />
+              <Tooltip />
+              <Legend />
+              <Line type="monotone" dataKey="alumni" stroke="#003087" />
+              <Line type="monotone" dataKey="guests" stroke="#ff8c42" />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div className="bg-white rounded-xl border-2 border-[#003087]/20 p-6">
+          <h3 className="text-xl font-bold mb-4">News Views by Clicks</h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={newsClicksData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="title" /> <XAxis dataKey="title" tick={false} />
+              <YAxis />
+              <Tooltip />
+              <Legend />
+              <Bar dataKey="clicks" fill="#0052CC" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+      </div>
+
     </div>
   );
 }
