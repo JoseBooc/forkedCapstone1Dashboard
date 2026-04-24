@@ -94,7 +94,7 @@ export function Sidebar({ activeView, onNavigate, userRole }: SidebarProps) {
 
   return (
     <aside className="w-64 bg-white h-screen fixed left-0 top-0 border-r border-gray-200 flex flex-col z-50 text-left">
-      <div className="bg-gradient-to-b from-[#0051C3] to-[#003087] p-6 relative overflow-hidden">
+      <div className="bg-linear-to-b from-[#0051C3] to-[#003087] p-6 relative overflow-hidden">
         <div className="relative z-10 flex items-center gap-4">
           <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-lg overflow-hidden shrink-0">
              <img src={ADDULogo} alt="ADDU Logo" className="w-full h-full object-contain p-0.5" />
@@ -104,10 +104,10 @@ export function Sidebar({ activeView, onNavigate, userRole }: SidebarProps) {
             <p className="text-[11px] opacity-90 font-medium">Ateneo de Davao</p>
           </div>
         </div>
-        <div className="absolute bottom-0 left-0 w-full h-[4px] bg-[#FFB800]"></div>
+        <div className="absolute bottom-0 left-0 w-full h-1 bg-[#FFB800]"></div>
       </div>
 
-      <nav className="flex-grow p-4 space-y-1 mt-2 overflow-y-auto"> {/* Added overflow-y-auto in case list gets long */}
+      <nav className="grow p-4 space-y-1 mt-2 overflow-y-auto"> {/* Added overflow-y-auto in case list gets long */}
         {menuItems.map((item) => (
           <button
             key={item.id}

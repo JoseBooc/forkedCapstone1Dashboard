@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Calendar, Clock, MapPin, Users, Eye, Award, User, FileText, Plus, X, CheckCircle, XCircle, Trash2, Edit } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, Eye, Award, User, FileText, Plus, X, CheckCircle, XCircle, Trash2, Edit, Download } from 'lucide-react';
 import { Footer } from '../Footer';
 import { EventRegistrationModal } from '../EventRegistrationModal';
 
@@ -100,7 +100,7 @@ function EventCard({ event, userRole, onApprove, onReject, onView, onRemove, onE
   const isAdmin = userRole === 'admin';
 
   return (
-    <div className="bg-white rounded-[24px] overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col h-full text-left">
+    <div className="bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col h-full text-left">
       <div className="relative h-56 overflow-hidden">
         <img src={event.image} alt={event.title} className="w-full h-full object-cover" />
         <div className="absolute top-4 right-4 flex flex-col gap-2 items-end">
@@ -249,6 +249,12 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
     capacity: '',
     image: ''
   });
+
+  const apiBaseUrl = 'http://localhost:8000/api';
+
+  const downloadEngagementReport = (path: string) => {
+    window.open(`${apiBaseUrl}${path}`, '_blank', 'noopener,noreferrer');
+  };
 
   useEffect(() => {
     localStorage.setItem('addu_events', JSON.stringify(events));
@@ -408,7 +414,7 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
   return (
     <div className="flex flex-col min-h-screen bg-[#F8FAFC]">
       {showSuccessToast && (
-        <div className="fixed top-8 left-1/2 -translate-x-1/2 z-[100] bg-green-600 text-white px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-3 animate-bounce">
+        <div className="fixed top-8 left-1/2 -translate-x-1/2 z-100 bg-green-600 text-white px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-3 animate-bounce">
           <CheckCircle className="w-5 h-5" />
           <span className="font-bold">Action successful!</span>
         </div>
@@ -421,13 +427,39 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
             <p className="text-gray-500 text-sm mt-1">Manage events and alumni contributions</p>
           </div>
           {userRole === 'admin' ? (
-            <button
-              onClick={() => setActiveTab('Create Event')}
-              className="flex items-center gap-2 px-4 py-2 bg-[#003087] text-white rounded-lg hover:bg-[#002066] transition-colors font-semibold shadow-md"
-            >
-              <Plus className="w-5 h-5" />
-              Create Event
-            </button>
+            <div className="flex flex-wrap justify-end gap-3">
+              <button
+                onClick={() => downloadEngagementReport('/reports/engagement/participants?download=1')}
+                className="flex items-center gap-2 px-4 py-2 border border-[#003087] text-[#003087] bg-white rounded-lg hover:bg-[#003087]/5 transition-colors font-semibold"
+              >
+                <Download className="w-5 h-5" /> Participant List
+              </button>
+              <button
+                onClick={() => downloadEngagementReport('/reports/engagement/guests?download=1')}
+                className="flex items-center gap-2 px-4 py-2 border border-[#003087] text-[#003087] bg-white rounded-lg hover:bg-[#003087]/5 transition-colors font-semibold"
+              >
+                <Download className="w-5 h-5" /> Guest List
+              </button>
+              <button
+                onClick={() => downloadEngagementReport('/reports/engagement/attendance?download=1')}
+                className="flex items-center gap-2 px-4 py-2 border border-[#003087] text-[#003087] bg-white rounded-lg hover:bg-[#003087]/5 transition-colors font-semibold"
+              >
+                <Download className="w-5 h-5" /> Attendance Report
+              </button>
+              <button
+                onClick={() => downloadEngagementReport('/reports/engagement/income?download=1')}
+                className="flex items-center gap-2 px-4 py-2 border border-[#003087] text-[#003087] bg-white rounded-lg hover:bg-[#003087]/5 transition-colors font-semibold"
+              >
+                <Download className="w-5 h-5" /> Income Report
+              </button>
+              <button
+                onClick={() => setActiveTab('Create Event')}
+                className="flex items-center gap-2 px-4 py-2 bg-[#003087] text-white rounded-lg hover:bg-[#002066] transition-colors font-semibold shadow-md"
+              >
+                <Plus className="w-5 h-5" />
+                Create Event
+              </button>
+            </div>
           ) : (
             <button
               onClick={() => setActiveTab('Submit Proposal')}
@@ -450,14 +482,14 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
             >
               {tab}
               {activeTab === tab && (
-                <div className="absolute bottom-0 left-0 w-full h-[2px] bg-[#003087]" />
+                <div className="absolute bottom-0 left-0 w-full h-0.5 bg-[#003087]" />
               )}
             </button>
           ))}
         </div>
 
         {activeTab === 'Teaching Opportunities' && (
-          <div className="bg-[#003087] rounded-[24px] p-8 text-white flex flex-col md:flex-row justify-between items-center gap-6 text-left">
+          <div className="bg-[#003087] rounded-3xl p-8 text-white flex flex-col md:flex-row justify-between items-center gap-6 text-left">
             <div>
               <h2 className="text-2xl font-bold mb-2">Share Your Expertise with Future Ateneans</h2>
               <p className="text-blue-100 text-sm max-w-2xl">Give back to your alma mater by teaching or mentoring. Help shape the next generation.</p>
@@ -468,7 +500,7 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
 
         {/* ORANGE THEMED HEADER FOR SEMINARS */}
         {activeTab === 'Seminars & Workshops' && (
-          <div className="bg-orange-600 rounded-[24px] p-8 text-white flex flex-col md:flex-row justify-between items-center gap-6 text-left shadow-lg">
+          <div className="bg-orange-600 rounded-3xl p-8 text-white flex flex-col md:flex-row justify-between items-center gap-6 text-left shadow-lg">
             <div>
               <h2 className="text-2xl font-bold mb-2">Continuous Professional Development</h2>
               <p className="text-orange-50 text-sm max-w-2xl">
@@ -982,8 +1014,8 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
 
       {/* Detail View Modal */}
       {selectedEvent && (
-        <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white rounded-[32px] w-full max-w-lg overflow-hidden shadow-2xl">
+        <div className="fixed inset-0 z-90 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-4xl w-full max-w-lg overflow-hidden shadow-2xl">
             <div className="relative h-48">
                 <img src={selectedEvent.image} alt={selectedEvent.title} className="w-full h-full object-cover" />
                 <button onClick={() => setSelectedEvent(null)} className="absolute top-4 right-4 p-2 bg-black/20 hover:bg-black/40 rounded-full text-white backdrop-blur-md transition-colors">

@@ -35,6 +35,8 @@ interface InternshipPosting {
   email: string;
   startDate: string;
   endDate: string;
+  salaryRangeFrom?: number;
+  salaryRangeTo?: number;
   description: string;
   date: string;
   status: string;
@@ -71,6 +73,8 @@ interface InternshipPostingsProps {
 }
 
 export function InternshipPostingsView({ role }: InternshipPostingsProps) {
+  const apiBaseUrl = 'http://localhost:8000/api';
+
   const [postings, setPostings] = useState<InternshipPosting[]>(() => {
     const saved = localStorage.getItem('job_postings_data');
     return saved ? JSON.parse(saved) : INITIAL_POSTINGS;
@@ -79,6 +83,51 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
   useEffect(() => {
     localStorage.setItem('job_postings_data', JSON.stringify(postings));
   }, [postings]);
+
+  const mapApiPostingToRequest = (posting: any): InternshipPosting => {
+    const statusRaw = `${posting.status || ''}`.toLowerCase();
+    let status = 'Pending';
+    if (statusRaw === 'approved') status = 'Approved';
+    if (statusRaw === 'declined' || statusRaw === 'denied') status = 'Denied';
+
+    return {
+      id: posting.id,
+      company: posting.company_name,
+      position: posting.title,
+      type: posting.type,
+      email: posting.application_email || 'N/A',
+      startDate: posting.date_from || '',
+      endDate: posting.date_to || '',
+      salaryRangeFrom: posting.salary_range_from ?? undefined,
+      salaryRangeTo: posting.salary_range_to ?? undefined,
+      description: posting.description || '',
+      date: posting.posting_date || posting.created_at || '',
+      status,
+      applicantsCount: posting.applicants_count ?? posting.applications_count ?? 0,
+      applications: [],
+      hidden: posting.is_visible === false,
+    };
+  };
+
+  const fetchAdminPostings = async () => {
+    if (role !== 'admin') return;
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/career-postings?role=admin`);
+      if (!response.ok) return;
+
+      const payload = await response.json();
+      if (Array.isArray(payload)) {
+        setPostings(payload.map(mapApiPostingToRequest));
+      }
+    } catch {
+      // Keep local fallback data if API is unavailable.
+    }
+  };
+
+  useEffect(() => {
+    fetchAdminPostings();
+  }, [role]);
   
   const [viewState, setViewState] = useState<'list' | 'form' | 'success' | 'applicants' | 'detail'>('list');
   const [displayMode, setDisplayMode] = useState<'grid' | 'table'>('grid');
@@ -99,7 +148,7 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
   const defaultEndDate = threeYearsLater.toISOString().split('T')[0];
   const todayFormatted = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
-  const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     
@@ -113,6 +162,8 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
           email: formData.get('email') as string,
           startDate: formData.get('startDate') as string,
           endDate: formData.get('endDate') as string,
+          salaryRangeFrom: Number(formData.get('salaryRangeFrom') || 0),
+          salaryRangeTo: Number(formData.get('salaryRangeTo') || 0),
           description: formData.get('description') as string,
           status: role === 'admin' ? p.status : "Pending", 
           remarks: role === 'admin' ? p.remarks : undefined,
@@ -120,27 +171,69 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
         } : p
       ));
     } else {
-      const newEntry: InternshipPosting = {
-        id: Date.now(),
-        company: formData.get('company') as string,
-        position: formData.get('position') as string,
-        type: formData.get('type') as string,
-        email: formData.get('email') as string,
-        startDate: formData.get('startDate') as string,
-        endDate: formData.get('endDate') as string,
-        description: formData.get('description') as string,
-        date: todayFormatted,
-        status: "Pending",
-        applicantsCount: 0,
-        applications: [],
-        hidden: false
-      };
-      setPostings([newEntry, ...postings]);
+      try {
+        const response = await fetch(`${apiBaseUrl}/jobs`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+          },
+          body: JSON.stringify({
+            user_role: role,
+            job_title: formData.get('position'),
+            company_name: formData.get('company'),
+            type: formData.get('type'),
+            location: 'Davao City',
+            work_type: formData.get('type') === 'Internship' ? 'Internship' : 'Full-time',
+            modality: 'On-site',
+            date_from: formData.get('startDate'),
+            date_to: formData.get('endDate'),
+            posting_date: new Date().toISOString().split('T')[0],
+            quantity: 1,
+            salary_range_from: Number(formData.get('salaryRangeFrom') || 0),
+            salary_range_to: Number(formData.get('salaryRangeTo') || 0),
+            description: formData.get('description'),
+          }),
+        });
+
+        if (!response.ok) {
+          alert('Failed to submit posting. Please check your input.');
+          return;
+        }
+
+        if (role === 'admin') {
+          await fetchAdminPostings();
+        }
+      } catch {
+        alert('Unable to submit posting right now.');
+        return;
+      }
     }
     setViewState('success');
   };
 
-  const updateStatus = (id: number, newStatus: 'Approved' | 'Denied') => {
+  const updateStatus = async (id: number, newStatus: 'Approved' | 'Denied') => {
+    if (newStatus === 'Approved') {
+      try {
+        const response = await fetch(`${apiBaseUrl}/jobs/${id}/approve`, {
+          method: 'PATCH',
+          headers: {
+            Accept: 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          alert('Failed to approve posting. Please try again.');
+          return;
+        }
+
+        await fetchAdminPostings();
+      } catch {
+        alert('Unable to reach the server while approving.');
+        return;
+      }
+    }
+
     setPostings(prev => prev.map(p => 
       p.id === id ? { ...p, status: newStatus, remarks: newStatus === 'Denied' ? denyRemarks : undefined } : p
     ));
@@ -196,12 +289,12 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
               Explore jobs and internships from the ADDU community
             </p>
           </div>
-          {viewState === 'list' && role === 'alumni' && (
+          {viewState === 'list' && (role === 'alumni' || role === 'admin') && (
             <button 
               onClick={() => { setSelectedRequest(null); setViewState('form'); }}
               className="flex items-center justify-center gap-2 bg-[#003087] text-white px-8 py-4 rounded-2xl font-bold shadow-lg hover:bg-blue-800 transition-all active:scale-95"
             >
-              <PlusCircle className="w-5 h-5" /> New Posting Request
+              <PlusCircle className="w-5 h-5" /> {role === 'admin' ? 'Post a Job Opening' : 'New Posting Request'}
             </button>
           )}
         </div>
@@ -218,12 +311,12 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
             )}
 
             {viewState === 'form' && (
-              <div className="bg-white border border-gray-100 rounded-[32px] p-10 shadow-xl">
+              <div className="bg-white border border-gray-100 rounded-4xl p-10 shadow-xl">
                 <button onClick={() => setViewState('list')} className="text-gray-400 font-bold flex items-center gap-2 mb-6 transition-colors hover:text-gray-600">
                   <ArrowLeft className="w-4 h-4" /> Cancel
                 </button>
                 <h2 className="text-2xl font-bold mb-8 text-gray-900">
-                  {selectedRequest ? (role === 'admin' ? "Edit Details (Admin)" : "Edit Posting Request") : "Position Details"}
+                    {selectedRequest ? (role === 'admin' ? "Edit Details (Admin)" : "Edit Posting Request") : (role === 'admin' ? 'Post Hiring Opportunity' : 'Position Details')}
                 </h2>
                 <form onSubmit={handleFormSubmit} className="space-y-6">
                   <div className="space-y-2">
@@ -255,19 +348,29 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
                       <input name="endDate" defaultValue={selectedRequest?.endDate || defaultEndDate} required type="date" className="w-full p-4 bg-gray-50 border rounded-2xl outline-none focus:border-blue-500" />
                     </div>
                   </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-sm font-bold text-gray-700 ml-1">Salary Range From</label>
+                      <input name="salaryRangeFrom" defaultValue={selectedRequest?.salaryRangeFrom ?? ''} required type="number" min="0" className="w-full p-4 bg-gray-50 border rounded-2xl outline-none focus:border-blue-500" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-bold text-gray-700 ml-1">Salary Range To</label>
+                      <input name="salaryRangeTo" defaultValue={selectedRequest?.salaryRangeTo ?? ''} required type="number" min="0" className="w-full p-4 bg-gray-50 border rounded-2xl outline-none focus:border-blue-500" />
+                    </div>
+                  </div>
                   <div className="space-y-2">
                     <label className="text-sm font-bold text-gray-700 ml-1">Job Description</label>
                     <textarea name="description" defaultValue={selectedRequest?.description} required rows={4} className="w-full p-4 bg-gray-50 border rounded-2xl outline-none focus:border-blue-500" />
                   </div>
                   <button type="submit" className="w-full py-5 bg-[#003087] text-white rounded-2xl font-bold text-xl hover:bg-blue-800 shadow-lg transition-all active:scale-95">
-                    {selectedRequest ? (role === 'admin' ? "Save Changes" : "Update & Resubmit") : "Submit for Approval"}
+                    {selectedRequest ? (role === 'admin' ? "Save Changes" : "Update & Resubmit") : (role === 'admin' ? 'Post Opportunity' : 'Submit for Approval')}
                   </button>
                 </form>
               </div>
             )}
 
             {viewState === 'applicants' && selectedRequest && (
-              <div className="bg-white border border-gray-100 rounded-[32px] p-10 shadow-xl">
+              <div className="bg-white border border-gray-100 rounded-4xl p-10 shadow-xl">
                 <button onClick={handleBackToList} className="text-gray-400 font-bold flex items-center gap-2 mb-8"><ArrowLeft size={16}/> Back</button>
                 <div className="mb-8 border-b pb-6">
                   <h2 className="text-3xl font-bold text-gray-900">{selectedRequest.position}</h2>
@@ -276,7 +379,7 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
                 <h3 className="font-bold text-gray-900 mb-6 flex items-center gap-2 text-xl">
                   <Users className="text-[#003087]" /> List of Applications ({selectedRequest.applicantsCount})
                 </h3>
-                <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
+                <div className="space-y-4 max-h-100 overflow-y-auto pr-2">
                   {selectedRequest.applications.map(app => (
                     <div key={app.id} className="p-5 bg-gray-50 rounded-2xl flex items-center justify-between border hover:border-blue-200 transition-all">
                       <div className="flex items-center gap-4">
@@ -292,7 +395,7 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
             )}
 
             {viewState === 'detail' && selectedRequest && (
-              <div className="bg-white border border-gray-100 rounded-[32px] p-10 shadow-xl">
+              <div className="bg-white border border-gray-100 rounded-4xl p-10 shadow-xl">
                 <button onClick={handleBackToList} className="text-gray-400 font-bold flex items-center gap-2 mb-8"><ArrowLeft size={16}/> Back to List</button>
                 <div className="flex justify-between items-start mb-8">
                   <div>
@@ -343,6 +446,14 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
                   </div>
                 ) : (
                   <div className="space-y-6">
+                    {(selectedRequest.salaryRangeFrom !== undefined || selectedRequest.salaryRangeTo !== undefined) && (
+                      <div className="bg-gray-50 p-6 rounded-2xl">
+                        <h4 className="font-bold text-gray-900 mb-2">Salary Range</h4>
+                        <p className="text-gray-700 leading-relaxed">
+                          {`Php ${selectedRequest.salaryRangeFrom ?? 0} - ${selectedRequest.salaryRangeTo ?? 0}`}
+                        </p>
+                      </div>
+                    )}
                     <div className="bg-gray-50 p-6 rounded-2xl">
                       <h4 className="font-bold text-gray-900 mb-2">Description</h4>
                       <p className="text-gray-700 leading-relaxed">{selectedRequest.description}</p>
@@ -395,7 +506,7 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
                 </div>
 
                 {displayMode === 'table' && role === 'admin' ? (
-                  <div className="bg-white border rounded-[24px] overflow-hidden shadow-sm">
+                  <div className="bg-white border rounded-3xl overflow-hidden shadow-sm">
                     <div className="p-4 bg-gray-50 border-b font-bold text-gray-700">All Posts/Application List</div>
                     <table className="w-full text-left">
                       <thead className="bg-gray-50 text-xs font-bold text-gray-400 uppercase tracking-widest border-b">
@@ -414,6 +525,14 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
                             <td className="p-5 text-center">{req.status === 'Approved' ? <button onClick={() => { setSelectedRequest(req); setViewState('applicants'); }} className="text-[#003087] font-bold underline">{req.applicantsCount}</button> : "-"}</td>
                             <td className="p-5 text-right">
                               <div className="flex justify-end gap-2">
+                                {req.status === 'Pending' && (
+                                  <button
+                                    onClick={() => updateStatus(req.id, 'Approved')}
+                                    className="px-3 py-1.5 text-xs font-bold rounded-lg bg-green-50 text-green-700 hover:bg-green-100"
+                                  >
+                                    Approve
+                                  </button>
+                                )}
                                 {req.status === 'Denied' && (
                                   <button onClick={() => handleToggleHide(req.id)} className="p-2 text-gray-400 hover:text-gray-600" title={req.hidden ? "Unhide" : "Hide"}>
                                     {req.hidden ? <RefreshCcw size={18} /> : <EyeOff size={18} />}
@@ -431,7 +550,7 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
                 ) : (
                   <div className="space-y-6">
                     {filteredRequests.map((req) => (
-                      <div key={req.id} className={`bg-white border border-gray-100 p-6 rounded-[24px] hover:border-blue-200 transition-all flex items-center justify-between group shadow-sm ${req.hidden ? 'opacity-60 bg-gray-50' : ''}`}>
+                      <div key={req.id} className={`bg-white border border-gray-100 p-6 rounded-3xl hover:border-blue-200 transition-all flex items-center justify-between group shadow-sm ${req.hidden ? 'opacity-60 bg-gray-50' : ''}`}>
                         <div className="flex items-center gap-5">
                           <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${req.status === 'Approved' ? 'bg-green-50 text-green-600' : req.status === 'Pending' ? 'bg-orange-50 text-orange-600' : 'bg-red-50 text-red-600'}`}>
                             {req.status === 'Approved' ? <CheckCircle2 /> : req.status === 'Pending' ? <Clock /> : <XCircle />}
@@ -445,6 +564,14 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
                           </div>
                         </div>
                         <div className="flex items-center gap-3">
+                          {role === 'admin' && req.status === 'Pending' && (
+                            <button
+                              onClick={() => updateStatus(req.id, 'Approved')}
+                              className="px-4 py-2 rounded-xl text-xs font-bold bg-green-50 text-green-700 hover:bg-green-100"
+                            >
+                              Approve
+                            </button>
+                          )}
                           {req.status === 'Approved' && <button onClick={() => { setSelectedRequest(req); setViewState('applicants'); }} className="flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-xl text-xs font-bold hover:bg-blue-100"><Users size={16} /> {req.applicantsCount} Applicants</button>}
                           {role === 'admin' && req.status === 'Denied' && (
                              <button onClick={() => handleToggleHide(req.id)} className="p-2 text-gray-400 hover:text-gray-600 transition-all" title={req.hidden ? "Restore Posting" : "Hide Posting"}>
@@ -459,7 +586,7 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
                       </div>
                     ))}
                     {filteredRequests.length === 0 && (
-                      <div className="text-center py-20 bg-white border border-dashed rounded-[32px]">
+                      <div className="text-center py-20 bg-white border border-dashed rounded-4xl">
                         <p className="text-gray-400 font-medium">No postings found.</p>
                       </div>
                     )}
@@ -470,7 +597,7 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
           </div>
 
           <div className="space-y-6">
-            <div className={`${role === 'admin' ? 'bg-red-900' : 'bg-[#003087]'} p-8 rounded-[32px] text-white shadow-xl`}>
+            <div className={`${role === 'admin' ? 'bg-red-900' : 'bg-[#003087]'} p-8 rounded-4xl text-white shadow-xl`}>
               <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><Info size={20} /> Guidelines</h3>
               <ul className="space-y-4 text-sm text-blue-100 font-medium opacity-90">
                 {role === 'admin' ? (

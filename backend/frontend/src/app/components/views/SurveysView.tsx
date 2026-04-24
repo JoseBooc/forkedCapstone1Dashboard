@@ -131,7 +131,7 @@ export function SurveysView({ userRole }: { userRole: string }) {
 
         {/* HIGHLIGHTED ORANGE WELCOME BANNER */}
         {activeTab !== 'Create Survey' && (
-          <div className="bg-orange-600 rounded-[24px] p-8 text-white text-left relative overflow-hidden shadow-lg shadow-orange-900/10">
+          <div className="bg-orange-600 rounded-3xl p-8 text-white text-left relative overflow-hidden shadow-lg shadow-orange-900/10">
             <div className="relative z-10 max-w-3xl">
               <h2 className="text-xl font-bold mb-3">👋 New to the ADDU Alumni Portal?</h2>
               <p className="text-orange-50 text-sm leading-relaxed mb-6">
@@ -147,7 +147,7 @@ export function SurveysView({ userRole }: { userRole: string }) {
               </button>
             </div>
             {/* Subtle background decoration */}
-            <ClipboardCheck className="absolute right-[-10px] bottom-[-10px] w-40 h-40 text-white/10 -rotate-12" />
+            <ClipboardCheck className="absolute -right-2.5 -bottom-2.5 w-40 h-40 text-white/10 -rotate-12" />
           </div>
         )}
 
@@ -163,7 +163,7 @@ export function SurveysView({ userRole }: { userRole: string }) {
             >
               {tab}
               {activeTab === tab && (
-                <div className="absolute bottom-0 left-0 w-full h-[2px] bg-[#003087]" />
+                <div className="absolute bottom-0 left-0 w-full h-0.5 bg-[#003087]" />
               )}
             </button>
           ))}
@@ -174,7 +174,7 @@ export function SurveysView({ userRole }: { userRole: string }) {
           <div className="space-y-4">
             {activeTab === 'Available Surveys' ? (
             availableSurveys.map((survey, index) => (
-              <div key={index} className={`rounded-[24px] p-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 text-left border transition-all ${
+              <div key={index} className={`rounded-3xl p-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 text-left border transition-all ${
                 survey.isPriority ? 'bg-[#003087] text-white border-transparent shadow-md' : 'bg-white text-gray-900 border-gray-100'
               }`}>
                 <div className="flex-1 space-y-2">
@@ -226,7 +226,7 @@ export function SurveysView({ userRole }: { userRole: string }) {
             ))
           ) : (
             completedSurveys.map((survey, index) => (
-              <div key={index} className="bg-white rounded-[24px] p-6 border border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 text-left hover:bg-gray-50/50 transition-colors">
+              <div key={index} className="bg-white rounded-3xl p-6 border border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 text-left hover:bg-gray-50/50 transition-colors">
                 <div className="space-y-1">
                   <h3 className="text-lg font-bold text-gray-900">{survey.title}</h3>
                   <p className="text-sm text-gray-500 flex items-center gap-2">

@@ -28,6 +28,9 @@ Route::get('/admin/responses', [AdminController::class, 'responses']);
 Route::get('/admin/responses/{id}/details', [AdminController::class, 'responseDetails']);
 Route::get('/admin/export-csv', [AdminController::class, 'exportCsv']);
 
+// Career opportunity posting page mount
+Route::view('/career-opportunities/post', 'career.post-opportunity')->name('career.post');
+
 // Admin API (categories / questions CRUD)
 Route::get('/admin/api/categories', [AdminController::class, 'categoriesJson']);
 Route::post('/admin/api/categories', [AdminController::class, 'storeCategory']);

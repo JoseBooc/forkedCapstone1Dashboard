@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { 
   Briefcase, 
   Search, 
@@ -13,6 +13,9 @@ import {
   X,
   Calendar,
   CheckCircle2,
+  Download,
+  CheckCircle,
+  XCircle,
   ChevronLeft // Added for back button
 } from 'lucide-react';
 import { Footer } from '../Footer';
@@ -25,10 +28,34 @@ interface Opportunity {
   location: string;
   workType: string;
   posted: string;
+  dateFrom?: string;
+  dateTo?: string;
+  dateOfPosting?: string;
+  quantity?: number;
   salary?: string;
+  salaryFrom?: string;
+  salaryTo?: string;
   description: string;
   isPriority?: boolean;
   modality: 'Remote' | 'Hybrid' | 'On-site';
+  applicantsCount?: number;
+  status?: 'Pending' | 'Approved' | 'Declined' | 'Expired';
+}
+
+interface PostOpportunityForm {
+  job_title: string;
+  company_name: string;
+  location: string;
+  work_type: string;
+  modality: 'Remote' | 'Hybrid' | 'On-site';
+  date_from: string;
+  date_to: string;
+  posting_date: string;
+  quantity: string;
+  salary_range_from: string;
+  salary_range_to: string;
+  description: string;
+  application_email: string;
 }
 
 export function CareersView({ userRole }: { userRole: string }) {
@@ -43,10 +70,34 @@ export function CareersView({ userRole }: { userRole: string }) {
   
   // Added state to track selected opportunity for details view
   const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
+  const [postForm, setPostForm] = useState<PostOpportunityForm>({
+    job_title: '',
+    company_name: '',
+    location: '',
+    work_type: '',
+    modality: 'On-site',
+    date_from: '',
+    date_to: '',
+    posting_date: '',
+    quantity: '',
+    salary_range_from: '',
+    salary_range_to: '',
+    description: '',
+    application_email: '',
+  });
+
+  const apiBaseUrl = 'http://localhost:8000/api';
+
+  const downloadCareerReport = (path: string) => {
+    window.open(`${apiBaseUrl}${path}`, '_blank', 'noopener,noreferrer');
+  };
 
   const tabs = ['All Opportunities', 'Jobs only', 'Internship only'];
 
-  const opportunities: Opportunity[] = [
+  const seedOpportunities: Opportunity[] = [
     {
       id: 1,
       type: 'Job',
@@ -56,7 +107,14 @@ export function CareersView({ userRole }: { userRole: string }) {
       workType: "Full-time",
       modality: "On-site",
       posted: "1 day ago",
+      dateFrom: '2026-04-15',
+      dateTo: '2026-05-15',
+      dateOfPosting: '2026-04-24',
+      quantity: 3,
       salary: "Php 60,000 - 85,000",
+      salaryFrom: '60000',
+      salaryTo: '85000',
+      applicantsCount: 12,
       description: "We are looking for a highly skilled developer to lead our digital transformation projects. Experience in React, Node.js, and cloud infrastructure is preferred.",
       isPriority: true
     },
@@ -81,6 +139,13 @@ export function CareersView({ userRole }: { userRole: string }) {
       workType: "Internship",
       modality: "Remote",
       posted: "5 days ago",
+      dateFrom: '2026-05-01',
+      dateTo: '2026-06-30',
+      dateOfPosting: '2026-04-20',
+      quantity: 2,
+      salaryFrom: '12000',
+      salaryTo: '18000',
+      applicantsCount: 8,
       description: "Perfect for recent graduates looking to build their portfolio in user-centered design and university systems.",
       isPriority: false
     },
@@ -141,10 +206,65 @@ export function CareersView({ userRole }: { userRole: string }) {
       workType: "Contract",
       modality: "Remote",
       posted: "6 days ago",
+      dateFrom: '2026-04-28',
+      dateTo: '2026-05-28',
+      dateOfPosting: '2026-04-18',
+      quantity: 1,
+      applicantsCount: 4,
       description: "Build cross-platform applications for regional startups. Competitive project-based pay.",
       isPriority: false
     }
   ];
+
+  const [opportunities, setOpportunities] = useState<Opportunity[]>(seedOpportunities);
+
+  const mapPostingToOpportunity = (posting: any): Opportunity => {
+    const salaryFrom = posting.salary_range_from ?? posting.salary_from;
+    const salaryTo = posting.salary_range_to ?? posting.salary_to;
+    const postingDate = posting.posting_date ?? posting.date_of_posting;
+    const hasSalaryFrom = salaryFrom !== null && salaryFrom !== undefined && `${salaryFrom}` !== '';
+    const hasSalaryTo = salaryTo !== null && salaryTo !== undefined && `${salaryTo}` !== '';
+
+    return {
+      id: posting.id,
+      type: posting.type,
+      title: posting.title,
+      company: posting.company_name,
+      location: posting.location || 'Unspecified location',
+      workType: posting.work_type || 'Unspecified',
+      posted: postingDate || posting.created_at || 'Recently posted',
+      dateFrom: posting.date_from || undefined,
+      dateTo: posting.date_to || undefined,
+      dateOfPosting: postingDate || undefined,
+      quantity: typeof posting.quantity === 'number' ? posting.quantity : undefined,
+      salaryFrom: salaryFrom?.toString(),
+      salaryTo: salaryTo?.toString(),
+      salary: hasSalaryFrom && hasSalaryTo ? `Php ${salaryFrom} - ${salaryTo}` : undefined,
+      description: posting.description,
+      isPriority: posting.status === 'Approved',
+      modality: posting.modality || 'On-site',
+      applicantsCount: posting.applicants_count ?? posting.applications_count ?? 0,
+      status: posting.status,
+    };
+  };
+
+  const fetchOpportunities = async () => {
+    try {
+      const response = await fetch(`${apiBaseUrl}/career-postings?role=${encodeURIComponent(userRole)}`);
+      if (!response.ok) return;
+
+      const data = await response.json();
+      if (Array.isArray(data) && data.length > 0) {
+        setOpportunities(data.map(mapPostingToOpportunity));
+      }
+    } catch {
+      // Keep seeded UI data if backend is unavailable.
+    }
+  };
+
+  useEffect(() => {
+    fetchOpportunities();
+  }, [userRole]);
 
   const handleToggleOpportunity = (type: 'job' | 'internship') => {
     setOpportunityType(opportunityType === type ? null : type);
@@ -153,6 +273,101 @@ export function CareersView({ userRole }: { userRole: string }) {
   const handleCloseForm = () => {
     setShowPostForm(false);
     setSubmissionStatus('idle');
+    setFormErrors({});
+    setPostForm({
+      job_title: '',
+      company_name: '',
+      location: '',
+      work_type: '',
+      modality: 'On-site',
+      date_from: '',
+      date_to: '',
+      posting_date: '',
+      quantity: '',
+      salary_range_from: '',
+      salary_range_to: '',
+      description: '',
+      application_email: '',
+    });
+  };
+
+  const setField = (field: keyof PostOpportunityForm, value: string) => {
+    setPostForm((prev) => ({ ...prev, [field]: value }));
+    setFormErrors((prev) => ({ ...prev, [field]: '' }));
+  };
+
+  const handlePostOpportunity = async (event: React.FormEvent) => {
+    event.preventDefault();
+
+    setIsSubmitting(true);
+    setFormErrors({});
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/career-postings`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({
+          user_role: userRole,
+          job_title: postForm.job_title,
+          title: postForm.job_title,
+          company_name: postForm.company_name,
+          type: opportunityType === 'internship' ? 'Internship' : 'Job',
+          location: postForm.location,
+          work_type: postForm.work_type,
+          modality: postForm.modality,
+          date_from: postForm.date_from,
+          date_to: postForm.date_to,
+          posting_date: postForm.posting_date,
+          quantity: Number(postForm.quantity),
+          salary_range_from: postForm.salary_range_from === '' ? null : Number(postForm.salary_range_from),
+          salary_range_to: postForm.salary_range_to === '' ? null : Number(postForm.salary_range_to),
+          description: postForm.description,
+        }),
+      });
+
+      if (response.status === 422) {
+        const payload = await response.json();
+        const errors = payload?.errors || {};
+        const normalized: Record<string, string> = {};
+
+        Object.keys(errors).forEach((key) => {
+          normalized[key] = Array.isArray(errors[key]) ? errors[key][0] : String(errors[key]);
+        });
+
+        setFormErrors(normalized);
+        return;
+      }
+
+      if (!response.ok) {
+        setFormErrors({ form: 'Failed to post opportunity. Please try again.' });
+        return;
+      }
+
+      const payload = await response.json();
+      if (payload?.posting) {
+        setOpportunities((prev) => [mapPostingToOpportunity(payload.posting), ...prev]);
+      } else {
+        await fetchOpportunities();
+      }
+
+      setSubmissionStatus('published');
+    } catch {
+      setFormErrors({ form: 'Unable to reach the server. Please check your connection and try again.' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCareerAction = (action: 'approve' | 'decline') => {
+    if (!selectedOpportunity) return;
+
+    setSelectedOpportunity({
+      ...selectedOpportunity,
+      status: action === 'approve' ? 'Approved' : 'Declined',
+    });
   };
 
   const filteredOpportunities = opportunities.filter(item => {
@@ -211,10 +426,36 @@ export function CareersView({ userRole }: { userRole: string }) {
 
                   <div className="space-y-6">
                     <div className="bg-gray-50 p-8 rounded-3xl border border-gray-100 space-y-6">
+                      {selectedOpportunity.status && (
+                        <div className="space-y-1">
+                          <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">Status</p>
+                          <p className={`text-xl font-bold ${selectedOpportunity.status === 'Approved' ? 'text-green-600' : selectedOpportunity.status === 'Declined' ? 'text-red-600' : 'text-amber-600'}`}>
+                            {selectedOpportunity.status}
+                          </p>
+                        </div>
+                      )}
+                      {selectedOpportunity.dateFrom && selectedOpportunity.dateTo && (
+                        <div className="space-y-1">
+                          <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">Date Range</p>
+                          <p className="text-lg font-bold text-gray-900">{selectedOpportunity.dateFrom} to {selectedOpportunity.dateTo}</p>
+                        </div>
+                      )}
                       {selectedOpportunity.salary && (
                         <div className="space-y-1">
                           <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">Salary Range</p>
                           <p className="text-xl font-bold text-[#003087]">{selectedOpportunity.salary}</p>
+                        </div>
+                      )}
+                      {typeof selectedOpportunity.quantity === 'number' && (
+                        <div className="space-y-1">
+                          <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">Slots</p>
+                          <p className="text-xl font-bold text-gray-900">{selectedOpportunity.quantity}</p>
+                        </div>
+                      )}
+                      {typeof selectedOpportunity.applicantsCount === 'number' && (
+                        <div className="space-y-1">
+                          <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">Number of Applicants</p>
+                          <p className="text-xl font-bold text-gray-900">{selectedOpportunity.applicantsCount}</p>
                         </div>
                       )}
                       <div className="space-y-1">
@@ -225,6 +466,33 @@ export function CareersView({ userRole }: { userRole: string }) {
                         <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">Modality</p>
                         <p className="text-xl font-bold text-gray-900">{selectedOpportunity.modality}</p>
                       </div>
+                      {userRole === 'admin' && (
+                        <div className="grid grid-cols-1 gap-3 pt-2">
+                          <button
+                            type="button"
+                            onClick={() => downloadCareerReport(`/career-postings/${selectedOpportunity.id}/reports/applicants?download=1`)}
+                            className="w-full py-4 border border-[#003087] text-[#003087] rounded-2xl font-bold hover:bg-[#003087]/5 transition-all flex items-center justify-center gap-2"
+                          >
+                            <Download className="w-4 h-4" /> Generate Applicant Report
+                          </button>
+                          <div className="flex gap-3">
+                            <button
+                              type="button"
+                              onClick={() => handleCareerAction('approve')}
+                              className="flex-1 py-4 bg-green-600 text-white rounded-2xl font-bold hover:bg-green-700 transition-all flex items-center justify-center gap-2"
+                            >
+                              <CheckCircle className="w-4 h-4" /> Approve
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleCareerAction('decline')}
+                              className="flex-1 py-4 bg-red-50 text-red-600 rounded-2xl font-bold hover:bg-red-100 transition-all flex items-center justify-center gap-2"
+                            >
+                              <XCircle className="w-4 h-4" /> Decline
+                            </button>
+                          </div>
+                        </div>
+                      )}
                       <button className="w-full py-4 bg-[#003087] text-white rounded-2xl font-bold shadow-lg shadow-blue-200 hover:bg-[#002566] transition-all">
                         Apply Now
                       </button>
@@ -244,7 +512,7 @@ export function CareersView({ userRole }: { userRole: string }) {
     return (
       <div className="flex flex-col min-h-screen bg-white">
         <main className="flex-1 p-8">
-          <div className="max-w-4xl mx-auto border border-gray-200 rounded-[32px] shadow-sm p-10">
+          <div className="max-w-4xl mx-auto border border-gray-200 rounded-4xl shadow-sm p-10">
             {submissionStatus === 'idle' ? (
               <>
                 <div className="flex justify-between items-center mb-10">
@@ -253,11 +521,12 @@ export function CareersView({ userRole }: { userRole: string }) {
                     Cancel
                   </button>
                 </div>
-                <div className="space-y-8 text-left">
+                <form onSubmit={handlePostOpportunity} className="space-y-8 text-left">
                   <div>
                     <label className="block text-sm font-bold text-gray-700 mb-4 uppercase tracking-wider">Opportunity Type *</label>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <button
+                        type="button"
                         onClick={() => handleToggleOpportunity('job')}
                         className={`flex flex-col items-center justify-center p-8 rounded-2xl border-2 transition-all ${opportunityType === 'job' ? 'border-[#003087] bg-blue-50/50 text-[#003087]' : 'border-gray-100 bg-gray-50/50 text-gray-400'}`}
                       >
@@ -265,6 +534,7 @@ export function CareersView({ userRole }: { userRole: string }) {
                         <span className="font-bold text-lg">Full-time Job</span>
                       </button>
                       <button
+                        type="button"
                         onClick={() => handleToggleOpportunity('internship')}
                         className={`flex flex-col items-center justify-center p-8 rounded-2xl border-2 transition-all ${opportunityType === 'internship' ? 'border-[#003087] bg-blue-50/50 text-[#003087]' : 'border-gray-100 bg-gray-50/50 text-gray-400'}`}
                       >
@@ -276,43 +546,83 @@ export function CareersView({ userRole }: { userRole: string }) {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <label className="block text-sm font-bold text-gray-700">Job Title *</label>
-                      <input type="text" placeholder="e.g., Senior Software Engineer" className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:bg-white focus:ring-2 focus:ring-[#003087]/10 transition-all" />
+                      <input type="text" required value={postForm.job_title} onChange={(e) => setField('job_title', e.target.value)} placeholder="e.g., Senior Software Engineer" className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:bg-white focus:ring-2 focus:ring-[#003087]/10 transition-all" />
+                      {(formErrors.job_title || formErrors.title) && <p className="text-sm text-red-600">{formErrors.job_title || formErrors.title}</p>}
                     </div>
                     <div className="space-y-2">
                       <label className="block text-sm font-bold text-gray-700">Company Name *</label>
-                      <input type="text" placeholder="Your company name" className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:bg-white focus:ring-2 focus:ring-[#003087]/10 transition-all" />
+                      <input type="text" required value={postForm.company_name} onChange={(e) => setField('company_name', e.target.value)} placeholder="Your company name" className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:bg-white focus:ring-2 focus:ring-[#003087]/10 transition-all" />
+                      {formErrors.company_name && <p className="text-sm text-red-600">{formErrors.company_name}</p>}
                     </div>
                     <div className="space-y-2">
                       <label className="block text-sm font-bold text-gray-700">Location *</label>
-                      <input type="text" placeholder="City, Country or Remote" className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:bg-white focus:ring-2 focus:ring-[#003087]/10 transition-all" />
+                      <input type="text" required value={postForm.location} onChange={(e) => setField('location', e.target.value)} placeholder="City, Country or Remote" className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:bg-white focus:ring-2 focus:ring-[#003087]/10 transition-all" />
+                      {formErrors.location && <p className="text-sm text-red-600">{formErrors.location}</p>}
                     </div>
                     <div className="space-y-2">
                       <label className="block text-sm font-bold text-gray-700">Employment Type *</label>
-                      <select className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none appearance-none text-gray-500">
-                        <option>Select type</option>
+                      <select required value={postForm.work_type} onChange={(e) => setField('work_type', e.target.value)} className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none appearance-none text-gray-500">
+                        <option value="">Select type</option>
                         <option>Full-time</option>
                         <option>Part-time</option>
                         <option>Contract</option>
+                        <option>Internship</option>
                       </select>
+                      {formErrors.work_type && <p className="text-sm text-red-600">{formErrors.work_type}</p>}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="block text-sm font-bold text-gray-700">Date Range From *</label>
+                      <input type="date" required value={postForm.date_from} onChange={(e) => setField('date_from', e.target.value)} className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:bg-white focus:ring-2 focus:ring-[#003087]/10 transition-all" />
+                      {formErrors.date_from && <p className="text-sm text-red-600">{formErrors.date_from}</p>}
+                    </div>
+                    <div className="space-y-2">
+                      <label className="block text-sm font-bold text-gray-700">Date Range To *</label>
+                      <input type="date" required value={postForm.date_to} onChange={(e) => setField('date_to', e.target.value)} className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:bg-white focus:ring-2 focus:ring-[#003087]/10 transition-all" />
+                      {formErrors.date_to && <p className="text-sm text-red-600">{formErrors.date_to}</p>}
+                    </div>
+                    <div className="space-y-2">
+                      <label className="block text-sm font-bold text-gray-700">Date of Posting *</label>
+                      <input type="date" required value={postForm.posting_date} onChange={(e) => setField('posting_date', e.target.value)} className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:bg-white focus:ring-2 focus:ring-[#003087]/10 transition-all" />
+                      {(formErrors.posting_date || formErrors.date_of_posting) && <p className="text-sm text-red-600">{formErrors.posting_date || formErrors.date_of_posting}</p>}
+                    </div>
+                    <div className="space-y-2">
+                      <label className="block text-sm font-bold text-gray-700">Quantity / Slots *</label>
+                      <input type="number" required value={postForm.quantity} onChange={(e) => setField('quantity', e.target.value)} min="1" placeholder="e.g., 5" className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:bg-white focus:ring-2 focus:ring-[#003087]/10 transition-all" />
+                      {formErrors.quantity && <p className="text-sm text-red-600">{formErrors.quantity}</p>}
+                    </div>
+                    <div className="space-y-2">
+                      <label className="block text-sm font-bold text-gray-700">Salary From *</label>
+                      <input type="number" required value={postForm.salary_range_from} onChange={(e) => setField('salary_range_from', e.target.value)} min="0" placeholder="e.g., 60000" className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:bg-white focus:ring-2 focus:ring-[#003087]/10 transition-all" />
+                      {(formErrors.salary_range_from || formErrors.salary_from) && <p className="text-sm text-red-600">{formErrors.salary_range_from || formErrors.salary_from}</p>}
+                    </div>
+                    <div className="space-y-2">
+                      <label className="block text-sm font-bold text-gray-700">Salary To *</label>
+                      <input type="number" required value={postForm.salary_range_to} onChange={(e) => setField('salary_range_to', e.target.value)} min="0" placeholder="e.g., 85000" className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:bg-white focus:ring-2 focus:ring-[#003087]/10 transition-all" />
+                      {(formErrors.salary_range_to || formErrors.salary_to) && <p className="text-sm text-red-600">{formErrors.salary_range_to || formErrors.salary_to}</p>}
                     </div>
                   </div>
                   <div className="space-y-2">
                     <label className="block text-sm font-bold text-gray-700">Description *</label>
-                    <textarea placeholder="Describe the role, responsibilities, and requirements..." rows={6} className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none resize-none focus:bg-white focus:ring-2 focus:ring-[#003087]/10" />
+                    <textarea required value={postForm.description} onChange={(e) => setField('description', e.target.value)} placeholder="Describe the role, responsibilities, and requirements..." rows={6} className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none resize-none focus:bg-white focus:ring-2 focus:ring-[#003087]/10" />
+                    {formErrors.description && <p className="text-sm text-red-600">{formErrors.description}</p>}
                   </div>
                   <div className="space-y-2">
                     <label className="block text-sm font-bold text-gray-700">Application Email *</label>
-                    <input type="email" placeholder="careers@company.com" className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:bg-white focus:ring-2 focus:ring-[#003087]/10" />
+                    <input type="email" required value={postForm.application_email} onChange={(e) => setField('application_email', e.target.value)} placeholder="careers@company.com" className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:bg-white focus:ring-2 focus:ring-[#003087]/10" />
+                    {formErrors.application_email && <p className="text-sm text-red-600">{formErrors.application_email}</p>}
                   </div>
+                  {formErrors.form && <p className="text-sm text-red-600">{formErrors.form}</p>}
                   <div className="pt-6 flex gap-4">
-                    <button onClick={() => setSubmissionStatus('published')} className="px-10 py-4 bg-[#003087] text-white rounded-xl font-bold hover:bg-[#002566] transition-all shadow-lg shadow-blue-900/10">
-                      Post Opportunity
+                    <button type="submit" disabled={isSubmitting} className="px-10 py-4 bg-[#003087] text-white rounded-xl font-bold hover:bg-[#002566] transition-all shadow-lg shadow-blue-900/10 disabled:opacity-60 disabled:cursor-not-allowed">
+                      {isSubmitting ? 'Posting...' : 'Post Opportunity'}
                     </button>
-                    <button onClick={() => setSubmissionStatus('draft')} className="px-10 py-4 bg-white border border-gray-200 text-gray-700 rounded-xl font-bold hover:bg-gray-50 transition-all">
+                    <button type="button" onClick={() => setSubmissionStatus('draft')} className="px-10 py-4 bg-white border border-gray-200 text-gray-700 rounded-xl font-bold hover:bg-gray-50 transition-all">
                       Save as Draft
                     </button>
                   </div>
-                </div>
+                </form>
               </>
             ) : (
               <div className="py-20 flex flex-col items-center text-center space-y-6">
@@ -347,21 +657,23 @@ export function CareersView({ userRole }: { userRole: string }) {
             <h1 className="text-3xl font-bold text-gray-900">Career Opportunities</h1>
             <p className="text-gray-500 text-sm mt-1">Explore jobs and internships from the ADDU community</p>
           </div>
-          <button onClick={() => setShowPostForm(true)} className="bg-[#003087] text-white px-6 py-3 rounded-xl font-bold text-sm hover:bg-[#002566] transition-all flex items-center gap-2">
-            Post a Job Opening <ArrowRight className="w-4 h-4" />
-          </button>
+          <div className="flex flex-wrap gap-3">
+            <button onClick={() => setShowPostForm(true)} className="bg-[#003087] text-white px-6 py-3 rounded-xl font-bold text-sm hover:bg-[#002566] transition-all flex items-center gap-2">
+              {userRole === 'admin' ? 'Post a Job Opening' : 'Post a Job Request'} <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-          <div className="bg-[#003087] p-6 rounded-[24px] shadow-sm border border-blue-100/10 text-left">
+          <div className="bg-[#003087] p-6 rounded-3xl shadow-sm border border-blue-100/10 text-left">
             <p className="text-blue-200 text-[11px] font-bold uppercase tracking-wider mb-2">Full-time Jobs</p>
             <p className="text-4xl font-bold text-white">31</p>
           </div>
-          <div className="bg-orange-600 p-6 rounded-[24px] shadow-sm border border-orange-100/10 text-left">
+          <div className="bg-orange-600 p-6 rounded-3xl shadow-sm border border-orange-100/10 text-left">
             <p className="text-orange-100 text-[11px] font-bold uppercase tracking-wider mb-2">Internships</p>
             <p className="text-4xl font-bold text-white">14</p>
           </div>
-          <div className="bg-gray-50 p-6 rounded-[24px] border border-gray-100 text-left">
+          <div className="bg-gray-50 p-6 rounded-3xl border border-gray-100 text-left">
             <p className="text-gray-400 text-[11px] font-bold uppercase tracking-wider mb-2">Posted This Week</p>
             <p className="text-4xl font-bold text-[#003087]">12</p>
           </div>
@@ -375,7 +687,7 @@ export function CareersView({ userRole }: { userRole: string }) {
               className={`pb-4 text-[13px] font-bold whitespace-nowrap transition-all relative ${activeTab === tab ? 'text-[#003087]' : 'text-gray-400'}`}
             >
               {tab}
-              {activeTab === tab && <div className="absolute bottom-0 left-0 w-full h-[2px] bg-[#003087]" />}
+              {activeTab === tab && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-[#003087]" />}
             </button>
           ))}
         </div>
@@ -427,7 +739,7 @@ export function CareersView({ userRole }: { userRole: string }) {
             filteredOpportunities.map((item) => (
               <div 
                 key={item.id} 
-                className={`rounded-[32px] p-8 flex flex-col md:flex-row justify-between gap-8 transition-all ${item.isPriority ? 'bg-[#003087] text-white shadow-2xl shadow-blue-900/20' : 'bg-white text-gray-900 border border-gray-100 hover:border-gray-200 hover:shadow-xl hover:shadow-gray-200/40'}`}
+                className={`rounded-4xl p-8 flex flex-col md:flex-row justify-between gap-8 transition-all ${item.isPriority ? 'bg-[#003087] text-white shadow-2xl shadow-blue-900/20' : 'bg-white text-gray-900 border border-gray-100 hover:border-gray-200 hover:shadow-xl hover:shadow-gray-200/40'}`}
               >
                 <div className="flex-1 space-y-5">
                   <div className="flex items-center gap-3">
@@ -437,6 +749,14 @@ export function CareersView({ userRole }: { userRole: string }) {
                       <span className={`${item.isPriority ? 'text-blue-300' : 'text-gray-400'} text-[12px] font-medium`}>{item.type} • Posted {item.posted}</span>
                     </div>
                   </div>
+                  {(item.dateFrom || item.quantity || item.applicantsCount) && (
+                    <div className="flex flex-wrap gap-4 text-[12px] font-medium">
+                      {item.dateFrom && item.dateTo && <span className={`${item.isPriority ? 'text-blue-100' : 'text-gray-500'}`}>Date range: {item.dateFrom} to {item.dateTo}</span>}
+                      {typeof item.quantity === 'number' && <span className={`${item.isPriority ? 'text-blue-100' : 'text-gray-500'}`}>{item.quantity} slots</span>}
+                      {typeof item.applicantsCount === 'number' && <span className={`${item.isPriority ? 'text-blue-100' : 'text-gray-500'}`}>{item.applicantsCount} applicants</span>}
+                      {item.salary && <span className={`${item.isPriority ? 'text-blue-100' : 'text-gray-500'}`}>{item.salary}</span>}
+                    </div>
+                  )}
                   <div>
                     <h3 className="text-2xl font-bold leading-tight">{item.title}</h3>
                     <p className={`${item.isPriority ? 'text-blue-100' : 'text-[#003087]'} font-semibold text-lg mt-1 flex items-center gap-2`}><Building2 className="w-4 h-4 opacity-70" /> {item.company}</p>
@@ -446,7 +766,7 @@ export function CareersView({ userRole }: { userRole: string }) {
                     <div className={`flex items-center gap-2 ${item.isPriority ? 'text-blue-100' : 'text-gray-500'}`}>{item.type === 'Internship' ? <GraduationCap className="w-4 h-4 opacity-70" /> : <Laptop className="w-4 h-4 opacity-70" />} {item.workType} ({item.modality})</div>
                   </div>
                 </div>
-                <div className="flex flex-row md:flex-col justify-end gap-3 min-w-[180px]">
+                <div className="flex flex-row md:flex-col justify-end gap-3 min-w-45">
                   <button 
                     onClick={() => setSelectedOpportunity(item)}
                     className={`px-8 py-4 rounded-2xl font-bold text-sm transition-all flex-1 md:flex-none shadow-sm ${item.isPriority ? 'bg-white text-[#003087] hover:bg-blue-50' : 'bg-[#003087] text-white hover:bg-[#002566]'}`}
