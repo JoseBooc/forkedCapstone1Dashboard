@@ -56,7 +56,7 @@ export function CampaignsManagementView({ userRole }: CampaignsManagementViewPro
 
   const fetchCampaigns = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/campaigns?role=admin');
+      const response = await fetch('http://127.0.0.1:8000/api/campaigns?role=admin');
       const data = await response.json();
       setCampaigns(data);
     } catch (error) {
@@ -69,8 +69,8 @@ export function CampaignsManagementView({ userRole }: CampaignsManagementViewPro
     
     try {
       const url = editingCampaign 
-        ? `http://localhost:8000/api/campaigns/${editingCampaign.id}`
-        : 'http://localhost:8000/api/campaigns';
+        ? `http://127.0.0.1:8000/api/campaigns/${editingCampaign.id}`
+        : 'http://127.0.0.1:8000/api/campaigns';
       
       const method = editingCampaign ? 'PUT' : 'POST';
       
@@ -131,7 +131,7 @@ export function CampaignsManagementView({ userRole }: CampaignsManagementViewPro
     if (!window.confirm('Are you sure you want to delete this campaign?')) return;
     
     try {
-      await fetch(`http://localhost:8000/api/campaigns/${id}`, {
+      await fetch(`http://127.0.0.1:8000/api/campaigns/${id}`, {
         method: 'DELETE',
       });
       fetchCampaigns();
@@ -142,7 +142,7 @@ export function CampaignsManagementView({ userRole }: CampaignsManagementViewPro
 
   const handleToggleActive = async (id: number) => {
     try {
-      await fetch(`http://localhost:8000/api/campaigns/${id}/toggle-active`, {
+      await fetch(`http://127.0.0.1:8000/api/campaigns/${id}/toggle-active`, {
         method: 'PATCH',
       });
       fetchCampaigns();
@@ -153,7 +153,7 @@ export function CampaignsManagementView({ userRole }: CampaignsManagementViewPro
 
   const handleViewDonors = async (campaign: Campaign) => {
     try {
-      const response = await fetch(`http://localhost:8000/api/campaigns/${campaign.id}/donors`);
+      const response = await fetch(`http://127.0.0.1:8000/api/campaigns/${campaign.id}/donors`);
       const donors = await response.json();
       setSelectedCampaignDonors(donors);
       setSelectedCampaignTitle(campaign.title);
@@ -294,7 +294,7 @@ export function CampaignsManagementView({ userRole }: CampaignsManagementViewPro
                         <img 
                           src={imagePreview.startsWith('blob:') || imagePreview.startsWith('data:') 
                             ? imagePreview 
-                            : `http://localhost:8000${imagePreview}`
+                            : `http://127.0.0.1:8000${imagePreview}`
                           } 
                           alt="Preview" 
                           className="w-full h-full object-cover"

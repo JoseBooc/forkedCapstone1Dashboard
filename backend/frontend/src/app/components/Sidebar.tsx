@@ -32,7 +32,7 @@ export function Sidebar({ activeView, onNavigate, userRole }: SidebarProps) {
       const userEmail = localStorage.getItem('userEmail');
       if (!userEmail) return;
 
-      const response = await fetch(`http://localhost:8000/api/users/${encodeURIComponent(userEmail)}`);
+      const response = await fetch(`http://127.0.0.1:8000/api/users/${encodeURIComponent(userEmail)}`);
       if (response.ok) {
         const userData = await response.json();
         const fullName = `${userData.first_name || ''}${userData.middle_name ? ' ' + userData.middle_name : ''} ${userData.last_name || ''}`.trim();
