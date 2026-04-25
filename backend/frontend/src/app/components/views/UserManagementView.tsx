@@ -106,7 +106,7 @@ export function UserManagementView({ userRole }: UserManagementViewProps) {
   const fetchPendingUsers = async () => {
     try {
       setLoadingPending(true);
-      const response = await fetch('http://localhost:8000/api/users/pending/list');
+      const response = await fetch('http://127.0.0.1:8000/api/users/pending/list');
       if (response.ok) {
         const data = await response.json();
         setPendingUsers(data);
@@ -122,7 +122,7 @@ export function UserManagementView({ userRole }: UserManagementViewProps) {
 
   const handleApprove = async (user: User) => {
     try {
-      const response = await fetch(`http://localhost:8000/api/users/${user.id}/approve`, {
+      const response = await fetch(`http://127.0.0.1:8000/api/users/${user.id}/approve`, {
         method: 'PATCH',
       });
       if (response.ok) {
@@ -143,7 +143,7 @@ export function UserManagementView({ userRole }: UserManagementViewProps) {
   const handleDisapprove = async (user: User) => {
     if (!window.confirm(`Are you sure you want to disapprove ${getDisplayName(user)}'s registration? They will not be able to log in.`)) return;
     try {
-      const response = await fetch(`http://localhost:8000/api/users/${user.id}/disapprove`, {
+      const response = await fetch(`http://127.0.0.1:8000/api/users/${user.id}/disapprove`, {
         method: 'PATCH',
       });
       if (response.ok) {
@@ -671,7 +671,7 @@ export function UserManagementView({ userRole }: UserManagementViewProps) {
                     <tr key={user.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                          <div className="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
                             <span className="text-amber-700 font-bold text-sm">{getDisplayName(user).charAt(0).toUpperCase()}</span>
                           </div>
                           <div>
@@ -724,7 +724,7 @@ export function UserManagementView({ userRole }: UserManagementViewProps) {
       {isPendingModalOpen && selectedPendingUser && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-gradient-to-r from-amber-600 to-amber-500 text-white p-6 flex items-center justify-between rounded-t-2xl">
+            <div className="sticky top-0 bg-linear-to-r from-amber-600 to-amber-500 text-white p-6 flex items-center justify-between rounded-t-2xl">
               <div>
                 <h2 className="text-2xl font-bold">Review Registration</h2>
                 <p className="text-amber-100 text-sm mt-1">Pending approval — {getDisplayName(selectedPendingUser)}</p>
@@ -865,7 +865,7 @@ export function UserManagementView({ userRole }: UserManagementViewProps) {
       {isModalOpen && selectedUser && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-gradient-to-r from-[#003087] to-[#0055cc] text-white p-6 flex items-center justify-between rounded-t-2xl">
+            <div className="sticky top-0 bg-linear-to-r from-[#003087] to-[#0055cc] text-white p-6 flex items-center justify-between rounded-t-2xl">
               <h2 className="text-2xl font-bold">Edit User</h2>
               <button
                 onClick={() => {
@@ -1009,7 +1009,7 @@ export function UserManagementView({ userRole }: UserManagementViewProps) {
       {isCreateModalOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-gradient-to-r from-[#003087] to-[#0055cc] text-white p-6 flex items-center justify-between rounded-t-2xl">
+            <div className="sticky top-0 bg-linear-to-r from-[#003087] to-[#0055cc] text-white p-6 flex items-center justify-between rounded-t-2xl">
               <div>
                 <h2 className="text-2xl font-bold">Create New User</h2>
                 <p className="text-sm text-blue-100 mt-1">New users will be created with Alumni role by default</p>
@@ -1232,7 +1232,7 @@ export function UserManagementView({ userRole }: UserManagementViewProps) {
       {/* Image Lightbox Viewer */}
       {imageViewerUrl && (
         <div
-          className="fixed inset-0 bg-black/80 flex items-center justify-center z-[60] p-4"
+          className="fixed inset-0 bg-black/80 flex items-center justify-center z-60 p-4"
           onClick={() => setImageViewerUrl(null)}
         >
           <div
