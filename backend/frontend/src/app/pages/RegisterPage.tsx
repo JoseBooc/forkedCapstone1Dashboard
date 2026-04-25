@@ -4,51 +4,58 @@ import { Mail, Lock, ArrowLeft, Eye, EyeOff, User, Phone, Calendar, MapPin, Uplo
 import ADDULogo from '../../assets/ADDULogo.jpg';
 
 const PROGRAM_OPTIONS = [
-  'AB Anthropology',
+  'BS Computer Science',
+  'BS Information Systems',
+  'BS Information Technology',
+  'BS Data Science',
+  'BS Information Management',
   'AB Communication',
+  'AB English Language',
+  'AB Interdisciplinary Studies Minor In Language and Literature',
+  'AB Interdisciplinary Studies Minor In Media and Business',
+  'AB Interdisciplinary Studies Minor In Media and Technology',
+  'AB Interdisciplinary Studies Minor In Philosophy and Theology',
+  'AB Philosophy',
+  'AB Anthropology',
   'AB Development Studies',
   'AB Economics',
-  'AB English Language',
-  'AB Interdisciplinary Studies',
-  'AB International Studies',
+  'AB International Studies Major in American Studies',
+  'AB International Studies Major in Asian Studies',
   'AB Islamic Studies',
-  'AB Philosophy',
   'AB Political Science',
   'AB Psychology',
   'AB Sociology',
-  'BS Biology',
-  'BS Chemistry',
-  'BS Computer Science',
-  'BS Data Science',
-  'BS Environmental Science',
-  'BS Information Management',
-  'BS Information Systems',
-  'BS Information Technology',
-  'BS Mathematics',
   'BS Social Work',
-  'Bachelor of Public Management',
+  'BS Biology Major in General Biology',
+  'BS Biology Major in Medical Biology',
+  'BS Chemistry',
+  'BS Environmental Science',
+  'BS Mathematics',
   'BS Accountancy',
   'BS Management Accounting',
   'BS Business Management',
   'BS Entrepreneurship',
-  'BS Entrepreneurship (Agri-Business)',
+  'BS Entrepreneurship Major in Agri-Business',
   'BS Finance',
-  'BS Human Resource Development Management',
+  'BS Human Resource Development and Management',
   'BS Marketing',
-  'Bachelor of Early Childhood Education',
-  'Bachelor of Elementary Education',
-  'Bachelor of Secondary Education',
-  'BS Aerospace Engineering',
+  'Bachelor of Public Administration',
   'BS Architecture',
-  'BS Chemical Engineering',
+  'BS Aerospace Engineering',
   'BS Civil Engineering',
+  'BS Chemical Engineering',
   'BS Computer Engineering',
   'BS Electrical Engineering',
   'BS Electronics Engineering',
   'BS Industrial Engineering',
-  'BS Management Engineering',
   'BS Mechanical Engineering',
   'BS Robotics Engineering',
+  'Bachelor of Early Childhood Education',
+  'Bachelor of Elementary Education',
+  'Bachelor of Secondary Education Major In English',
+  'Bachelor of Secondary Education Major In Mathematics',
+  'Bachelor of Secondary Education Major In Social Studies',
+  'Bachelor of Secondary Education Major In Science',
   'BS Nursing',
 ];
 
@@ -165,7 +172,7 @@ export function RegisterPage() {
     country: '',
     phoneNumber: '',
     telephoneNumber: '',
-    geocode: '',
+    zipcode: '',
     sex: '',
     religion: '',
     religionOther: '',
@@ -274,7 +281,7 @@ export function RegisterPage() {
       formDataToSend.append('telephone_number', formData.telephoneNumber && formData.telephoneNumber.trim() !== '' ? formData.telephoneNumber.trim() : '');
       formDataToSend.append('current_address', formData.currentAddress.trim());
       formDataToSend.append('country', formData.country);
-      formDataToSend.append('geocode', formData.geocode.trim());
+      formDataToSend.append('zipcode', formData.zipcode.trim());
       formDataToSend.append('sex', formData.sex);
       formDataToSend.append('religion', formData.religion);
       formDataToSend.append('religion_other', formData.religionOther && formData.religionOther.trim() !== '' ? formData.religionOther.trim() : '');
@@ -602,16 +609,16 @@ export function RegisterPage() {
                 </div>
               </div>
 
-              {/* Geocode/Zipcode */}
+              {/* Zipcode */}
               <div>
-                <label htmlFor="geocode" className="block text-gray-700 font-medium mb-2">Geocode/Zipcode</label>
+                <label htmlFor="zipcode" className="block text-gray-700 font-medium mb-2">Zipcode</label>
                 <input
-                  id="geocode"
+                  id="zipcode"
                   type="text"
-                  name="geocode"
-                  value={formData.geocode}
+                  name="zipcode"
+                  value={formData.zipcode}
                   onChange={handleChange}
-                  placeholder="Enter your geocode/zipcode"
+                  placeholder="Enter your zipcode"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition"
                   required
                 />

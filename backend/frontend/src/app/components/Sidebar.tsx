@@ -25,8 +25,9 @@ interface SidebarProps {
 export function Sidebar({ activeView, onNavigate, userRole }: SidebarProps) {
   const navigate = useNavigate();
   const [userName, setUserName] = useState(localStorage.getItem('userName') || 'User');
+  const [profileImageUrl, setProfileImageUrl] = useState(localStorage.getItem('userProfileImage') || '');
   
-  // Fetch user data from database to ensure name is up-to-date
+  // Fetch user data from database to ensure name and profile image are up-to-date
   const fetchUserName = async () => {
     try {
       const userEmail = localStorage.getItem('userEmail');
@@ -40,23 +41,37 @@ export function Sidebar({ activeView, onNavigate, userRole }: SidebarProps) {
           localStorage.setItem('userName', fullName);
           setUserName(fullName);
         }
+        
+        // Also fetch and store the profile image URL
+        if (userData.profile_image_path) {
+          const imageUrl = `http://localhost:8000/storage/${userData.profile_image_path}`;
+          localStorage.setItem('userProfileImage', imageUrl);
+          setProfileImageUrl(imageUrl);
+        } else {
+          localStorage.removeItem('userProfileImage');
+          setProfileImageUrl('');
+        }
       }
     } catch (error) {
       console.error('Error fetching user name:', error);
     }
   };
   
-  // Listen for storage changes and profile updates to update name in real-time
+  // Listen for storage changes and profile updates to update name and image in real-time
   useEffect(() => {
     const handleStorageChange = () => {
       setUserName(localStorage.getItem('userName') || 'User');
+      setProfileImageUrl(localStorage.getItem('userProfileImage') || '');
     };
     
     const handleProfileUpdate = () => {
       setUserName(localStorage.getItem('userName') || 'User');
+      setProfileImageUrl(localStorage.getItem('userProfileImage') || '');
+      // Also fetch latest data from server
+      fetchUserName();
     };
     
-    // Fetch the latest name from database on mount
+    // Fetch the latest name and image from database on mount
     fetchUserName();
     
     window.addEventListener('storage', handleStorageChange);
@@ -126,13 +141,17 @@ export function Sidebar({ activeView, onNavigate, userRole }: SidebarProps) {
 
       <div className="p-4 border-t border-gray-100 space-y-1">
         <div className="flex items-center gap-3 px-4 py-3 mb-2 text-left">
-          <div className="w-10 h-10 bg-[#003087] rounded-full flex items-center justify-center text-white text-xs font-bold">
-            {(() => {
-              const nameParts = userName.split(' ').filter(n => n.length > 0);
-              if (nameParts.length === 0) return 'U';
-              if (nameParts.length === 1) return nameParts[0][0];
-              return nameParts[0][0] + nameParts[nameParts.length - 1][0];
-            })()}
+          <div className="w-10 h-10 bg-[#003087] rounded-full flex items-center justify-center text-white text-xs font-bold overflow-hidden shrink-0">
+            {profileImageUrl ? (
+              <img src={profileImageUrl} alt="Profile" className="w-full h-full object-cover" />
+            ) : (
+              (() => {
+                const nameParts = userName.split(' ').filter(n => n.length > 0);
+                if (nameParts.length === 0) return 'U';
+                if (nameParts.length === 1) return nameParts[0][0];
+                return nameParts[0][0] + nameParts[nameParts.length - 1][0];
+              })()
+            )}
           </div>
           <div>
             <p className="text-xs font-bold text-gray-900">{userName}</p>

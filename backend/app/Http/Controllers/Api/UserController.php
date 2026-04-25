@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 
 class UserController extends Controller
 {
@@ -71,7 +72,7 @@ class UserController extends Controller
             'phone_number' => 'nullable|string',
             'current_address' => 'nullable|string',
             'country' => 'nullable|string',
-            'geocode' => 'nullable|string',
+            'zipcode' => 'nullable|string',
             'sex' => 'nullable|string',
             'religion' => 'nullable|string',
             'marital_status' => 'nullable|string',
@@ -133,7 +134,7 @@ class UserController extends Controller
             'telephone_number' => $request->telephone_number,
             'current_address' => $request->current_address,
             'country' => $request->country,
-            'geocode' => $request->geocode,
+            'zipcode' => $request->zipcode,
             'sex' => $request->sex,
             'religion' => $request->religion,
             'religion_other' => $request->religion_other,
@@ -374,6 +375,40 @@ class UserController extends Controller
         return response()->json([
             'message' => 'User status updated successfully',
             'user' => $user
+        ]);
+    }
+
+    // Get alumni counts by course (registered vs approved)
+    public function getCourseAnalytics()
+    {
+        $rows = User::withTrashed()
+            ->select(
+                'course',
+                DB::raw('COUNT(*) as registered_count'),
+                DB::raw("SUM(CASE WHEN approval_status = 'approved' THEN 1 ELSE 0 END) as approved_count")
+            )
+            ->where('role', 'alumni')
+            ->groupBy('course')
+            ->get();
+
+        $normalized = $rows
+            ->groupBy(function ($row) {
+                $course = trim((string) ($row->course ?? ''));
+                return $course !== '' ? $course : 'Unspecified';
+            })
+            ->map(function ($group, $course) {
+                return [
+                    'course' => $course,
+                    'registered_count' => (int) $group->sum('registered_count'),
+                    'approved_count' => (int) $group->sum('approved_count'),
+                ];
+            })
+            ->values()
+            ->sortByDesc('registered_count')
+            ->values();
+
+        return response()->json([
+            'data' => $normalized,
         ]);
     }
 }

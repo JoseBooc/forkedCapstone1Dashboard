@@ -31,7 +31,7 @@ class User extends Authenticatable
         'country',
         'phone_number',
         'telephone_number',
-        'geocode',
+        'zipcode',
         'sex',
         'religion',
         'religion_other',

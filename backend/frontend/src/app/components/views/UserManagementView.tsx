@@ -2,51 +2,58 @@ import { useState, useEffect } from 'react';
 import { Users, Search, Edit, Trash2, Plus, X, Mail, Phone, MapPin, GraduationCap, Calendar, Shield, Lock, Unlock, Check, XCircle, Eye } from 'lucide-react';
 
 const PROGRAM_OPTIONS = [
-  'AB Anthropology',
+  'BS Computer Science',
+  'BS Information Systems',
+  'BS Information Technology',
+  'BS Data Science',
+  'BS Information Management',
   'AB Communication',
+  'AB English Language',
+  'AB Interdisciplinary Studies Minor In Language and Literature',
+  'AB Interdisciplinary Studies Minor In Media and Business',
+  'AB Interdisciplinary Studies Minor In Media and Technology',
+  'AB Interdisciplinary Studies Minor In Philosophy and Theology',
+  'AB Philosophy',
+  'AB Anthropology',
   'AB Development Studies',
   'AB Economics',
-  'AB English Language',
-  'AB Interdisciplinary Studies',
-  'AB International Studies',
+  'AB International Studies Major in American Studies',
+  'AB International Studies Major in Asian Studies',
   'AB Islamic Studies',
-  'AB Philosophy',
   'AB Political Science',
   'AB Psychology',
   'AB Sociology',
-  'BS Biology',
-  'BS Chemistry',
-  'BS Computer Science',
-  'BS Data Science',
-  'BS Environmental Science',
-  'BS Information Management',
-  'BS Information Systems',
-  'BS Information Technology',
-  'BS Mathematics',
   'BS Social Work',
-  'Bachelor of Public Management',
+  'BS Biology Major in General Biology',
+  'BS Biology Major in Medical Biology',
+  'BS Chemistry',
+  'BS Environmental Science',
+  'BS Mathematics',
   'BS Accountancy',
   'BS Management Accounting',
   'BS Business Management',
   'BS Entrepreneurship',
-  'BS Entrepreneurship (Agri-Business)',
+  'BS Entrepreneurship Major in Agri-Business',
   'BS Finance',
-  'BS Human Resource Development Management',
+  'BS Human Resource Development and Management',
   'BS Marketing',
-  'Bachelor of Early Childhood Education',
-  'Bachelor of Elementary Education',
-  'Bachelor of Secondary Education',
-  'BS Aerospace Engineering',
+  'Bachelor of Public Administration',
   'BS Architecture',
-  'BS Chemical Engineering',
+  'BS Aerospace Engineering',
   'BS Civil Engineering',
+  'BS Chemical Engineering',
   'BS Computer Engineering',
   'BS Electrical Engineering',
   'BS Electronics Engineering',
   'BS Industrial Engineering',
-  'BS Management Engineering',
   'BS Mechanical Engineering',
   'BS Robotics Engineering',
+  'Bachelor of Early Childhood Education',
+  'Bachelor of Elementary Education',
+  'Bachelor of Secondary Education Major In English',
+  'Bachelor of Secondary Education Major In Mathematics',
+  'Bachelor of Secondary Education Major In Social Studies',
+  'Bachelor of Secondary Education Major In Science',
   'BS Nursing',
 ];
 
@@ -64,7 +71,7 @@ interface User {
   telephone_number?: string;
   current_address?: string;
   country?: string;
-  geocode?: string;
+  zipcode?: string;
   sex?: string;
   religion?: string;
   religion_other?: string;
@@ -840,7 +847,7 @@ export function UserManagementView({ userRole }: UserManagementViewProps) {
                   <div><span className="font-medium text-gray-500">Telephone:</span><p className="text-gray-900 mt-0.5">{selectedPendingUser.telephone_number || '—'}</p></div>
                   <div className="md:col-span-2"><span className="font-medium text-gray-500">Current Address:</span><p className="text-gray-900 mt-0.5">{selectedPendingUser.current_address || '—'}</p></div>
                   <div><span className="font-medium text-gray-500">Country:</span><p className="text-gray-900 mt-0.5">{selectedPendingUser.country || '—'}</p></div>
-                  <div><span className="font-medium text-gray-500">Geocode/Zipcode:</span><p className="text-gray-900 mt-0.5">{selectedPendingUser.geocode || '—'}</p></div>
+                  <div><span className="font-medium text-gray-500">Zipcode:</span><p className="text-gray-900 mt-0.5">{selectedPendingUser.zipcode || '—'}</p></div>
                   {selectedPendingUser.country === 'Philippines' && <>
                     <div><span className="font-medium text-gray-500">Region:</span><p className="text-gray-900 mt-0.5">{selectedPendingUser.region || '—'}</p></div>
                     <div><span className="font-medium text-gray-500">Province:</span><p className="text-gray-900 mt-0.5">{selectedPendingUser.province || '—'}</p></div>

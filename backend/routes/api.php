@@ -19,6 +19,7 @@ Route::post('/login', [UserController::class, 'login']); // Login/authenticate u
 Route::get('/users', [UserController::class, 'index']); // Get all users
 Route::post('/users', [UserController::class, 'store']); // Create new user
 Route::get('/users/pending/list', [UserController::class, 'getPendingUsers']); // Get pending approval users (must be before wildcard route)
+Route::get('/users/analytics/course-approvals', [UserController::class, 'getCourseAnalytics']); // Alumni analytics by course (must be before wildcard route)
 Route::get('/users/{email}', [UserController::class, 'show']); // Get user by email
 Route::put('/users/{email}', [UserController::class, 'update']); // Update user by email
 Route::post('/users/{email}/profile-image', [UserController::class, 'uploadProfileImage']); // Upload profile image by email

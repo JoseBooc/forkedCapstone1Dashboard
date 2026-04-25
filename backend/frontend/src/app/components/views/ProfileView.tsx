@@ -23,7 +23,7 @@ export function ProfileView({ userRole }: ProfileViewProps) {
     telephone: "",
     address: "",
     country: "",
-    geocode: "",
+    zipcode: "",
     sex: "",
     religion: "",
     religionOther: "",
@@ -67,7 +67,7 @@ export function ProfileView({ userRole }: ProfileViewProps) {
         telephone: userData.telephone_number || '',
         address: userData.current_address || '',
         country: userData.country || '',
-        geocode: userData.geocode || '',
+        zipcode: userData.zipcode || '',
         sex: userData.sex || '',
         religion: userData.religion || '',
         religionOther: userData.religion_other || '',
@@ -87,6 +87,13 @@ export function ProfileView({ userRole }: ProfileViewProps) {
       });
 
       setProfileImageUrl(userData.profile_image_path ? `http://localhost:8000/storage/${userData.profile_image_path}` : '');
+      
+      // Also save to localStorage for sidebar
+      if (userData.profile_image_path) {
+        localStorage.setItem('userProfileImage', `http://localhost:8000/storage/${userData.profile_image_path}`);
+      } else {
+        localStorage.removeItem('userProfileImage');
+      }
       
       // Update localStorage with the current name from database
       const fullName = `${userData.first_name || ''}${userData.middle_name ? ' ' + userData.middle_name : ''} ${userData.last_name || ''}`.trim();
@@ -156,7 +163,7 @@ export function ProfileView({ userRole }: ProfileViewProps) {
           telephone_number: cleanTelephone,
           current_address: formData.address,
           country: formData.country,
-          geocode: formData.geocode,
+          zipcode: formData.zipcode,
           sex: formData.sex,
           religion: formData.religion,
           religion_other: cleanReligionOther,
@@ -268,6 +275,13 @@ export function ProfileView({ userRole }: ProfileViewProps) {
         : '';
 
       setProfileImageUrl(newImageUrl);
+      
+      // Save to localStorage for sidebar
+      if (newImageUrl) {
+        localStorage.setItem('userProfileImage', newImageUrl);
+      } else {
+        localStorage.removeItem('userProfileImage');
+      }
       window.dispatchEvent(new CustomEvent('userProfileUpdated'));
       alert('Profile image updated successfully!');
     } catch (error) {
@@ -458,13 +472,13 @@ export function ProfileView({ userRole }: ProfileViewProps) {
               />
             </div>
 
-            {/* Geocode/Zipcode */}
+            {/* Zipcode */}
             <div className="space-y-1">
-              <label className="text-sm font-semibold text-gray-700">Geocode/Zipcode</label>
+              <label className="text-sm font-semibold text-gray-700">Zipcode</label>
               <input 
                 type="text"
-                value={formData.geocode || ''}
-                onChange={(e) => setFormData({...formData, geocode: e.target.value})}
+                value={formData.zipcode || ''}
+                onChange={(e) => setFormData({...formData, zipcode: e.target.value})}
                 disabled={!isEditing}
                 className={`w-full px-3 py-2 border rounded-lg transition-all text-sm ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
               />

@@ -1,11 +1,147 @@
+import { useEffect, useMemo, useState } from 'react';
 import { BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { TrendingUp, Users, Briefcase, Heart, Download, BarChart3 } from 'lucide-react';
+
+const PROGRAM_OPTIONS = [
+  'BS Computer Science',
+  'BS Information Systems',
+  'BS Information Technology',
+  'BS Data Science',
+  'BS Information Management',
+  'AB Communication',
+  'AB English Language',
+  'AB Interdisciplinary Studies Minor In Language and Literature',
+  'AB Interdisciplinary Studies Minor In Media and Business',
+  'AB Interdisciplinary Studies Minor In Media and Technology',
+  'AB Interdisciplinary Studies Minor In Philosophy and Theology',
+  'AB Philosophy',
+  'AB Anthropology',
+  'AB Development Studies',
+  'AB Economics',
+  'AB International Studies Major in American Studies',
+  'AB International Studies Major in Asian Studies',
+  'AB Islamic Studies',
+  'AB Political Science',
+  'AB Psychology',
+  'AB Sociology',
+  'BS Social Work',
+  'BS Biology Major in General Biology',
+  'BS Biology Major in Medical Biology',
+  'BS Chemistry',
+  'BS Environmental Science',
+  'BS Mathematics',
+  'BS Accountancy',
+  'BS Management Accounting',
+  'BS Business Management',
+  'BS Entrepreneurship',
+  'BS Entrepreneurship Major in Agri-Business',
+  'BS Finance',
+  'BS Human Resource Development and Management',
+  'BS Marketing',
+  'Bachelor of Public Administration',
+  'BS Architecture',
+  'BS Aerospace Engineering',
+  'BS Civil Engineering',
+  'BS Chemical Engineering',
+  'BS Computer Engineering',
+  'BS Electrical Engineering',
+  'BS Electronics Engineering',
+  'BS Industrial Engineering',
+  'BS Mechanical Engineering',
+  'BS Robotics Engineering',
+  'Bachelor of Early Childhood Education',
+  'Bachelor of Elementary Education',
+  'Bachelor of Secondary Education Major In English',
+  'Bachelor of Secondary Education Major In Mathematics',
+  'Bachelor of Secondary Education Major In Social Studies',
+  'Bachelor of Secondary Education Major In Science',
+  'BS Nursing',
+];
+
+interface CourseAnalyticsApiItem {
+  course: string;
+  registered_count: number | string;
+  approved_count: number | string;
+}
+
+interface CourseAnalyticsPoint {
+  course: string;
+  registered: number;
+  approved: number;
+}
 
 interface AnalyticsViewProps {
   userRole: 'alumni' | 'admin';
 }
 
 export function AnalyticsView({ userRole }: AnalyticsViewProps) {
+  const [courseAnalytics, setCourseAnalytics] = useState<CourseAnalyticsPoint[]>([]);
+  const [courseAnalyticsLoading, setCourseAnalyticsLoading] = useState(false);
+  const [courseAnalyticsError, setCourseAnalyticsError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (userRole !== 'admin') {
+      return;
+    }
+
+    const fetchCourseAnalytics = async () => {
+      setCourseAnalyticsLoading(true);
+      setCourseAnalyticsError(null);
+
+      try {
+        const response = await fetch('http://localhost:8000/api/users/analytics/course-approvals');
+        if (!response.ok) {
+          throw new Error('Failed to fetch course analytics');
+        }
+
+        const payload = await response.json();
+        const data: CourseAnalyticsApiItem[] = Array.isArray(payload?.data) ? payload.data : [];
+
+        const byCourse = new Map<string, CourseAnalyticsPoint>();
+
+        data.forEach((item) => {
+          const courseName = (item.course || 'Unspecified').trim() || 'Unspecified';
+          byCourse.set(courseName, {
+            course: courseName,
+            registered: Number(item.registered_count) || 0,
+            approved: Number(item.approved_count) || 0,
+          });
+        });
+
+        const normalized = PROGRAM_OPTIONS.map((course) => {
+          const found = byCourse.get(course);
+          return {
+            course,
+            registered: found?.registered ?? 0,
+            approved: found?.approved ?? 0,
+          };
+        }).filter((item) => item.registered > 0 || item.approved > 0);
+
+        const extraCourses = Array.from(byCourse.values())
+          .filter((item) => !PROGRAM_OPTIONS.includes(item.course));
+
+        setCourseAnalytics([...normalized, ...extraCourses]);
+      } catch {
+        setCourseAnalyticsError('Could not load alumni course analytics right now.');
+      } finally {
+        setCourseAnalyticsLoading(false);
+      }
+    };
+
+    fetchCourseAnalytics();
+  }, [userRole]);
+
+  const courseTotals = useMemo(() => {
+    return courseAnalytics.reduce(
+      (acc, item) => {
+        acc.registered += item.registered;
+        acc.approved += item.approved;
+        return acc;
+      },
+      { registered: 0, approved: 0 }
+    );
+  }, [courseAnalytics]);
+
   // Job/Internship Postings Data
   const careerPostingsData = [
     { month: 'Jan', jobs: 12, internships: 8 },
@@ -128,6 +264,54 @@ export function AnalyticsView({ userRole }: AnalyticsViewProps) {
           <div className="text-xs text-green-600 mt-2">+22% from last year</div>
         </div>
       </div>
+
+      {userRole === 'admin' && (
+        <div className="bg-white rounded-xl border-2 border-[#003087]/20 p-6 shadow-sm mb-8">
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-4">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">Alumni Accounts by Degree Program</h2>
+              <p className="text-gray-600">Registered and approved alumni accounts per course</p>
+            </div>
+            <div className="text-sm text-gray-700">
+              <span className="font-semibold">Registered:</span> {courseTotals.registered} |{' '}
+              <span className="font-semibold">Approved:</span> {courseTotals.approved}
+            </div>
+          </div>
+
+          {courseAnalyticsLoading && (
+            <p className="text-gray-600">Loading alumni course analytics...</p>
+          )}
+
+          {!courseAnalyticsLoading && courseAnalyticsError && (
+            <p className="text-red-600">{courseAnalyticsError}</p>
+          )}
+
+          {!courseAnalyticsLoading && !courseAnalyticsError && courseAnalytics.length === 0 && (
+            <p className="text-gray-600">No alumni course data yet.</p>
+          )}
+
+          {!courseAnalyticsLoading && !courseAnalyticsError && courseAnalytics.length > 0 && (
+            <ResponsiveContainer width="100%" height={420}>
+              <BarChart data={courseAnalytics} margin={{ top: 10, right: 20, left: 0, bottom: 90 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis
+                  dataKey="course"
+                  interval={0}
+                  angle={-35}
+                  textAnchor="end"
+                  height={110}
+                  tick={{ fontSize: 11 }}
+                />
+                <YAxis allowDecimals={false} />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="registered" fill="#003087" name="Registered" />
+                <Bar dataKey="approved" fill="#ff8c42" name="Approved" />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      )}
 
       {/* Section Header */}
       <div className="mb-6">
