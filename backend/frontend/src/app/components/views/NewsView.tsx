@@ -1,7 +1,7 @@
 // 1. Imports MUST be at the very top for ESLint
-import { ArrowRight, Clock, Plus } from 'lucide-react';
+import { ArrowRight, Clock, Plus, Trash2, Archive, RotateCcw } from 'lucide-react';
 import { Footer } from '../Footer';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 // Asset Imports
 import admissionsFair from '../../../assets/AdmissionsFairBG.jpg';
@@ -20,6 +20,17 @@ interface NewsItemProps {
   excerpt: string;
   date: string;
   image: any;
+}
+
+interface NewsItem {
+  id: number;
+  category: string;
+  title: string;
+  excerpt: string;
+  content: string;
+  image_url?: string | null;
+  is_archived: boolean;
+  created_at: string;
 }
 
 function NewsCard({ category, title, excerpt, date, image }: NewsItemProps) {
@@ -58,57 +69,9 @@ function NewsCard({ category, title, excerpt, date, image }: NewsItemProps) {
 }
 
 export function NewsView({ userRole }: { userRole: string }) {
-  const [activeTab, setActiveTab] = useState<'feed' | 'create'>('feed');
-  const [news, setNews] = useState([
-    {
-      id: 1,
-      category: "Scholarship",
-      title: "HAPPENING NOW | Ateneo de Davao University Admissions and Scholarship Fair",
-      excerpt: "The Admissions and Scholars Fair runs from January 23 to 25, 2026, bringing admissions, academic programs, and scholarships all in one place.",
-      date: "January 10, 2026",
-      image: admissionsFair
-    },
-    {
-      id: 2,
-      category: "Programs",
-      title: "New Alumni Mentorship Program Launches",
-      excerpt: "Connect with fellow Ateneans and share your expertise with the next generation through our expanded mentorship initiative.",
-      date: "January 5, 2026",
-      image: mentorProgram
-    },
-    {
-      id: 3,
-      category: "Community",
-      title: "Global Alumni Chapters Expand to 15 Cities",
-      excerpt: "From Manila to New York, our international network continues to grow, bringing Ateneans together across continents.",
-      date: "December 28, 2025",
-      image: globalAlumni
-    },
-    {
-      id: 4,
-      category: "Achievements",
-      title: "Congratulations to the AdDU College of Law for their outstanding performance in the 2025 Bar Exam!",
-      excerpt: "AdDU is TOP 1 among law schools with 51-100 candidates! Our university has produced 82 new Attorneys this year with a 100% passing rate.",
-      date: "January 7, 2026",
-      image: achievements1
-    },
-    {
-      id: 5,
-      category: "Achievements",
-      title: "ADDU 26th in the Webometrics Philippines Ranking January 2026!",
-      excerpt: "Congratulations to the Ateneo de Davao University Community on ranking 26th out of 356 universities in the Philippines!",
-      date: "January 24, 2026",
-      image: achievements2
-    },
-    {
-      id: 6,
-      category: "Achievements",
-      title: "WHO MADE THE CUT? ⚖️📚",
-      excerpt: "Ateneo schools dominate the 2025 Bar exams as Ateneo de Manila University tops law schools with over 100 examinees.",
-      date: "January 7, 2026",
-      image: whoMadeCut
-    }
-  ]);
+  const [activeTab, setActiveTab] = useState<'feed' | 'create' | 'archived'>('feed');
+  const [news, setNews] = useState<NewsItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [newPost, setNewPost] = useState({
     title: '',
@@ -119,38 +82,112 @@ export function NewsView({ userRole }: { userRole: string }) {
     featured: false
   });
 
-  const handlePublish = () => {
+  const [newPostImage, setNewPostImage] = useState<File | null>(null);
+
+  useEffect(() => {
+    fetchPosts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userRole]);
+
+  const fetchPosts = async () => {
+    setLoading(true);
+    try {
+      const includeArchived = userRole === 'admin' ? '?include_archived=true' : '';
+      const response = await fetch(`http://localhost:8000/api/giveback/posts${includeArchived}`);
+      if (response.ok) {
+        const data = await response.json();
+        setNews(data);
+      }
+    } catch (error) {
+      console.error('Error fetching posts:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePublish = async () => {
     if (!newPost.title || !newPost.excerpt || !newPost.content || !newPost.category) {
       alert('Please fill in all required fields');
       return;
     }
 
-    const article = {
-      id: news.length + 1,
-      category: newPost.category,
-      title: newPost.title,
-      excerpt: newPost.excerpt,
-      date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
-      image: newPost.image || PLACEHOLDER
-    };
-
-    if (newPost.featured) {
-      setNews([article, ...news]);
-    } else {
-      setNews([...news, article]);
+    const formData = new FormData();
+    formData.append('title', newPost.title);
+    formData.append('excerpt', newPost.excerpt);
+    formData.append('content', newPost.content);
+    formData.append('category', newPost.category);
+    if (newPostImage) {
+      formData.append('image', newPostImage);
     }
 
-    setNewPost({
-      title: '',
-      excerpt: '',
-      content: '',
-      category: '',
-      image: '',
-      featured: false
-    });
+    try {
+      const response = await fetch('http://localhost:8000/api/giveback/posts', {
+        method: 'POST',
+        body: formData
+      });
 
-    setActiveTab('feed');
-    alert('Article published successfully!');
+      if (response.ok) {
+        await fetchPosts();
+        setNewPost({
+          title: '',
+          excerpt: '',
+          content: '',
+          category: '',
+          image: '',
+          featured: false
+        });
+        setNewPostImage(null);
+        setActiveTab('feed');
+        alert('Article published successfully!');
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        alert(errorData.message || 'Failed to publish article');
+      }
+    } catch (error) {
+      console.error('Error publishing post:', error);
+      alert('Failed to publish article');
+    }
+  };
+
+  const handleArchive = async (id: number) => {
+    if (!window.confirm('Archive this post?')) return;
+    try {
+      const response = await fetch(`http://localhost:8000/api/giveback/posts/${id}/archive`, {
+        method: 'PATCH'
+      });
+      if (response.ok) {
+        await fetchPosts();
+      }
+    } catch (error) {
+      console.error('Error archiving post:', error);
+    }
+  };
+
+  const handleRestore = async (id: number) => {
+    try {
+      const response = await fetch(`http://localhost:8000/api/giveback/posts/${id}/restore`, {
+        method: 'PATCH'
+      });
+      if (response.ok) {
+        await fetchPosts();
+      }
+    } catch (error) {
+      console.error('Error restoring post:', error);
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!window.confirm('Permanently delete this post?')) return;
+    try {
+      const response = await fetch(`http://localhost:8000/api/giveback/posts/${id}`, {
+        method: 'DELETE'
+      });
+      if (response.ok) {
+        await fetchPosts();
+      }
+    } catch (error) {
+      console.error('Error deleting post:', error);
+    }
   };
 
   // const newsFeed = [
@@ -190,6 +227,10 @@ export function NewsView({ userRole }: { userRole: string }) {
   //     image: whoMadeCut
   //   }
   // ];
+
+  const visiblePosts = news.filter((item) => !item.is_archived);
+  const archivedPosts = news.filter((item) => item.is_archived);
+  const featuredPost = visiblePosts[0];
 
   return (
     <div className="flex flex-col min-h-screen bg-[#F8FAFC]">
@@ -235,58 +276,104 @@ export function NewsView({ userRole }: { userRole: string }) {
               Create Post
             </button>
           )}
+          {userRole === 'admin' && (
+            <button 
+              onClick={() => setActiveTab('archived')}
+              className={`px-6 py-3 border-b-2 transition-colors font-semibold ${
+                activeTab === 'archived' 
+                  ? 'border-[#003087] text-[#003087]' 
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Archived
+            </button>
+          )}
         </div>
 
         {activeTab === 'feed' && (
           <>
-            {/* Featured Section */}
-            <section className="relative overflow-hidden rounded-[40px] bg-white border border-gray-100 shadow-lg">
-              <div className="flex flex-col lg:flex-row">
-                <div className="lg:w-1/2 relative h-[450px] lg:h-auto overflow-hidden bg-gray-200">
-                  <img 
-                    src={news[0]?.image || admissionsFair || PLACEHOLDER} 
-                    alt={news[0]?.title || "Featured Article"} 
-                    className="w-full h-full object-cover"
-                    onError={(e) => (e.currentTarget.src = PLACEHOLDER)}
-                  />
-                  <div className="absolute top-6 left-6">
-                    <span className="px-5 py-2 bg-[#003087] text-white text-[10px] rounded-full font-bold uppercase tracking-widest shadow-lg">
-                      Featured
-                    </span>
+            {loading ? (
+              <div className="text-center py-10 text-gray-500">Loading posts...</div>
+            ) : visiblePosts.length === 0 ? (
+              <div className="text-center py-10 text-gray-500">No GiveBack posts available yet.</div>
+            ) : (
+              <>
+                {/* Featured Section */}
+                <section className="relative overflow-hidden rounded-[40px] bg-white border border-gray-100 shadow-lg">
+                  <div className="flex flex-col lg:flex-row">
+                    <div className="lg:w-1/2 relative h-[450px] lg:h-auto overflow-hidden bg-gray-200">
+                      <img 
+                        src={featuredPost?.image_url || admissionsFair || PLACEHOLDER} 
+                        alt={featuredPost?.title || "Featured Article"} 
+                        className="w-full h-full object-cover"
+                        onError={(e) => (e.currentTarget.src = PLACEHOLDER)}
+                      />
+                      <div className="absolute top-6 left-6">
+                        <span className="px-5 py-2 bg-[#003087] text-white text-[10px] rounded-full font-bold uppercase tracking-widest shadow-lg">
+                          Featured
+                        </span>
+                      </div>
+                    </div>
+                    <div className="lg:w-1/2 p-10 lg:p-14 flex flex-col justify-center text-left">
+                      <span className="px-3 py-1 bg-gray-100 text-gray-600 text-[10px] rounded-full font-bold uppercase tracking-wider w-fit mb-4">
+                        {featuredPost?.category || "GiveBack"}
+                      </span>
+                      <h2 className="text-2xl font-extrabold text-gray-900 mb-6 leading-tight">
+                        {featuredPost?.title || "GiveBack Spotlight"}
+                      </h2>
+                      <p className="text-gray-600 text-sm leading-relaxed mb-8">
+                        {featuredPost?.excerpt || "Stay updated on GiveBack initiatives and community impact."}
+                      </p>
+                      <div className="flex items-center justify-between mt-auto pt-6 border-t border-gray-100">
+                        <span className="text-sm text-gray-400 font-medium">
+                          {featuredPost ? new Date(featuredPost.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : ''}
+                        </span>
+                        <button className="text-[#003087] font-bold text-sm flex items-center gap-2 hover:translate-x-1 transition-transform">
+                          Read More <ArrowRight className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div className="lg:w-1/2 p-10 lg:p-14 flex flex-col justify-center text-left">
-                  <span className="px-3 py-1 bg-gray-100 text-gray-600 text-[10px] rounded-full font-bold uppercase tracking-wider w-fit mb-4">
-                    {news[0]?.category || "Scholarship"}
-                  </span>
-                  <h2 className="text-2xl font-extrabold text-gray-900 mb-6 leading-tight">
-                    {news[0]?.title || "HAPPENING NOW | Ateneo de Davao University Admissions and Scholarship Fair"}
-                  </h2>
-                  <p className="text-gray-600 text-sm leading-relaxed mb-8">
-                    {news[0]?.excerpt || "The Admissions and Scholars Fair runs from January 23 to 25, 2026, bringing admissions, academic programs, and scholarships all in one place."}
-                  </p>
-                  <div className="flex items-center justify-between mt-auto pt-6 border-t border-gray-100">
-                    <span className="text-sm text-gray-400 font-medium">{news[0]?.date || "January 10, 2026"}</span>
-                    <button className="text-[#003087] font-bold text-sm flex items-center gap-2 hover:translate-x-1 transition-transform">
-                      Read More <ArrowRight className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </section>
+                </section>
 
-            {/* News Feed */}
-            <div className="space-y-8">
-              <div className="flex items-center gap-4 mb-8">
-                <h2 className="text-2xl font-bold text-gray-900">News Feed</h2>
-                <div className="h-[2px] flex-1 bg-gray-100"></div>
-              </div>
-              <div className="flex flex-col gap-8">
-                {news.slice(1).map((article, index) => (
-                  <NewsCard key={article.id || index} {...article} />
-                ))}
-              </div>
-            </div>
+                {/* News Feed */}
+                <div className="space-y-8">
+                  <div className="flex items-center gap-4 mb-8">
+                    <h2 className="text-2xl font-bold text-gray-900">News Feed</h2>
+                    <div className="h-[2px] flex-1 bg-gray-100"></div>
+                  </div>
+                  <div className="flex flex-col gap-8">
+                    {visiblePosts.slice(1).map((article) => (
+                      <div key={article.id} className="relative">
+                        <NewsCard
+                          category={article.category}
+                          title={article.title}
+                          excerpt={article.excerpt}
+                          date={new Date(article.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                          image={article.image_url || PLACEHOLDER}
+                        />
+                        {userRole === 'admin' && (
+                          <div className="absolute top-6 right-6 flex gap-2">
+                            <button
+                              onClick={() => handleArchive(article.id)}
+                              className="p-2 bg-amber-500 text-white rounded-full shadow-lg hover:bg-amber-600"
+                            >
+                              <Archive className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(article.id)}
+                              className="p-2 bg-red-600 text-white rounded-full shadow-lg hover:bg-red-700"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
           </>
         )}
 
@@ -347,12 +434,11 @@ export function NewsView({ userRole }: { userRole: string }) {
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Featured Image URL</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Featured Image</label>
                   <input 
-                    type="text" 
-                    placeholder="Enter image URL"
-                    value={newPost.image}
-                    onChange={(e) => setNewPost({ ...newPost, image: e.target.value })}
+                    type="file" 
+                    accept="image/*"
+                    onChange={(e) => setNewPostImage(e.target.files?.[0] || null)}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
                   />
                 </div>
@@ -394,6 +480,46 @@ export function NewsView({ userRole }: { userRole: string }) {
                 </button>
               </div>
             </div>
+          </div>
+        )}
+
+        {activeTab === 'archived' && userRole === 'admin' && (
+          <div className="space-y-6">
+            <div className="flex items-center gap-4">
+              <h2 className="text-2xl font-bold text-gray-900">Archived Posts</h2>
+              <div className="h-[2px] flex-1 bg-gray-100"></div>
+            </div>
+            {archivedPosts.length === 0 ? (
+              <div className="text-center py-10 text-gray-500">No archived posts.</div>
+            ) : (
+              <div className="flex flex-col gap-8">
+                {archivedPosts.map((article) => (
+                  <div key={article.id} className="relative">
+                    <NewsCard
+                      category={article.category}
+                      title={article.title}
+                      excerpt={article.excerpt}
+                      date={new Date(article.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                      image={article.image_url || PLACEHOLDER}
+                    />
+                    <div className="absolute top-6 right-6 flex gap-2">
+                      <button
+                        onClick={() => handleRestore(article.id)}
+                        className="p-2 bg-green-600 text-white rounded-full shadow-lg hover:bg-green-700"
+                      >
+                        <RotateCcw className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(article.id)}
+                        className="p-2 bg-red-600 text-white rounded-full shadow-lg hover:bg-red-700"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

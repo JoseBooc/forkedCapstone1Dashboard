@@ -43,6 +43,46 @@ interface Campaign {
   is_active?: boolean;
 }
 
+interface GivebackProject {
+  id: number;
+  title: string;
+  description: string;
+  collaboration?: string | null;
+  target_amount: number;
+  start_date: string;
+  end_date: string;
+  status: 'upcoming' | 'ongoing' | 'completed';
+  image_url?: string | null;
+  is_archived: boolean;
+}
+
+interface GivebackProjectEvent {
+  id: number;
+  project_id: number;
+  title: string;
+  description: string;
+  location?: string | null;
+  start_date: string;
+  end_date: string;
+  status: 'upcoming' | 'ongoing' | 'completed';
+  image_url?: string | null;
+  is_archived: boolean;
+}
+
+interface GivebackProgram {
+  id: number;
+  type: 'scholarship' | 'donation' | 'community_support';
+  title: string;
+  description: string;
+  beneficiary: string;
+  funding_goal: number;
+  amount_raised: number;
+  donor_count: number;
+  status: 'upcoming' | 'ongoing' | 'completed';
+  is_archived: boolean;
+  progress_percentage?: number;
+}
+
 export function DonationsView({ userRole, onNavigate }: DonationsViewProps) {
   const [showForm, setShowForm] = useState(false);
   const [activeTab, setActiveTab] = useState<'gift' | 'needs'>('gift');
@@ -70,6 +110,50 @@ export function DonationsView({ userRole, onNavigate }: DonationsViewProps) {
   // Campaigns State - Fetch from API
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const [adminSection, setAdminSection] = useState<'campaigns' | 'projects' | 'projectEvents' | 'programs'>('campaigns');
+  const [projects, setProjects] = useState<GivebackProject[]>([]);
+  const [projectEvents, setProjectEvents] = useState<GivebackProjectEvent[]>([]);
+  const [programs, setPrograms] = useState<GivebackProgram[]>([]);
+  const [loadingProjects, setLoadingProjects] = useState(true);
+  const [loadingProjectEvents, setLoadingProjectEvents] = useState(true);
+  const [loadingPrograms, setLoadingPrograms] = useState(true);
+
+  const [projectForm, setProjectForm] = useState({
+    title: '',
+    description: '',
+    collaboration: '',
+    targetAmount: '',
+    startDate: '',
+    endDate: '',
+    status: 'upcoming'
+  });
+  const [projectImage, setProjectImage] = useState<File | null>(null);
+  const [editingProjectId, setEditingProjectId] = useState<number | null>(null);
+
+  const [projectEventForm, setProjectEventForm] = useState({
+    projectId: '',
+    title: '',
+    description: '',
+    location: '',
+    startDate: '',
+    endDate: '',
+    status: 'upcoming'
+  });
+  const [projectEventImage, setProjectEventImage] = useState<File | null>(null);
+  const [editingProjectEventId, setEditingProjectEventId] = useState<number | null>(null);
+
+  const [programForm, setProgramForm] = useState({
+    type: 'scholarship',
+    title: '',
+    description: '',
+    beneficiary: '',
+    fundingGoal: '',
+    amountRaised: '0',
+    donorCount: '0',
+    status: 'ongoing'
+  });
+  const [editingProgramId, setEditingProgramId] = useState<number | null>(null);
   
   // Donation to Campaign States
   const [showDonationModal, setShowDonationModal] = useState(false);
@@ -103,6 +187,9 @@ export function DonationsView({ userRole, onNavigate }: DonationsViewProps) {
   // Fetch campaigns from API
   useEffect(() => {
     fetchCampaigns();
+    fetchProjects();
+    fetchProjectEvents();
+    fetchPrograms();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userRole]);
 
@@ -129,6 +216,51 @@ export function DonationsView({ userRole, onNavigate }: DonationsViewProps) {
       console.error('Error fetching campaigns:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchProjects = async () => {
+    setLoadingProjects(true);
+    try {
+      const response = await fetch('http://localhost:8000/api/giveback/projects?include_archived=true');
+      if (response.ok) {
+        const data = await response.json();
+        setProjects(data);
+      }
+    } catch (error) {
+      console.error('Error fetching projects:', error);
+    } finally {
+      setLoadingProjects(false);
+    }
+  };
+
+  const fetchProjectEvents = async () => {
+    setLoadingProjectEvents(true);
+    try {
+      const response = await fetch('http://localhost:8000/api/giveback/project-events?include_archived=true');
+      if (response.ok) {
+        const data = await response.json();
+        setProjectEvents(data);
+      }
+    } catch (error) {
+      console.error('Error fetching project events:', error);
+    } finally {
+      setLoadingProjectEvents(false);
+    }
+  };
+
+  const fetchPrograms = async () => {
+    setLoadingPrograms(true);
+    try {
+      const response = await fetch('http://localhost:8000/api/giveback/programs?include_archived=true');
+      if (response.ok) {
+        const data = await response.json();
+        setPrograms(data);
+      }
+    } catch (error) {
+      console.error('Error fetching programs:', error);
+    } finally {
+      setLoadingPrograms(false);
     }
   };
 
@@ -279,6 +411,447 @@ export function DonationsView({ userRole, onNavigate }: DonationsViewProps) {
     } catch (error) {
       console.error('Error toggling campaign visibility:', error);
       alert("Error updating campaign visibility");
+    }
+  };
+
+  const resetProjectForm = () => {
+    setProjectForm({
+      title: '',
+      description: '',
+      collaboration: '',
+      targetAmount: '',
+      startDate: '',
+      endDate: '',
+      status: 'upcoming'
+    });
+    setProjectImage(null);
+    setEditingProjectId(null);
+  };
+
+  const handleCreateProject = async () => {
+    if (!projectForm.title || !projectForm.description || !projectForm.targetAmount || !projectForm.startDate || !projectForm.endDate) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('title', projectForm.title);
+    formData.append('description', projectForm.description);
+    formData.append('collaboration', projectForm.collaboration);
+    formData.append('target_amount', projectForm.targetAmount);
+    formData.append('start_date', projectForm.startDate);
+    formData.append('end_date', projectForm.endDate);
+    formData.append('status', projectForm.status);
+    if (projectImage) {
+      formData.append('image', projectImage);
+    }
+
+    try {
+      const response = await fetch('http://localhost:8000/api/giveback/projects', {
+        method: 'POST',
+        body: formData
+      });
+      if (response.ok) {
+        await fetchProjects();
+        resetProjectForm();
+        alert('Project created successfully');
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        alert(errorData.message || 'Failed to create project');
+      }
+    } catch (error) {
+      console.error('Error creating project:', error);
+      alert('Failed to create project');
+    }
+  };
+
+  const openEditProject = (project: GivebackProject) => {
+    setEditingProjectId(project.id);
+    setProjectForm({
+      title: project.title,
+      description: project.description,
+      collaboration: project.collaboration || '',
+      targetAmount: String(project.target_amount),
+      startDate: project.start_date,
+      endDate: project.end_date,
+      status: project.status
+    });
+    setProjectImage(null);
+  };
+
+  const handleUpdateProject = async () => {
+    if (!editingProjectId) return;
+    if (!projectForm.title || !projectForm.description || !projectForm.targetAmount || !projectForm.startDate || !projectForm.endDate) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('title', projectForm.title);
+    formData.append('description', projectForm.description);
+    formData.append('collaboration', projectForm.collaboration);
+    formData.append('target_amount', projectForm.targetAmount);
+    formData.append('start_date', projectForm.startDate);
+    formData.append('end_date', projectForm.endDate);
+    formData.append('status', projectForm.status);
+    if (projectImage) {
+      formData.append('image', projectImage);
+    }
+
+    try {
+      const response = await fetch(`http://localhost:8000/api/giveback/projects/${editingProjectId}`, {
+        method: 'PUT',
+        body: formData
+      });
+      if (response.ok) {
+        await fetchProjects();
+        resetProjectForm();
+        alert('Project updated successfully');
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        alert(errorData.message || 'Failed to update project');
+      }
+    } catch (error) {
+      console.error('Error updating project:', error);
+      alert('Failed to update project');
+    }
+  };
+
+  const handleDeleteProject = async (id: number) => {
+    if (!window.confirm('Delete this project?')) return;
+    try {
+      const response = await fetch(`http://localhost:8000/api/giveback/projects/${id}`, {
+        method: 'DELETE'
+      });
+      if (response.ok) {
+        await fetchProjects();
+      }
+    } catch (error) {
+      console.error('Error deleting project:', error);
+    }
+  };
+
+  const handleArchiveProject = async (id: number) => {
+    if (!window.confirm('Archive this project?')) return;
+    try {
+      const response = await fetch(`http://localhost:8000/api/giveback/projects/${id}/archive`, {
+        method: 'PATCH'
+      });
+      if (response.ok) {
+        await fetchProjects();
+        alert('Project archived successfully');
+      }
+    } catch (error) {
+      console.error('Error archiving project:', error);
+      alert('Failed to archive project');
+    }
+  };
+
+  const handleRestoreProject = async (id: number) => {
+    try {
+      const response = await fetch(`http://localhost:8000/api/giveback/projects/${id}/restore`, {
+        method: 'PATCH'
+      });
+      if (response.ok) {
+        await fetchProjects();
+        alert('Project restored successfully');
+      }
+    } catch (error) {
+      console.error('Error restoring project:', error);
+      alert('Failed to restore project');
+    }
+  };
+
+  const resetProjectEventForm = () => {
+    setProjectEventForm({
+      projectId: '',
+      title: '',
+      description: '',
+      location: '',
+      startDate: '',
+      endDate: '',
+      status: 'upcoming'
+    });
+    setProjectEventImage(null);
+    setEditingProjectEventId(null);
+  };
+
+  const handleCreateProjectEvent = async () => {
+    if (!projectEventForm.projectId || !projectEventForm.title || !projectEventForm.description || !projectEventForm.startDate || !projectEventForm.endDate) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('project_id', projectEventForm.projectId);
+    formData.append('title', projectEventForm.title);
+    formData.append('description', projectEventForm.description);
+    formData.append('location', projectEventForm.location);
+    formData.append('start_date', projectEventForm.startDate);
+    formData.append('end_date', projectEventForm.endDate);
+    formData.append('status', projectEventForm.status);
+    if (projectEventImage) {
+      formData.append('image', projectEventImage);
+    }
+
+    try {
+      const response = await fetch('http://localhost:8000/api/giveback/project-events', {
+        method: 'POST',
+        body: formData
+      });
+      if (response.ok) {
+        await fetchProjectEvents();
+        resetProjectEventForm();
+        alert('Project event created successfully');
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        alert(errorData.message || 'Failed to create project event');
+      }
+    } catch (error) {
+      console.error('Error creating project event:', error);
+      alert('Failed to create project event');
+    }
+  };
+
+  const openEditProjectEvent = (projectEvent: GivebackProjectEvent) => {
+    setEditingProjectEventId(projectEvent.id);
+    setProjectEventForm({
+      projectId: String(projectEvent.project_id),
+      title: projectEvent.title,
+      description: projectEvent.description,
+      location: projectEvent.location || '',
+      startDate: projectEvent.start_date,
+      endDate: projectEvent.end_date,
+      status: projectEvent.status
+    });
+  };
+
+  const handleUpdateProjectEvent = async () => {
+    if (!editingProjectEventId) return;
+    if (!projectEventForm.projectId || !projectEventForm.title || !projectEventForm.description || !projectEventForm.startDate || !projectEventForm.endDate) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('project_id', projectEventForm.projectId);
+    formData.append('title', projectEventForm.title);
+    formData.append('description', projectEventForm.description);
+    formData.append('location', projectEventForm.location);
+    formData.append('start_date', projectEventForm.startDate);
+    formData.append('end_date', projectEventForm.endDate);
+    formData.append('status', projectEventForm.status);
+    if (projectEventImage) {
+      formData.append('image', projectEventImage);
+    }
+
+    try {
+      const response = await fetch(`http://localhost:8000/api/giveback/project-events/${editingProjectEventId}`, {
+        method: 'PUT',
+        body: formData
+      });
+      if (response.ok) {
+        await fetchProjectEvents();
+        resetProjectEventForm();
+        alert('Project event updated successfully');
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        alert(errorData.message || 'Failed to update project event');
+      }
+    } catch (error) {
+      console.error('Error updating project event:', error);
+      alert('Failed to update project event');
+    }
+  };
+
+  const handleDeleteProjectEvent = async (id: number) => {
+    if (!window.confirm('Delete this project event?')) return;
+    try {
+      const response = await fetch(`http://localhost:8000/api/giveback/project-events/${id}`, {
+        method: 'DELETE'
+      });
+      if (response.ok) {
+        await fetchProjectEvents();
+      }
+    } catch (error) {
+      console.error('Error deleting project event:', error);
+    }
+  };
+
+  const handleArchiveProjectEvent = async (id: number) => {
+    if (!window.confirm('Archive this event?')) return;
+    try {
+      const response = await fetch(`http://localhost:8000/api/giveback/project-events/${id}/archive`, {
+        method: 'PATCH'
+      });
+      if (response.ok) {
+        await fetchProjectEvents();
+        alert('Event archived successfully');
+      }
+    } catch (error) {
+      console.error('Error archiving project event:', error);
+      alert('Failed to archive event');
+    }
+  };
+
+  const handleRestoreProjectEvent = async (id: number) => {
+    try {
+      const response = await fetch(`http://localhost:8000/api/giveback/project-events/${id}/restore`, {
+        method: 'PATCH'
+      });
+      if (response.ok) {
+        await fetchProjectEvents();
+        alert('Event restored successfully');
+      }
+    } catch (error) {
+      console.error('Error restoring project event:', error);
+      alert('Failed to restore event');
+    }
+  };
+
+  const resetProgramForm = () => {
+    setProgramForm({
+      type: 'scholarship',
+      title: '',
+      description: '',
+      beneficiary: '',
+      fundingGoal: '',
+      amountRaised: '0',
+      donorCount: '0',
+      status: 'ongoing'
+    });
+    setEditingProgramId(null);
+  };
+
+  const handleCreateProgram = async () => {
+    if (!programForm.title || !programForm.description || !programForm.beneficiary || !programForm.fundingGoal) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    try {
+      const response = await fetch('http://localhost:8000/api/giveback/programs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: programForm.type,
+          title: programForm.title,
+          description: programForm.description,
+          beneficiary: programForm.beneficiary,
+          funding_goal: Number(programForm.fundingGoal),
+          amount_raised: Number(programForm.amountRaised),
+          donor_count: Number(programForm.donorCount),
+          status: programForm.status
+        })
+      });
+
+      if (response.ok) {
+        await fetchPrograms();
+        resetProgramForm();
+        alert('Program created successfully');
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        alert(errorData.message || 'Failed to create program');
+      }
+    } catch (error) {
+      console.error('Error creating program:', error);
+      alert('Failed to create program');
+    }
+  };
+
+  const openEditProgram = (program: GivebackProgram) => {
+    setEditingProgramId(program.id);
+    setProgramForm({
+      type: program.type,
+      title: program.title,
+      description: program.description,
+      beneficiary: program.beneficiary,
+      fundingGoal: String(program.funding_goal),
+      amountRaised: String(program.amount_raised),
+      donorCount: String(program.donor_count),
+      status: program.status
+    });
+  };
+
+  const handleUpdateProgram = async () => {
+    if (!editingProgramId) return;
+    if (!programForm.title || !programForm.description || !programForm.beneficiary || !programForm.fundingGoal) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    try {
+      const response = await fetch(`http://localhost:8000/api/giveback/programs/${editingProgramId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: programForm.type,
+          title: programForm.title,
+          description: programForm.description,
+          beneficiary: programForm.beneficiary,
+          funding_goal: Number(programForm.fundingGoal),
+          amount_raised: Number(programForm.amountRaised),
+          donor_count: Number(programForm.donorCount),
+          status: programForm.status
+        })
+      });
+
+      if (response.ok) {
+        await fetchPrograms();
+        resetProgramForm();
+        alert('Program updated successfully');
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        alert(errorData.message || 'Failed to update program');
+      }
+    } catch (error) {
+      console.error('Error updating program:', error);
+      alert('Failed to update program');
+    }
+  };
+
+  const handleDeleteProgram = async (id: number) => {
+    if (!window.confirm('Delete this program?')) return;
+    try {
+      const response = await fetch(`http://localhost:8000/api/giveback/programs/${id}`, {
+        method: 'DELETE'
+      });
+      if (response.ok) {
+        await fetchPrograms();
+      }
+    } catch (error) {
+      console.error('Error deleting program:', error);
+    }
+  };
+
+  const handleArchiveProgram = async (id: number) => {
+    if (!window.confirm('Archive this program?')) return;
+    try {
+      const response = await fetch(`http://localhost:8000/api/giveback/programs/${id}/archive`, {
+        method: 'PATCH'
+      });
+      if (response.ok) {
+        await fetchPrograms();
+        alert('Program archived successfully');
+      }
+    } catch (error) {
+      console.error('Error archiving program:', error);
+      alert('Failed to archive program');
+    }
+  };
+
+  const handleRestoreProgram = async (id: number) => {
+    try {
+      const response = await fetch(`http://localhost:8000/api/giveback/programs/${id}/restore`, {
+        method: 'PATCH'
+      });
+      if (response.ok) {
+        await fetchPrograms();
+        alert('Program restored successfully');
+      }
+    } catch (error) {
+      console.error('Error restoring program:', error);
+      alert('Failed to restore program');
     }
   };
 
@@ -631,82 +1204,660 @@ export function DonationsView({ userRole, onNavigate }: DonationsViewProps) {
                 </div>
               ) : adminManagementView ? (
                 <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                  <div className="flex justify-between items-start border-b border-gray-100 pb-8">
-                    <div className="space-y-2">
-                      <h1 className="text-4xl font-bold text-gray-900">Manage Campaigns</h1>
-                      <p className="text-gray-500">Create and monitor fundraising initiatives.</p>
+                  <div className="flex flex-col gap-6 border-b border-gray-100 pb-6">
+                    <div className="flex justify-between items-start">
+                      <div className="space-y-2">
+                        <h1 className="text-4xl font-bold text-gray-900">GiveBack Management</h1>
+                        <p className="text-gray-500">Maintain campaigns, projects, events, and programs.</p>
+                      </div>
+                      {adminSection === 'campaigns' && (
+                        <button 
+                          onClick={() => setIsCreatingCampaign(true)}
+                          className="flex items-center gap-2 px-6 py-3 bg-[#003087] text-white rounded-xl font-bold text-sm shadow-lg hover:bg-blue-800 transition-all"
+                        >
+                          <Plus className="w-4 h-4" /> New Campaign
+                        </button>
+                      )}
                     </div>
-                    <button 
-                      onClick={() => setIsCreatingCampaign(true)}
-                      className="flex items-center gap-2 px-6 py-3 bg-[#003087] text-white rounded-xl font-bold text-sm shadow-lg hover:bg-blue-800 transition-all"
-                    >
-                      <Plus className="w-4 h-4" /> New Campaign
-                    </button>
+                    <div className="flex flex-wrap gap-3">
+                      {[
+                        { key: 'campaigns', label: 'Campaigns' },
+                        { key: 'projects', label: 'Projects' },
+                        { key: 'projectEvents', label: 'Project Events' },
+                        { key: 'programs', label: 'GiveBack Programs' }
+                      ].map((item) => (
+                        <button
+                          key={item.key}
+                          onClick={() => setAdminSection(item.key as any)}
+                          className={`px-4 py-2 rounded-full text-sm font-bold transition-all ${adminSection === item.key ? 'bg-[#003087] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                        >
+                          {item.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-6">
-                    {loading ? (
-                      <div className="text-center py-8">
-                        <p className="text-gray-500 font-semibold">Loading campaigns...</p>
-                      </div>
-                    ) : campaigns.length === 0 ? (
-                      <div className="text-center py-8">
-                        <p className="text-gray-500 font-semibold">No campaigns created yet</p>
-                      </div>
-                    ) : (
-                      campaigns.map((campaign) => (
-                        <div key={campaign.id} className="p-6 border border-gray-200 rounded-3xl space-y-4 hover:border-blue-300 transition-all group">
-                          <div className="flex justify-between items-center">
-                            <h4 className="text-xl font-bold text-gray-900">{campaign.title}</h4>
-                            <span className={`text-xs font-bold px-3 py-1 rounded-full ${campaign.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
-                              {campaign.is_active ? 'Active' : 'Hidden'}
-                            </span>
+                  {adminSection === 'campaigns' && (
+                    <div className="grid grid-cols-1 gap-6">
+                      {loading ? (
+                        <div className="text-center py-8">
+                          <p className="text-gray-500 font-semibold">Loading campaigns...</p>
+                        </div>
+                      ) : campaigns.length === 0 ? (
+                        <div className="text-center py-8">
+                          <p className="text-gray-500 font-semibold">No campaigns created yet</p>
+                        </div>
+                      ) : (
+                        campaigns.map((campaign) => (
+                          <div key={campaign.id} className="p-6 border border-gray-200 rounded-3xl space-y-4 hover:border-blue-300 transition-all group">
+                            <div className="flex justify-between items-center">
+                              <h4 className="text-xl font-bold text-gray-900">{campaign.title}</h4>
+                              <span className={`text-xs font-bold px-3 py-1 rounded-full ${campaign.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
+                                {campaign.is_active ? 'Active' : 'Hidden'}
+                              </span>
+                            </div>
+                            <div className="space-y-2">
+                              <div className="flex justify-between text-sm">
+                                <span className="text-gray-500 font-medium">Progress</span>
+                                <span className="font-bold text-[#003087]">{campaign.raised} / {campaign.goal}</span>
+                              </div>
+                              <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
+                                <div 
+                                  className="h-full bg-[#003087] rounded-full transition-all duration-1000" 
+                                  style={{ width: `${(parseInt(campaign.raised.replace(/\D/g,'')) || 0) / (parseInt(campaign.goal.replace(/\D/g,'')) || 1) * 100}%` }}
+                                ></div>
+                              </div>
+                            </div>
+                            <div className="flex justify-between items-center pt-2">
+                              <div className="flex items-center gap-4 text-sm text-gray-500 font-medium">
+                                <span>{campaign.backers} Backers</span>
+                                <span>Ends in 14 days</span>
+                              </div>
+                              <div className="flex gap-2">
+                                <button 
+                                  onClick={() => openEditCampaign(campaign)}
+                                  className="p-2 hover:bg-blue-50 rounded-lg text-gray-400 hover:text-[#003087] transition-all"
+                                  title="Edit campaign"
+                                >
+                                  <Settings className="w-5 h-5" />
+                                </button>
+                                <button 
+                                  onClick={() => handleToggleCampaignVisibility(campaign.id, campaign.is_active || false)}
+                                  className="p-2 hover:bg-yellow-50 rounded-lg text-gray-400 hover:text-yellow-600 transition-all"
+                                  title={campaign.is_active ? "Hide campaign" : "Show campaign"}
+                                >
+                                  {campaign.is_active ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
+                                </button>
+                                <button 
+                                  onClick={() => handleDeleteCampaign(campaign.id)}
+                                  className="p-2 hover:bg-red-50 rounded-lg text-gray-400 hover:text-red-500 transition-all"
+                                  title="Delete campaign"
+                                >
+                                  <Trash2 className="w-5 h-5" />
+                                </button>
+                              </div>
+                            </div>
                           </div>
-                          <div className="space-y-2">
-                            <div className="flex justify-between text-sm">
-                              <span className="text-gray-500 font-medium">Progress</span>
-                              <span className="font-bold text-[#003087]">{campaign.raised} / {campaign.goal}</span>
-                            </div>
-                            <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
-                              <div 
-                                className="h-full bg-[#003087] rounded-full transition-all duration-1000" 
-                                style={{ width: `${(parseInt(campaign.raised.replace(/\D/g,'')) || 0) / (parseInt(campaign.goal.replace(/\D/g,'')) || 1) * 100}%` }}
-                              ></div>
-                            </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+
+                  {adminSection === 'projects' && (
+                    <div className="space-y-8">
+                      <div className="bg-white border border-gray-200 rounded-3xl p-6">
+                        <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                          {editingProjectId ? 'Edit Project' : 'Create Project'}
+                        </h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-sm font-bold text-gray-700">Title *</label>
+                            <input
+                              type="text"
+                              value={projectForm.title}
+                              onChange={(e) => setProjectForm({ ...projectForm, title: e.target.value })}
+                              className="w-full p-3 mt-2 bg-gray-50 border border-gray-200 rounded-xl"
+                            />
                           </div>
-                          <div className="flex justify-between items-center pt-2">
-                            <div className="flex items-center gap-4 text-sm text-gray-500 font-medium">
-                              <span>{campaign.backers} Backers</span>
-                              <span>Ends in 14 days</span>
-                            </div>
-                            <div className="flex gap-2">
-                              <button 
-                                onClick={() => openEditCampaign(campaign)}
-                                className="p-2 hover:bg-blue-50 rounded-lg text-gray-400 hover:text-[#003087] transition-all"
-                                title="Edit campaign"
-                              >
-                                <Settings className="w-5 h-5" />
-                              </button>
-                              <button 
-                                onClick={() => handleToggleCampaignVisibility(campaign.id, campaign.is_active || false)}
-                                className="p-2 hover:bg-yellow-50 rounded-lg text-gray-400 hover:text-yellow-600 transition-all"
-                                title={campaign.is_active ? "Hide campaign" : "Show campaign"}
-                              >
-                                {campaign.is_active ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
-                              </button>
-                              <button 
-                                onClick={() => handleDeleteCampaign(campaign.id)}
-                                className="p-2 hover:bg-red-50 rounded-lg text-gray-400 hover:text-red-500 transition-all"
-                                title="Delete campaign"
-                              >
-                                <Trash2 className="w-5 h-5" />
-                              </button>
-                            </div>
+                          <div>
+                            <label className="text-sm font-bold text-gray-700">Collaboration (OSMQA)</label>
+                            <input
+                              type="text"
+                              value={projectForm.collaboration}
+                              onChange={(e) => setProjectForm({ ...projectForm, collaboration: e.target.value })}
+                              className="w-full p-3 mt-2 bg-gray-50 border border-gray-200 rounded-xl"
+                            />
+                          </div>
+                          <div className="md:col-span-2">
+                            <label className="text-sm font-bold text-gray-700">Description *</label>
+                            <textarea
+                              rows={3}
+                              value={projectForm.description}
+                              onChange={(e) => setProjectForm({ ...projectForm, description: e.target.value })}
+                              className="w-full p-3 mt-2 bg-gray-50 border border-gray-200 rounded-xl"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-sm font-bold text-gray-700">Target Amount *</label>
+                            <input
+                              type="number"
+                              value={projectForm.targetAmount}
+                              onChange={(e) => setProjectForm({ ...projectForm, targetAmount: e.target.value })}
+                              className="w-full p-3 mt-2 bg-gray-50 border border-gray-200 rounded-xl"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-sm font-bold text-gray-700">Status *</label>
+                            <select
+                              value={projectForm.status}
+                              onChange={(e) => setProjectForm({ ...projectForm, status: e.target.value })}
+                              className="w-full p-3 mt-2 bg-gray-50 border border-gray-200 rounded-xl"
+                            >
+                              <option value="upcoming">Upcoming</option>
+                              <option value="ongoing">Ongoing</option>
+                              <option value="completed">Completed</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="text-sm font-bold text-gray-700">Start Date *</label>
+                            <input
+                              type="date"
+                              value={projectForm.startDate}
+                              onChange={(e) => setProjectForm({ ...projectForm, startDate: e.target.value })}
+                              className="w-full p-3 mt-2 bg-gray-50 border border-gray-200 rounded-xl"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-sm font-bold text-gray-700">End Date *</label>
+                            <input
+                              type="date"
+                              value={projectForm.endDate}
+                              onChange={(e) => setProjectForm({ ...projectForm, endDate: e.target.value })}
+                              className="w-full p-3 mt-2 bg-gray-50 border border-gray-200 rounded-xl"
+                            />
+                          </div>
+                          <div className="md:col-span-2">
+                            <label className="text-sm font-bold text-gray-700">Project Image</label>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => setProjectImage(e.target.files?.[0] || null)}
+                              className="w-full p-3 mt-2 bg-gray-50 border border-gray-200 rounded-xl"
+                            />
                           </div>
                         </div>
-                      ))
-                    )}
-                  </div>
+                        <div className="flex gap-3 mt-6">
+                          <button
+                            onClick={editingProjectId ? handleUpdateProject : handleCreateProject}
+                            className="px-6 py-3 bg-[#003087] text-white rounded-xl font-bold"
+                          >
+                            {editingProjectId ? 'Update Project' : 'Create Project'}
+                          </button>
+                          <button
+                            onClick={resetProjectForm}
+                            className="px-6 py-3 border border-gray-200 rounded-xl font-bold text-gray-600"
+                          >
+                            Clear
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-6">
+                        {loadingProjects ? (
+                          <div className="text-center py-8">
+                            <p className="text-gray-500 font-semibold">Loading projects...</p>
+                          </div>
+                        ) : projects.length === 0 ? (
+                          <div className="text-center py-8">
+                            <p className="text-gray-500 font-semibold">No projects created yet</p>
+                          </div>
+                        ) : (
+                          projects.filter((project) => !project.is_archived).map((project) => (
+                            <div key={project.id} className="p-6 border border-gray-200 rounded-3xl space-y-4">
+                              <div className="flex justify-between items-center">
+                                <h4 className="text-xl font-bold text-gray-900">{project.title}</h4>
+                                <span className="text-xs font-bold px-3 py-1 rounded-full bg-blue-50 text-blue-700">
+                                  {project.status}
+                                </span>
+                              </div>
+                              <p className="text-sm text-gray-500">{project.description}</p>
+                              <div className="flex justify-between text-sm text-gray-600">
+                                <span>Target: ₱{Number(project.target_amount).toLocaleString()}</span>
+                                <span>{project.start_date} - {project.end_date}</span>
+                              </div>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => openEditProject(project)}
+                                  className="px-3 py-2 text-sm font-bold text-[#003087] bg-blue-50 rounded-lg"
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={() => handleArchiveProject(project.id)}
+                                  className="px-3 py-2 text-sm font-bold text-yellow-700 bg-yellow-50 rounded-lg"
+                                >
+                                  Archive
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteProject(project.id)}
+                                  className="px-3 py-2 text-sm font-bold text-red-600 bg-red-50 rounded-lg"
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                      {projects.filter((project) => project.is_archived).length > 0 && (
+                        <div className="grid grid-cols-1 gap-6 pt-4">
+                          <div className="text-sm font-bold text-gray-700">Archived Projects</div>
+                          {projects.filter((project) => project.is_archived).map((project) => (
+                            <div key={`archived-${project.id}`} className="p-6 border border-gray-200 rounded-3xl space-y-4 bg-gray-50">
+                              <div className="flex justify-between items-center">
+                                <h4 className="text-xl font-bold text-gray-900">{project.title}</h4>
+                                <span className="text-xs font-bold px-3 py-1 rounded-full bg-gray-100 text-gray-600">Archived</span>
+                              </div>
+                              <p className="text-sm text-gray-500">{project.description}</p>
+                              <div className="flex justify-between text-sm text-gray-600">
+                                <span>Target: ₱{Number(project.target_amount).toLocaleString()}</span>
+                                <span>{project.start_date} - {project.end_date}</span>
+                              </div>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => handleRestoreProject(project.id)}
+                                  className="px-3 py-2 text-sm font-bold text-[#003087] bg-blue-50 rounded-lg"
+                                >
+                                  Restore
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {adminSection === 'projectEvents' && (
+                    <div className="space-y-8">
+                      <div className="bg-white border border-gray-200 rounded-3xl p-6">
+                        <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                          {editingProjectEventId ? 'Edit Project Event' : 'Create Project Event'}
+                        </h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-sm font-bold text-gray-700">Project *</label>
+                            <select
+                              value={projectEventForm.projectId}
+                              onChange={(e) => setProjectEventForm({ ...projectEventForm, projectId: e.target.value })}
+                              className="w-full p-3 mt-2 bg-gray-50 border border-gray-200 rounded-xl"
+                            >
+                              <option value="">Select project</option>
+                              {projects.filter((project) => !project.is_archived).map((project) => (
+                                <option key={project.id} value={project.id}>{project.title}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="text-sm font-bold text-gray-700">Title *</label>
+                            <input
+                              type="text"
+                              value={projectEventForm.title}
+                              onChange={(e) => setProjectEventForm({ ...projectEventForm, title: e.target.value })}
+                              className="w-full p-3 mt-2 bg-gray-50 border border-gray-200 rounded-xl"
+                            />
+                          </div>
+                          <div className="md:col-span-2">
+                            <label className="text-sm font-bold text-gray-700">Description *</label>
+                            <textarea
+                              rows={3}
+                              value={projectEventForm.description}
+                              onChange={(e) => setProjectEventForm({ ...projectEventForm, description: e.target.value })}
+                              className="w-full p-3 mt-2 bg-gray-50 border border-gray-200 rounded-xl"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-sm font-bold text-gray-700">Location</label>
+                            <input
+                              type="text"
+                              value={projectEventForm.location}
+                              onChange={(e) => setProjectEventForm({ ...projectEventForm, location: e.target.value })}
+                              className="w-full p-3 mt-2 bg-gray-50 border border-gray-200 rounded-xl"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-sm font-bold text-gray-700">Status *</label>
+                            <select
+                              value={projectEventForm.status}
+                              onChange={(e) => setProjectEventForm({ ...projectEventForm, status: e.target.value })}
+                              className="w-full p-3 mt-2 bg-gray-50 border border-gray-200 rounded-xl"
+                            >
+                              <option value="upcoming">Upcoming</option>
+                              <option value="ongoing">Ongoing</option>
+                              <option value="completed">Completed</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="text-sm font-bold text-gray-700">Start Date *</label>
+                            <input
+                              type="date"
+                              value={projectEventForm.startDate}
+                              onChange={(e) => setProjectEventForm({ ...projectEventForm, startDate: e.target.value })}
+                              className="w-full p-3 mt-2 bg-gray-50 border border-gray-200 rounded-xl"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-sm font-bold text-gray-700">End Date *</label>
+                            <input
+                              type="date"
+                              value={projectEventForm.endDate}
+                              onChange={(e) => setProjectEventForm({ ...projectEventForm, endDate: e.target.value })}
+                              className="w-full p-3 mt-2 bg-gray-50 border border-gray-200 rounded-xl"
+                            />
+                          </div>
+                          <div className="md:col-span-2">
+                            <label className="text-sm font-bold text-gray-700">Event Image</label>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => setProjectEventImage(e.target.files?.[0] || null)}
+                              className="w-full p-3 mt-2 bg-gray-50 border border-gray-200 rounded-xl"
+                            />
+                          </div>
+                        </div>
+                        <div className="flex gap-3 mt-6">
+                          <button
+                            onClick={editingProjectEventId ? handleUpdateProjectEvent : handleCreateProjectEvent}
+                            className="px-6 py-3 bg-[#003087] text-white rounded-xl font-bold"
+                          >
+                            {editingProjectEventId ? 'Update Event' : 'Create Event'}
+                          </button>
+                          <button
+                            onClick={resetProjectEventForm}
+                            className="px-6 py-3 border border-gray-200 rounded-xl font-bold text-gray-600"
+                          >
+                            Clear
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-6">
+                        {loadingProjectEvents ? (
+                          <div className="text-center py-8">
+                            <p className="text-gray-500 font-semibold">Loading project events...</p>
+                          </div>
+                        ) : projectEvents.length === 0 ? (
+                          <div className="text-center py-8">
+                            <p className="text-gray-500 font-semibold">No project events created yet</p>
+                          </div>
+                        ) : (
+                          projectEvents.filter((event) => !event.is_archived).map((event) => (
+                            <div key={event.id} className="p-6 border border-gray-200 rounded-3xl space-y-3">
+                              <div className="flex justify-between items-center">
+                                <h4 className="text-xl font-bold text-gray-900">{event.title}</h4>
+                                <span className="text-xs font-bold px-3 py-1 rounded-full bg-blue-50 text-blue-700">
+                                  {event.status}
+                                </span>
+                              </div>
+                              <p className="text-sm text-gray-500">{event.description}</p>
+                              <div className="flex justify-between text-sm text-gray-600">
+                                <span>{event.start_date} - {event.end_date}</span>
+                                <span>{event.location || 'TBD'}</span>
+                              </div>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => openEditProjectEvent(event)}
+                                  className="px-3 py-2 text-sm font-bold text-[#003087] bg-blue-50 rounded-lg"
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={() => handleArchiveProjectEvent(event.id)}
+                                  className="px-3 py-2 text-sm font-bold text-yellow-700 bg-yellow-50 rounded-lg"
+                                >
+                                  Archive
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteProjectEvent(event.id)}
+                                  className="px-3 py-2 text-sm font-bold text-red-600 bg-red-50 rounded-lg"
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                      {projectEvents.filter((event) => event.is_archived).length > 0 && (
+                        <div className="grid grid-cols-1 gap-6 pt-4">
+                          <div className="text-sm font-bold text-gray-700">Archived Project Events</div>
+                          {projectEvents.filter((event) => event.is_archived).map((event) => (
+                            <div key={`archived-${event.id}`} className="p-6 border border-gray-200 rounded-3xl space-y-4 bg-gray-50">
+                              <div className="flex justify-between items-center">
+                                <h4 className="text-xl font-bold text-gray-900">{event.title}</h4>
+                                <span className="text-xs font-bold px-3 py-1 rounded-full bg-gray-100 text-gray-600">Archived</span>
+                              </div>
+                              <p className="text-sm text-gray-500">{event.description}</p>
+                              <div className="flex justify-between text-sm text-gray-600">
+                                <span>{event.start_date} - {event.end_date}</span>
+                                <span>{event.location || 'TBD'}</span>
+                              </div>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => handleRestoreProjectEvent(event.id)}
+                                  className="px-3 py-2 text-sm font-bold text-[#003087] bg-blue-50 rounded-lg"
+                                >
+                                  Restore
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {adminSection === 'programs' && (
+                    <div className="space-y-8">
+                      <div className="bg-white border border-gray-200 rounded-3xl p-6">
+                        <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                          {editingProgramId ? 'Edit Program' : 'Create Program'}
+                        </h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-sm font-bold text-gray-700">Type *</label>
+                            <select
+                              value={programForm.type}
+                              onChange={(e) => setProgramForm({ ...programForm, type: e.target.value })}
+                              className="w-full p-3 mt-2 bg-gray-50 border border-gray-200 rounded-xl"
+                            >
+                              <option value="scholarship">Scholarship</option>
+                              <option value="donation">Donation</option>
+                              <option value="community_support">Community Support</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="text-sm font-bold text-gray-700">Title *</label>
+                            <input
+                              type="text"
+                              value={programForm.title}
+                              onChange={(e) => setProgramForm({ ...programForm, title: e.target.value })}
+                              className="w-full p-3 mt-2 bg-gray-50 border border-gray-200 rounded-xl"
+                            />
+                          </div>
+                          <div className="md:col-span-2">
+                            <label className="text-sm font-bold text-gray-700">Description *</label>
+                            <textarea
+                              rows={3}
+                              value={programForm.description}
+                              onChange={(e) => setProgramForm({ ...programForm, description: e.target.value })}
+                              className="w-full p-3 mt-2 bg-gray-50 border border-gray-200 rounded-xl"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-sm font-bold text-gray-700">Beneficiary *</label>
+                            <input
+                              type="text"
+                              value={programForm.beneficiary}
+                              onChange={(e) => setProgramForm({ ...programForm, beneficiary: e.target.value })}
+                              className="w-full p-3 mt-2 bg-gray-50 border border-gray-200 rounded-xl"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-sm font-bold text-gray-700">Funding Goal *</label>
+                            <input
+                              type="number"
+                              value={programForm.fundingGoal}
+                              onChange={(e) => setProgramForm({ ...programForm, fundingGoal: e.target.value })}
+                              className="w-full p-3 mt-2 bg-gray-50 border border-gray-200 rounded-xl"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-sm font-bold text-gray-700">Amount Raised</label>
+                            <input
+                              type="number"
+                              value={programForm.amountRaised}
+                              onChange={(e) => setProgramForm({ ...programForm, amountRaised: e.target.value })}
+                              className="w-full p-3 mt-2 bg-gray-50 border border-gray-200 rounded-xl"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-sm font-bold text-gray-700">Donor Count</label>
+                            <input
+                              type="number"
+                              value={programForm.donorCount}
+                              onChange={(e) => setProgramForm({ ...programForm, donorCount: e.target.value })}
+                              className="w-full p-3 mt-2 bg-gray-50 border border-gray-200 rounded-xl"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-sm font-bold text-gray-700">Status *</label>
+                            <select
+                              value={programForm.status}
+                              onChange={(e) => setProgramForm({ ...programForm, status: e.target.value })}
+                              className="w-full p-3 mt-2 bg-gray-50 border border-gray-200 rounded-xl"
+                            >
+                              <option value="upcoming">Upcoming</option>
+                              <option value="ongoing">Ongoing</option>
+                              <option value="completed">Completed</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div className="flex gap-3 mt-6">
+                          <button
+                            onClick={editingProgramId ? handleUpdateProgram : handleCreateProgram}
+                            className="px-6 py-3 bg-[#003087] text-white rounded-xl font-bold"
+                          >
+                            {editingProgramId ? 'Update Program' : 'Create Program'}
+                          </button>
+                          <button
+                            onClick={resetProgramForm}
+                            className="px-6 py-3 border border-gray-200 rounded-xl font-bold text-gray-600"
+                          >
+                            Clear
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-6">
+                        {loadingPrograms ? (
+                          <div className="text-center py-8">
+                            <p className="text-gray-500 font-semibold">Loading programs...</p>
+                          </div>
+                        ) : programs.length === 0 ? (
+                          <div className="text-center py-8">
+                            <p className="text-gray-500 font-semibold">No programs created yet</p>
+                          </div>
+                        ) : (
+                          programs.filter((program) => !program.is_archived).map((program) => (
+                            <div key={program.id} className="p-6 border border-gray-200 rounded-3xl space-y-4">
+                              <div className="flex justify-between items-center">
+                                <h4 className="text-xl font-bold text-gray-900">{program.title}</h4>
+                                <span className="text-xs font-bold px-3 py-1 rounded-full bg-blue-50 text-blue-700">
+                                  {program.status}
+                                </span>
+                              </div>
+                              <p className="text-sm text-gray-500">{program.description}</p>
+                              <div className="space-y-2">
+                                <div className="flex justify-between text-sm">
+                                  <span className="text-gray-500 font-medium">Progress</span>
+                                  <span className="font-bold text-[#003087]">₱{Number(program.amount_raised).toLocaleString()} / ₱{Number(program.funding_goal).toLocaleString()}</span>
+                                </div>
+                                <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full bg-[#003087] rounded-full"
+                                    style={{ width: `${program.progress_percentage || 0}%` }}
+                                  ></div>
+                                </div>
+                              </div>
+                              <div className="flex justify-between text-sm text-gray-600">
+                                <span>Beneficiary: {program.beneficiary}</span>
+                                <span>Donors: {program.donor_count}</span>
+                              </div>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => openEditProgram(program)}
+                                  className="px-3 py-2 text-sm font-bold text-[#003087] bg-blue-50 rounded-lg"
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={() => handleArchiveProgram(program.id)}
+                                  className="px-3 py-2 text-sm font-bold text-yellow-700 bg-yellow-50 rounded-lg"
+                                >
+                                  Archive
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteProgram(program.id)}
+                                  className="px-3 py-2 text-sm font-bold text-red-600 bg-red-50 rounded-lg"
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                      {programs.filter((program) => program.is_archived).length > 0 && (
+                        <div className="grid grid-cols-1 gap-6 pt-4">
+                          <div className="text-sm font-bold text-gray-700">Archived Programs</div>
+                          {programs.filter((program) => program.is_archived).map((program) => (
+                            <div key={`archived-${program.id}`} className="p-6 border border-gray-200 rounded-3xl space-y-4 bg-gray-50">
+                              <div className="flex justify-between items-center">
+                                <h4 className="text-xl font-bold text-gray-900">{program.title}</h4>
+                                <span className="text-xs font-bold px-3 py-1 rounded-full bg-gray-100 text-gray-600">Archived</span>
+                              </div>
+                              <p className="text-sm text-gray-500">{program.description}</p>
+                              <div className="space-y-2">
+                                <div className="flex justify-between text-sm">
+                                  <span className="text-gray-500 font-medium">Progress</span>
+                                  <span className="font-bold text-[#003087]">₱{Number(program.amount_raised).toLocaleString()} / ₱{Number(program.funding_goal).toLocaleString()}</span>
+                                </div>
+                                <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full bg-[#003087] rounded-full"
+                                    style={{ width: `${program.progress_percentage || 0}%` }}
+                                  ></div>
+                                </div>
+                              </div>
+                              <div className="flex justify-between text-sm text-gray-600">
+                                <span>Beneficiary: {program.beneficiary}</span>
+                                <span>Donors: {program.donor_count}</span>
+                              </div>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => handleRestoreProgram(program.id)}
+                                  className="px-3 py-2 text-sm font-bold text-[#003087] bg-blue-50 rounded-lg"
+                                >
+                                  Restore
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               ) : managementView ? (
                 <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">

@@ -7,6 +7,7 @@ import {
   FileText, 
   Briefcase, 
   Heart, 
+  CreditCard,
   Settings, 
   LogOut,
   ClipboardList, // Added this icon for the new view
@@ -84,6 +85,8 @@ export function Sidebar({ activeView, onNavigate, userRole }: SidebarProps) {
   
   // Admin-only menu items
   const adminMenuItems = [
+    { id: 'payments', icon: CreditCard, label: 'Payment Verification' },
+    { id: 'registrations', icon: ClipboardList, label: 'Registrations' },
     { id: 'analytics', icon: Settings, label: 'Analytics' },
   ];
   
