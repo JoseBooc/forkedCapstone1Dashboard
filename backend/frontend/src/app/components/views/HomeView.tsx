@@ -21,14 +21,14 @@ interface HomeViewProps {
 
 function EventCard({ title, date, time, location, type, image }: any) {
   return (
-    <div className="bg-white rounded-4xl overflow-hidden shadow-sm border border-gray-100 flex flex-col h-full group">
+    <div className="bg-white rounded-[32px] overflow-hidden shadow-sm border border-gray-100 flex flex-col h-full group">
       <div className="relative h-56 overflow-hidden">
         <img src={image} alt={title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
         <div className="absolute top-4 right-4">
           <span className="px-4 py-1 bg-[#003087] text-white text-[10px] rounded-full font-bold uppercase tracking-wider">{type}</span>
         </div>
       </div>
-      <div className="p-6 flex flex-col grow text-left">
+      <div className="p-6 flex flex-col flex-grow text-left">
         <h3 className="text-lg font-bold mb-4 text-[#003087] leading-tight whitespace-pre-line line-clamp-2">{title}</h3>
         <div className="space-y-2.5 mb-6 text-xs text-gray-500 font-medium">
           <div className="flex items-center gap-3"><Calendar className="w-4 h-4 text-[#003087]" /><span>{date}</span></div>
@@ -45,7 +45,7 @@ function EventCard({ title, date, time, location, type, image }: any) {
 
 function SpotlightCard({ name, classYear, title, excerpt, image, category }: any) {
   return (
-    <div className="bg-white rounded-4xl overflow-hidden border border-gray-100 shadow-sm flex flex-col md:flex-row h-full text-left">
+    <div className="bg-white rounded-[32px] overflow-hidden border border-gray-100 shadow-sm flex flex-col md:flex-row h-full text-left">
       <div className="md:w-[38%] h-52 md:h-auto overflow-hidden">
         <img src={image} alt={name} className="w-full h-full object-cover" />
       </div>
@@ -83,7 +83,7 @@ export function HomeView({ userRole, onNavigate }: HomeViewProps) {
       <div className="p-8 space-y-24 flex-1">
         
         {/* Hero Section */}
-        <section className="relative h-130 flex items-center justify-center rounded-[40px] overflow-hidden text-center text-white shadow-2xl">
+        <section className="relative h-[520px] flex items-center justify-center rounded-[40px] overflow-hidden text-center text-white shadow-2xl">
           <div className="absolute inset-0 z-0" style={{ backgroundImage: `url(${adduBackground})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
           <div className="absolute inset-0 bg-black/40 z-10" />
           <div className="relative z-20 max-w-3xl px-6">
@@ -97,7 +97,7 @@ export function HomeView({ userRole, onNavigate }: HomeViewProps) {
         </section>
 
         {/* Stats Section */}
-        <section className="bg-white rounded-4xl py-16 px-8 border border-gray-100 shadow-sm grid grid-cols-2 lg:grid-cols-4 gap-8">
+        <section className="bg-white rounded-[32px] py-16 px-8 border border-gray-100 shadow-sm grid grid-cols-2 lg:grid-cols-4 gap-8">
           {[{ icon: Users, label: "Active Alumni", value: "50,000+" }, { icon: Globe, label: "Countries", value: "75+" }, { icon: GraduationCap, label: "Scholars Supported", value: "500+" }, { icon: Heart, label: "Volunteer Hours", value: "25,000+" }].map((stat, i) => (
             <div key={i} className="flex flex-col items-center">
               <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center mb-6"><stat.icon className="w-8 h-8 text-[#003087]" /></div>

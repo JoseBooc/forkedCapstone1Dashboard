@@ -165,7 +165,7 @@ export function DonationsView({ userRole, onNavigate }: DonationsViewProps) {
     try {
       // Admins see all campaigns, users only see active ones
       const roleParam = userRole === 'admin' ? '?role=admin' : '';
-      const response = await fetch(`http://127.0.0.1:8000/api/campaigns${roleParam}`);
+      const response = await fetch(`http://localhost:8000/api/campaigns${roleParam}`);
       if (response.ok) {
         const data = await response.json();
         const formattedCampaigns = data.map((campaign: any) => ({
@@ -190,7 +190,7 @@ export function DonationsView({ userRole, onNavigate }: DonationsViewProps) {
   const fetchAnalytics = async () => {
     setLoadingAnalytics(true);
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/donations/analytics');
+      const response = await fetch('http://localhost:8000/api/donations/analytics');
       if (response.ok) {
         const data = await response.json();
         setAnalyticsData(data);
@@ -240,7 +240,7 @@ export function DonationsView({ userRole, onNavigate }: DonationsViewProps) {
         formData.append('image', newCampaignImage);
       }
 
-      const response = await fetch('http://127.0.0.1:8000/api/campaigns', {
+      const response = await fetch('http://localhost:8000/api/campaigns', {
         method: 'POST',
         body: formData
       });
@@ -296,7 +296,7 @@ export function DonationsView({ userRole, onNavigate }: DonationsViewProps) {
         formData.append('image', editCampaignImage);
       }
 
-      const response = await fetch(`http://127.0.0.1:8000/api/campaigns/${editingCampaignId}`, {
+      const response = await fetch(`http://localhost:8000/api/campaigns/${editingCampaignId}`, {
         method: 'POST',
         body: formData
       });
@@ -338,7 +338,7 @@ export function DonationsView({ userRole, onNavigate }: DonationsViewProps) {
     if (!window.confirm("Are you sure you want to delete this campaign?")) return;
 
     try {
-      const response = await fetch(`http://127.0.0.1:8000/api/campaigns/${id}`, {
+      const response = await fetch(`http://localhost:8000/api/campaigns/${id}`, {
         method: 'DELETE'
       });
 
@@ -356,7 +356,7 @@ export function DonationsView({ userRole, onNavigate }: DonationsViewProps) {
 
   const handleToggleCampaignVisibility = async (id: number, currentStatus: boolean) => {
     try {
-      const response = await fetch(`http://127.0.0.1:8000/api/campaigns/${id}/toggle-active`, {
+      const response = await fetch(`http://localhost:8000/api/campaigns/${id}/toggle-active`, {
         method: 'PATCH'
       });
 
@@ -403,7 +403,7 @@ export function DonationsView({ userRole, onNavigate }: DonationsViewProps) {
 
     setIsDonating(true);
     try {
-      const response = await fetch(`http://127.0.0.1:8000/api/campaigns/${selectedCampaignForDonation.id}/donate`, {
+      const response = await fetch(`http://localhost:8000/api/campaigns/${selectedCampaignForDonation.id}/donate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -485,7 +485,7 @@ export function DonationsView({ userRole, onNavigate }: DonationsViewProps) {
 
     setIsDonating(true);
     try {
-      const response = await fetch(`http://127.0.0.1:8000/api/donations`, {
+      const response = await fetch(`http://localhost:8000/api/donations`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1391,7 +1391,7 @@ export function DonationsView({ userRole, onNavigate }: DonationsViewProps) {
             <div className="max-w-7xl mx-auto px-8 py-20">
               <div className="flex flex-col sm:flex-row justify-center gap-8">
                 {[["Active Donors", "4,250"], ["Alumni Participation", "35%"]].map(([label, val], i) => (
-                  <div key={i} className="flex-1 max-w-sm space-y-2 border-2 border-blue-500 p-10 rounded-4xl shadow-lg shadow-blue-100/50 hover:shadow-xl transition-all bg-white text-center">
+                  <div key={i} className="flex-1 max-w-sm space-y-2 border-2 border-blue-500 p-10 rounded-[32px] shadow-lg shadow-blue-100/50 hover:shadow-xl transition-all bg-white text-center">
                     <p className="text-5xl font-extrabold text-[#003087]">{val}</p>
                     <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">{label}</p>
                   </div>
@@ -1418,7 +1418,7 @@ export function DonationsView({ userRole, onNavigate }: DonationsViewProps) {
                         { name: "Loyola Society", price: "₱100,000 - ₱499,999", perks: ["Recognition event invitations", "Name in publications", "Donor appreciation events", "Semi-annual impact reports"] },
                         { name: "Blue & Gold Circle", price: "₱25,000 - ₱99,999", perks: ["Donor honor roll", "Annual impact summary", "University invitations", "Official tax receipt"] }
                       ].map((tier, i) => (
-                        <div key={i} className="bg-white/5 p-8 rounded-4xl border border-white/10 hover:bg-white/10 transition-all">
+                        <div key={i} className="bg-white/5 p-8 rounded-[32px] border border-white/10 hover:bg-white/10 transition-all">
                           <h3 className="text-xl font-bold text-white mb-1">{tier.name}</h3>
                           <p className="text-orange-400 font-bold mb-6 text-sm">{tier.price}</p>
                           <ul className="space-y-3">
@@ -1481,12 +1481,12 @@ export function DonationsView({ userRole, onNavigate }: DonationsViewProps) {
                           <div className="md:w-2/5 bg-gray-100">
                             {campaign.image_url ? (
                               <img 
-                                src={`http://127.0.0.1:8000${campaign.image_url}`} 
+                                src={`http://localhost:8000${campaign.image_url}`} 
                                 alt={campaign.title}
-                                className="w-full h-full object-cover min-h-75" 
+                                className="w-full h-full object-cover min-h-[300px]" 
                               />
                             ) : (
-                              <div className="w-full h-full min-h-75 flex items-center justify-center bg-linear-to-br from-blue-50 to-blue-100">
+                              <div className="w-full h-full min-h-[300px] flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100">
                                 <ImageIcon className="w-20 h-20 text-gray-300" />
                               </div>
                             )}
@@ -1589,7 +1589,7 @@ export function DonationsView({ userRole, onNavigate }: DonationsViewProps) {
                   { title: "Academic Programs", desc: "Prepare students for tomorrow.", stats: ["₱4.8M support", "12 programs"], icon: <BookOpen /> },
                   { title: "Global Engagement", desc: "Expand international partnerships.", stats: ["₱3.5M exchanges", "85 experiences"], icon: <Globe /> }
                 ].map((area, i) => (
-                  <div key={i} className="bg-white p-10 rounded-4xl border border-gray-100 flex flex-col shadow-sm">
+                  <div key={i} className="bg-white p-10 rounded-[32px] border border-gray-100 flex flex-col shadow-sm">
                     <div className="bg-blue-50 text-[#003087] w-14 h-14 rounded-2xl flex items-center justify-center mb-6">{area.icon}</div>
                     <h3 className="text-2xl font-bold mb-4">{area.title}</h3>
                     <p className="text-gray-500 mb-8 flex-1 leading-relaxed">{area.desc}</p>
@@ -1629,7 +1629,7 @@ export function DonationsView({ userRole, onNavigate }: DonationsViewProps) {
         {/* DONATION MODAL */}
         {showDonationModal && selectedCampaignForDonation && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-4xl p-10 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="bg-white rounded-[32px] p-10 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
               <div className="flex justify-between items-center mb-8">
                 <h2 className="text-3xl font-bold text-gray-900">Donate to {selectedCampaignForDonation.title}</h2>
                 <button
