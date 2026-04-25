@@ -3,6 +3,7 @@ import { X, Users, CreditCard, Smartphone, Wallet } from 'lucide-react';
 
 interface EventRegistrationModalProps {
   event: {
+    id?: string | number;
     title: string;
     date: string;
     time: string;
@@ -11,12 +12,23 @@ interface EventRegistrationModalProps {
   };
   onClose: () => void;
   pricePerGuest?: number;
+  onSubmitRegistration?: (payload: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    guestCount: number;
+    guests: Array<{ firstName: string; lastName: string; relationship: string }>;
+    paymentMethod: 'gcash' | 'maya' | 'card';
+    totalPrice: number;
+    pricePerGuest: number;
+  }) => Promise<void> | void;
 }
 
-export function EventRegistrationModal({ event, onClose, pricePerGuest = 1000 }: EventRegistrationModalProps) {
+export function EventRegistrationModal({ event, onClose, pricePerGuest = 1000, onSubmitRegistration }: EventRegistrationModalProps) {
   const [step, setStep] = useState<'form' | 'payment'>('form');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
   const [guestCount, setGuestCount] = useState(0);
   const [guests, setGuests] = useState<Array<{ firstName: string; lastName: string; relationship: string }>>([]);
   const [paymentMethod, setPaymentMethod] = useState<'gcash' | 'maya' | 'card'>('gcash');
@@ -52,8 +64,8 @@ export function EventRegistrationModal({ event, onClose, pricePerGuest = 1000 }:
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!firstName.trim() || !lastName.trim()) {
-      alert('Please enter your first and last name');
+    if (!firstName.trim() || !lastName.trim() || !email.trim()) {
+      alert('Please enter your first name, last name, and email');
       return;
     }
 
@@ -61,14 +73,28 @@ export function EventRegistrationModal({ event, onClose, pricePerGuest = 1000 }:
     setStep('payment');
   };
 
-  const handlePayment = () => {
+  const handlePayment = async () => {
     setIsProcessing(true);
-    
-    // Simulate payment processing
-    setTimeout(() => {
+
+    try {
+      if (onSubmitRegistration) {
+        await onSubmitRegistration({
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          email: email.trim(),
+          guestCount,
+          guests,
+          paymentMethod,
+          totalPrice,
+          pricePerGuest,
+        });
+      }
       setIsProcessing(false);
       onClose();
-    }, 2000);
+    } catch {
+      setIsProcessing(false);
+      alert('Unable to complete registration right now. Please try again.');
+    }
   };
 
   const incrementGuests = () => {
@@ -224,6 +250,18 @@ export function EventRegistrationModal({ event, onClose, pricePerGuest = 1000 }:
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
               placeholder="Enter your last name"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
+            />
+          </div>
+
+          {/* Email */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Email *</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Enter your email"
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
             />
           </div>

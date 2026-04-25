@@ -372,11 +372,44 @@ export function CareersView({ userRole }: { userRole: string }) {
 
   const handleCareerAction = (action: 'approve' | 'decline') => {
     if (!selectedOpportunity) return;
+    const endpoint = action === 'approve'
+      ? `${apiBaseUrl}/career-postings/${selectedOpportunity.id}/approve`
+      : `${apiBaseUrl}/career-postings/${selectedOpportunity.id}/decline`;
 
-    setSelectedOpportunity({
-      ...selectedOpportunity,
+    fetch(endpoint, {
+      method: 'PATCH',
+      headers: {
+        Accept: 'application/json',
+      },
+    })
+      .then(() => fetchOpportunities())
+      .catch(() => {
+        // Keep local fallback if backend is unavailable.
+      });
+
+    setSelectedOpportunity((prev) => prev ? {
+      ...prev,
       status: action === 'approve' ? 'Approved' : 'Declined',
-    });
+    } : null);
+  };
+
+  const handleDeleteExpired = () => {
+    if (userRole !== 'admin') return;
+
+    if (!window.confirm('Delete all expired job and internship posts?')) {
+      return;
+    }
+
+    fetch(`${apiBaseUrl}/career-postings/expired`, {
+      method: 'DELETE',
+      headers: {
+        Accept: 'application/json',
+      },
+    })
+      .then(() => fetchOpportunities())
+      .catch(() => {
+        alert('Unable to delete expired posts right now.');
+      });
   };
 
   const filteredOpportunities = opportunities.filter(item => {
@@ -666,13 +699,16 @@ export function CareersView({ userRole }: { userRole: string }) {
             <h1 className="text-3xl font-bold text-gray-900">Career Opportunities</h1>
             <p className="text-gray-500 text-sm mt-1">Explore jobs and internships from the ADDU community</p>
           </div>
-          {userRole === 'admin' && (
-            <div className="flex flex-wrap gap-3">
-              <button onClick={() => setShowPostForm(true)} className="bg-[#003087] text-white px-6 py-3 rounded-xl font-bold text-sm hover:bg-[#002566] transition-all flex items-center gap-2">
-                Post a Job Opening <ArrowRight className="w-4 h-4" />
+          <div className="flex flex-wrap gap-3">
+            <button onClick={() => setShowPostForm(true)} className="bg-[#003087] text-white px-6 py-3 rounded-xl font-bold text-sm hover:bg-[#002566] transition-all flex items-center gap-2">
+              {userRole === 'admin' ? 'Post a Job Opening' : 'Post a Job Request'} <ArrowRight className="w-4 h-4" />
+            </button>
+            {userRole === 'admin' && (
+              <button onClick={handleDeleteExpired} className="bg-red-50 border border-red-200 text-red-700 px-6 py-3 rounded-xl font-bold text-sm hover:bg-red-100 transition-all">
+                Delete Expired Posts
               </button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
