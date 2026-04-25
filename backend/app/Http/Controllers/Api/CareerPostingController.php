@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\CareerApplication;
 use App\Models\CareerPosting;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 
 class CareerPostingController extends Controller
 {
@@ -149,24 +148,6 @@ class CareerPostingController extends Controller
         $careerPosting->delete();
 
         return response()->json(['message' => 'Career posting deleted successfully']);
-    }
-
-    public function destroyExpired()
-    {
-        CareerPosting::expireStalePosts();
-
-        $deletedCount = CareerPosting::query()
-            ->where('status', 'Expired')
-            ->orWhere(function ($query) {
-                $query->whereNotNull('date_to')
-                    ->whereDate('date_to', '<', Carbon::today());
-            })
-            ->delete();
-
-        return response()->json([
-            'message' => 'Expired career postings deleted successfully',
-            'deleted_count' => $deletedCount,
-        ]);
     }
 
     public function addApplication(Request $request, CareerPosting $careerPosting)

@@ -91,7 +91,6 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
     let status = 'Pending';
     if (statusRaw === 'approved') status = 'Approved';
     if (statusRaw === 'declined' || statusRaw === 'denied') status = 'Denied';
-    if (statusRaw === 'expired') status = 'Expired';
 
     return {
       id: posting.id,
@@ -146,7 +145,7 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
   const [filterType, setFilterType] = useState<'All' | 'Job' | 'Internship'>('All');
   
   // Explicitly defined type to allow 'Hidden'
-  const [filterStatus, setFilterStatus] = useState<'All' | 'Pending' | 'Approved' | 'Denied' | 'Expired' | 'Hidden'>('All');
+  const [filterStatus, setFilterStatus] = useState<'All' | 'Pending' | 'Approved' | 'Denied' | 'Hidden'>('All');
 
   const now = new Date();
   const threeYearsLater = new Date();
@@ -192,7 +191,7 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
       ));
     } else {
       try {
-        const response = await fetch(`${apiBaseUrl}/career-postings`, {
+        const response = await fetch(`${apiBaseUrl}/jobs`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -232,78 +231,40 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
   };
 
   const updateStatus = async (id: number, newStatus: 'Approved' | 'Denied') => {
-    const endpoint = newStatus === 'Approved'
-      ? `${apiBaseUrl}/career-postings/${id}/approve`
-      : `${apiBaseUrl}/career-postings/${id}/decline`;
+    if (newStatus === 'Approved') {
+      try {
+        const response = await fetch(`${apiBaseUrl}/jobs/${id}/approve`, {
+          method: 'PATCH',
+          headers: {
+            Accept: 'application/json',
+          },
+        });
 
-    try {
-      const response = await fetch(endpoint, {
-        method: 'PATCH',
-        headers: {
-          Accept: 'application/json',
-        },
-      });
+        if (!response.ok) {
+          alert('Failed to approve posting. Please try again.');
+          return;
+        }
 
-      if (!response.ok) {
-        alert(`Failed to ${newStatus === 'Approved' ? 'approve' : 'decline'} posting. Please try again.`);
+        await fetchRequests();
+      } catch {
+        alert('Unable to reach the server while approving.');
         return;
       }
-
-      await fetchAdminPostings();
-      setViewState('list');
-      setIsDenying(false);
-      setDenyRemarks('');
-    } catch {
-      alert(`Unable to reach the server while trying to ${newStatus === 'Approved' ? 'approve' : 'decline'} posting.`);
     }
+
+    setPostings(prev => prev.map(p => 
+      p.id === id ? { ...p, status: newStatus, remarks: newStatus === 'Denied' ? denyRemarks : undefined } : p
+    ));
+    setViewState('list');
+    setIsDenying(false);
+    setDenyRemarks('');
   };
 
-  const handleToggleHide = async (id: number) => {
-    try {
-      const response = await fetch(`${apiBaseUrl}/career-postings/${id}/toggle-visibility`, {
-        method: 'PATCH',
-        headers: {
-          Accept: 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        alert('Failed to update posting visibility.');
-        return;
-      }
-
-      await fetchAdminPostings();
-      if (selectedRequest?.id === id) handleBackToList();
-    } catch {
-      alert('Unable to update posting visibility right now.');
-    }
-  };
-
-  const handleDeleteExpired = async () => {
-    if (role !== 'admin') return;
-
-    if (!window.confirm('Delete all expired job and internship postings?')) {
-      return;
-    }
-
-    try {
-      const response = await fetch(`${apiBaseUrl}/career-postings/expired`, {
-        method: 'DELETE',
-        headers: {
-          Accept: 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        alert('Failed to delete expired postings.');
-        return;
-      }
-
-      await fetchAdminPostings();
-      alert('Expired postings deleted successfully.');
-    } catch {
-      alert('Unable to delete expired postings right now.');
-    }
+  const handleToggleHide = (id: number) => {
+    setPostings(prev => prev.map(p => 
+      p.id === id ? { ...p, hidden: !p.hidden } : p
+    ));
+    if (selectedRequest?.id === id) handleBackToList();
   };
 
   const filteredRequests = postings.filter(req => {
@@ -550,20 +511,14 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
                     <div className="flex items-center gap-3 ml-auto">
                       <div className="relative">
                         <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value as 'All' | 'Pending' | 'Approved' | 'Denied' | 'Expired' | 'Hidden')} className="pl-9 pr-8 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-600 outline-none appearance-none cursor-pointer">
+                        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value as 'All' | 'Pending' | 'Approved' | 'Denied' | 'Hidden')} className="pl-9 pr-8 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-600 outline-none appearance-none cursor-pointer">
                           <option value="All">All Status</option>
                           <option value="Pending">Pending</option>
                           <option value="Approved">Approved</option>
                           <option value="Denied">Denied</option>
-                          <option value="Expired">Expired</option>
                           {role === 'admin' && <option value="Hidden">Hidden/Archived</option>}
                         </select>
                       </div>
-                      {role === 'admin' && (
-                        <button onClick={handleDeleteExpired} className="px-4 py-2.5 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm font-bold hover:bg-red-100">
-                          Delete Expired
-                        </button>
-                      )}
                       {role === 'admin' && (
                         <div className="flex bg-gray-100 p-1 rounded-xl gap-1">
                           <button onClick={() => setDisplayMode('grid')} className={`p-2 rounded-lg ${displayMode === 'grid' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400'}`}><LayoutGrid size={18} /></button>

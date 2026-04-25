@@ -55,32 +55,6 @@ class EngagementController extends Controller
         ], 201);
     }
 
-    public function update(Request $request, EngagementEvent $engagementEvent)
-    {
-        $validated = $request->validate([
-            'title' => 'sometimes|required|string|max:255',
-            'category' => 'sometimes|required|string|max:255',
-            'event_group' => 'nullable|string|max:255',
-            'event_date' => 'sometimes|required|date',
-            'start_time' => 'nullable',
-            'end_time' => 'nullable',
-            'location' => 'nullable|string|max:255',
-            'description' => 'nullable|string',
-            'image_url' => 'nullable|string|max:1000',
-            'capacity' => 'nullable|integer|min:0',
-            'registration_fee' => 'nullable|numeric|min:0',
-            'status' => 'nullable|string|in:Pending,Approved,Rejected,Draft',
-            'posted_by' => 'nullable|string|max:255',
-        ]);
-
-        $engagementEvent->update($validated);
-
-        return response()->json([
-            'message' => 'Engagement event updated successfully',
-            'event' => $engagementEvent->fresh(),
-        ]);
-    }
-
     public function approve(EngagementEvent $engagementEvent)
     {
         $engagementEvent->update(['status' => 'Approved']);
@@ -98,15 +72,6 @@ class EngagementController extends Controller
         return response()->json([
             'message' => 'Event declined successfully',
             'event' => $engagementEvent->fresh(),
-        ]);
-    }
-
-    public function destroy(EngagementEvent $engagementEvent)
-    {
-        $engagementEvent->delete();
-
-        return response()->json([
-            'message' => 'Engagement event deleted successfully',
         ]);
     }
 
