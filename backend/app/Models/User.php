@@ -4,13 +4,14 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, SoftDeletes;
 
     /**
      * The attributes that are mass assignable.
@@ -30,7 +31,7 @@ class User extends Authenticatable
         'country',
         'phone_number',
         'telephone_number',
-        'geocode',
+        'zipcode',
         'sex',
         'religion',
         'religion_other',
@@ -49,6 +50,7 @@ class User extends Authenticatable
         'diploma_file_path',
         'id_type',
         'valid_id_file_path',
+        'profile_image_path',
         'approval_status',
     ];
 
@@ -71,6 +73,7 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'deleted_at' => 'datetime',
             'password' => 'hashed',
         ];
     }
