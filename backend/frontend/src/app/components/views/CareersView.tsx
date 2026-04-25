@@ -255,7 +255,16 @@ export function CareersView({ userRole }: { userRole: string }) {
 
       const data = await response.json();
       if (Array.isArray(data) && data.length > 0) {
-        setOpportunities(data.map(mapPostingToOpportunity));
+        const normalized = data.map(mapPostingToOpportunity);
+        const visibleOpportunities = normalized.filter((posting) => {
+          if (userRole === 'admin') {
+            return true;
+          }
+
+          return `${posting.status || ''}`.toLowerCase() === 'approved';
+        });
+
+        setOpportunities(visibleOpportunities);
       }
     } catch {
       // Keep seeded UI data if backend is unavailable.
@@ -657,11 +666,13 @@ export function CareersView({ userRole }: { userRole: string }) {
             <h1 className="text-3xl font-bold text-gray-900">Career Opportunities</h1>
             <p className="text-gray-500 text-sm mt-1">Explore jobs and internships from the ADDU community</p>
           </div>
-          <div className="flex flex-wrap gap-3">
-            <button onClick={() => setShowPostForm(true)} className="bg-[#003087] text-white px-6 py-3 rounded-xl font-bold text-sm hover:bg-[#002566] transition-all flex items-center gap-2">
-              {userRole === 'admin' ? 'Post a Job Opening' : 'Post a Job Request'} <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
+          {userRole === 'admin' && (
+            <div className="flex flex-wrap gap-3">
+              <button onClick={() => setShowPostForm(true)} className="bg-[#003087] text-white px-6 py-3 rounded-xl font-bold text-sm hover:bg-[#002566] transition-all flex items-center gap-2">
+                Post a Job Opening <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">

@@ -10,12 +10,21 @@ class CareerPostingController extends Controller
 {
     public function index(Request $request)
     {
-        $role = $request->query('role');
+        $role = strtolower((string) ($request->query('role') ?? optional($request->user())->role ?? optional(auth()->user())->role ?? 'alumni'));
+        $currentUserEmail = optional(auth()->user())->email
+            ?? optional($request->user())->email
+            ?? $request->query('user_email');
 
         $query = CareerPosting::query()->orderByDesc('posting_date')->orderByDesc('created_at');
 
-        if ($role !== 'admin') {
-            $query->where('status', 'approved')->where('is_visible', true);
+        if ($role === 'admin') {
+            $query->where('status', 'pending');
+        } else {
+            if (!$currentUserEmail) {
+                return response()->json([]);
+            }
+
+            $query->where('submitted_by_email', $currentUserEmail);
         }
 
         return response()->json($query->get());
@@ -23,7 +32,10 @@ class CareerPostingController extends Controller
 
     public function store(Request $request)
     {
-        $role = strtolower((string) ($request->input('user_role') ?? optional($request->user())->role ?? 'alumni'));
+        $role = strtolower((string) (optional(auth()->user())->role ?? optional($request->user())->role ?? $request->input('user_role') ?? 'alumni'));
+        $submittedByEmail = optional(auth()->user())->email
+            ?? optional($request->user())->email
+            ?? $request->input('user_email');
         $isAdmin = $role === 'admin';
 
         $validated = $request->validate([
@@ -57,6 +69,7 @@ class CareerPostingController extends Controller
             'salary_range_from' => $validated['salary_range_from'],
             'salary_range_to' => $validated['salary_range_to'],
             'description' => $validated['description'],
+            'submitted_by_email' => $submittedByEmail,
             'status' => $isAdmin ? 'approved' : 'pending',
             'applicants_count' => 0,
             'is_visible' => $isAdmin,

@@ -44,6 +44,7 @@ interface InternshipPosting {
   applications: Application[];
   remarks?: string;
   hidden?: boolean;
+  submittedByEmail?: string;
 }
 
 const INITIAL_POSTINGS: InternshipPosting[] = [
@@ -74,6 +75,7 @@ interface InternshipPostingsProps {
 
 export function InternshipPostingsView({ role }: InternshipPostingsProps) {
   const apiBaseUrl = 'http://localhost:8000/api';
+  const currentUserEmail = localStorage.getItem('userEmail') || '';
 
   const [postings, setPostings] = useState<InternshipPosting[]>(() => {
     const saved = localStorage.getItem('job_postings_data');
@@ -106,14 +108,18 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
       applicantsCount: posting.applicants_count ?? posting.applications_count ?? 0,
       applications: [],
       hidden: posting.is_visible === false,
+      submittedByEmail: posting.submitted_by_email || posting.user_email || posting.email || undefined,
     };
   };
 
-  const fetchAdminPostings = async () => {
-    if (role !== 'admin') return;
-
+  const fetchRequests = async () => {
     try {
-      const response = await fetch(`${apiBaseUrl}/career-postings?role=admin`);
+      const params = new URLSearchParams({ role });
+      if (role === 'alumni' && currentUserEmail) {
+        params.set('user_email', currentUserEmail);
+      }
+
+      const response = await fetch(`${apiBaseUrl}/jobs?${params.toString()}`);
       if (!response.ok) return;
 
       const payload = await response.json();
@@ -126,14 +132,15 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
   };
 
   useEffect(() => {
-    fetchAdminPostings();
-  }, [role]);
+    fetchRequests();
+  }, [role, currentUserEmail]);
   
   const [viewState, setViewState] = useState<'list' | 'form' | 'success' | 'applicants' | 'detail'>('list');
   const [displayMode, setDisplayMode] = useState<'grid' | 'table'>('grid');
   const [selectedRequest, setSelectedRequest] = useState<InternshipPosting | null>(null);
   const [isDenying, setIsDenying] = useState(false);
   const [denyRemarks, setDenyRemarks] = useState('');
+  const [salaryValidationError, setSalaryValidationError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'All' | 'Job' | 'Internship'>('All');
   
@@ -151,6 +158,18 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
   const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
+
+    const salaryFromRaw = formData.get('salary_range_from');
+    const salaryToRaw = formData.get('salary_range_to');
+    const salaryFrom = salaryFromRaw === null || salaryFromRaw === '' ? null : Number(salaryFromRaw);
+    const salaryTo = salaryToRaw === null || salaryToRaw === '' ? null : Number(salaryToRaw);
+
+    if (salaryFrom !== null && salaryTo !== null && salaryTo < salaryFrom) {
+      setSalaryValidationError('Salary To must be greater than or equal to Salary From.');
+      return;
+    }
+
+    setSalaryValidationError('');
     
     if (selectedRequest && viewState === 'form') {
       setPostings(prev => prev.map(p => 
@@ -162,8 +181,8 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
           email: formData.get('email') as string,
           startDate: formData.get('startDate') as string,
           endDate: formData.get('endDate') as string,
-          salaryRangeFrom: Number(formData.get('salaryRangeFrom') || 0),
-          salaryRangeTo: Number(formData.get('salaryRangeTo') || 0),
+          salaryRangeFrom: salaryFrom ?? 0,
+          salaryRangeTo: salaryTo ?? 0,
           description: formData.get('description') as string,
           status: role === 'admin' ? p.status : "Pending", 
           remarks: role === 'admin' ? p.remarks : undefined,
@@ -179,20 +198,21 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
             Accept: 'application/json',
           },
           body: JSON.stringify({
-            user_role: role,
-            job_title: formData.get('position'),
-            company_name: formData.get('company'),
-            type: formData.get('type'),
-            location: 'Davao City',
-            work_type: formData.get('type') === 'Internship' ? 'Internship' : 'Full-time',
-            modality: 'On-site',
-            date_from: formData.get('startDate'),
-            date_to: formData.get('endDate'),
-            posting_date: new Date().toISOString().split('T')[0],
-            quantity: 1,
-            salary_range_from: Number(formData.get('salaryRangeFrom') || 0),
-            salary_range_to: Number(formData.get('salaryRangeTo') || 0),
-            description: formData.get('description'),
+  user_role: role,
+          user_email: currentUserEmail,
+  title: formData.get('position'), // Changed from job_title to title
+  company_name: formData.get('company'),
+  type: formData.get('type'),
+  location: 'Davao City',
+  work_type: formData.get('type') === 'Internship' ? 'Internship' : 'Full-time',
+  modality: 'On-site',
+  date_from: formData.get('startDate'),
+  date_to: formData.get('endDate'),
+  posting_date: new Date().toISOString().split('T')[0],
+  quantity: 1,
+  salary_range_from: salaryFrom,
+  salary_range_to: salaryTo,
+  description: formData.get('description'),
           }),
         });
 
@@ -201,9 +221,7 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
           return;
         }
 
-        if (role === 'admin') {
-          await fetchAdminPostings();
-        }
+        await fetchRequests();
       } catch {
         alert('Unable to submit posting right now.');
         return;
@@ -227,7 +245,7 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
           return;
         }
 
-        await fetchAdminPostings();
+        await fetchRequests();
       } catch {
         alert('Unable to reach the server while approving.');
         return;
@@ -253,13 +271,17 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
     const matchesSearch = req.company.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           req.position.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = filterType === 'All' || req.type === filterType;
-    
+
     if (role === 'admin') {
-      if (filterStatus === 'Hidden') return matchesSearch && matchesType && req.hidden === true;
-      if (req.hidden) return false;
-    } else {
-      if (req.hidden) return false;
+      return matchesSearch && matchesType && req.status === 'Pending';
     }
+
+    const ownedByCurrentUser = (req.submittedByEmail || '').toLowerCase() === currentUserEmail.toLowerCase();
+    if (!ownedByCurrentUser) {
+      return false;
+    }
+
+    if (req.hidden) return false;
 
     const matchesStatus = filterStatus === 'All' || req.status === filterStatus;
     return matchesSearch && matchesType && matchesStatus;
@@ -269,6 +291,7 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
     setSelectedRequest(null);
     setViewState('list');
     setIsDenying(false);
+    setSalaryValidationError('');
   };
 
   const handleEdit = (req: InternshipPosting) => {
@@ -289,12 +312,12 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
               Explore jobs and internships from the ADDU community
             </p>
           </div>
-          {viewState === 'list' && (role === 'alumni' || role === 'admin') && (
+          {viewState === 'list' && role === 'alumni' && (
             <button 
               onClick={() => { setSelectedRequest(null); setViewState('form'); }}
               className="flex items-center justify-center gap-2 bg-[#003087] text-white px-8 py-4 rounded-2xl font-bold shadow-lg hover:bg-blue-800 transition-all active:scale-95"
             >
-              <PlusCircle className="w-5 h-5" /> {role === 'admin' ? 'Post a Job Opening' : 'New Posting Request'}
+              <PlusCircle className="w-5 h-5" /> Create Request
             </button>
           )}
         </div>
@@ -350,14 +373,17 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <label className="text-sm font-bold text-gray-700 ml-1">Salary Range From</label>
-                      <input name="salaryRangeFrom" defaultValue={selectedRequest?.salaryRangeFrom ?? ''} required type="number" min="0" className="w-full p-4 bg-gray-50 border rounded-2xl outline-none focus:border-blue-500" />
+                      <label className="text-sm font-bold text-gray-700 ml-1">Salary From</label>
+                      <input name="salary_range_from" defaultValue={selectedRequest?.salaryRangeFrom ?? ''} required type="number" min="0" onInput={() => setSalaryValidationError('')} className="w-full p-4 bg-gray-50 border rounded-2xl outline-none focus:border-blue-500" />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-bold text-gray-700 ml-1">Salary Range To</label>
-                      <input name="salaryRangeTo" defaultValue={selectedRequest?.salaryRangeTo ?? ''} required type="number" min="0" className="w-full p-4 bg-gray-50 border rounded-2xl outline-none focus:border-blue-500" />
+                      <label className="text-sm font-bold text-gray-700 ml-1">Salary To</label>
+                      <input name="salary_range_to" defaultValue={selectedRequest?.salaryRangeTo ?? ''} required type="number" min="0" onInput={() => setSalaryValidationError('')} className="w-full p-4 bg-gray-50 border rounded-2xl outline-none focus:border-blue-500" />
                     </div>
                   </div>
+                  {salaryValidationError && (
+                    <p className="text-sm text-red-600 font-medium -mt-2">{salaryValidationError}</p>
+                  )}
                   <div className="space-y-2">
                     <label className="text-sm font-bold text-gray-700 ml-1">Job Description</label>
                     <textarea name="description" defaultValue={selectedRequest?.description} required rows={4} className="w-full p-4 bg-gray-50 border rounded-2xl outline-none focus:border-blue-500" />
@@ -449,8 +475,10 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
                     {(selectedRequest.salaryRangeFrom !== undefined || selectedRequest.salaryRangeTo !== undefined) && (
                       <div className="bg-gray-50 p-6 rounded-2xl">
                         <h4 className="font-bold text-gray-900 mb-2">Salary Range</h4>
-                        <p className="text-gray-700 leading-relaxed">
-                          {`Php ${selectedRequest.salaryRangeFrom ?? 0} - ${selectedRequest.salaryRangeTo ?? 0}`}
+                        <p className="leading-relaxed font-bold text-lg text-blue-800">
+                          {selectedRequest.salaryRangeFrom && selectedRequest.salaryRangeTo
+                            ? `Php ${Number(selectedRequest.salaryRangeFrom).toLocaleString()} - ${Number(selectedRequest.salaryRangeTo).toLocaleString()}`
+                            : 'Salary not specified'}
                         </p>
                       </div>
                     )}

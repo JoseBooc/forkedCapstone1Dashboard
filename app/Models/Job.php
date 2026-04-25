@@ -20,6 +20,7 @@ class Job extends CareerPosting
         'salary_range_to',
         'quantity',
         'description',
+        'submitted_by_email',
         'status',
         'applicants_count',
         'is_visible',

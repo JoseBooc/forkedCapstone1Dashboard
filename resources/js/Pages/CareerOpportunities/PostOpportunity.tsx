@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm } from '@inertiajs/react';
 
 type OpportunityForm = {
@@ -34,13 +34,32 @@ export default function PostOpportunity() {
     description: '',
   });
 
+  const [salaryValidationError, setSalaryValidationError] = useState('');
+
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
 
+    const salaryFrom = data.salary_range_from === '' ? null : Number(data.salary_range_from);
+    const salaryTo = data.salary_range_to === '' ? null : Number(data.salary_range_to);
+
+    if (salaryFrom !== null && salaryTo !== null && salaryTo < salaryFrom) {
+      setSalaryValidationError('Salary To must be greater than or equal to Salary From.');
+      return;
+    }
+
+    setSalaryValidationError('');
+
     post('/api/jobs', {
+      data: {
+        ...data,
+        title: data.job_title, // Map job_title to title for the database
+        user_role: 'admin',    // Backend uses this to set status to 'Approved'
+      },
       preserveScroll: true,
       onSuccess: () => {
+        setSalaryValidationError('');
         reset();
+        alert("Opportunity posted and live!");
       },
     });
   };
@@ -102,31 +121,38 @@ export default function PostOpportunity() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-semibold mb-2">Salary Range From *</label>
+            <label className="block text-sm font-semibold mb-2">Salary From *</label>
             <input
               type="number"
               min="0"
               required
               value={data.salary_range_from}
-              onChange={(e) => setData('salary_range_from', e.target.value === '' ? '' : Number(e.target.value))}
+              onChange={(e) => {
+                setSalaryValidationError('');
+                setData('salary_range_from', e.target.value === '' ? '' : Number(e.target.value));
+              }}
               className="w-full border rounded-lg px-3 py-2"
             />
             {errors.salary_range_from && <p className="text-red-600 text-sm mt-1">{errors.salary_range_from}</p>}
           </div>
 
           <div>
-            <label className="block text-sm font-semibold mb-2">Salary Range To *</label>
+            <label className="block text-sm font-semibold mb-2">Salary To *</label>
             <input
               type="number"
               min="0"
               required
               value={data.salary_range_to}
-              onChange={(e) => setData('salary_range_to', e.target.value === '' ? '' : Number(e.target.value))}
+              onChange={(e) => {
+                setSalaryValidationError('');
+                setData('salary_range_to', e.target.value === '' ? '' : Number(e.target.value));
+              }}
               className="w-full border rounded-lg px-3 py-2"
             />
             {errors.salary_range_to && <p className="text-red-600 text-sm mt-1">{errors.salary_range_to}</p>}
           </div>
         </div>
+        {salaryValidationError && <p className="text-red-600 text-sm -mt-3">{salaryValidationError}</p>}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>

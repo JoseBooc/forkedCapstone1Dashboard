@@ -9,6 +9,10 @@ class CareerPosting extends Model
 {
     use SoftDeletes;
 
+    protected $attributes = [
+        'status' => 'pending',
+    ];
+
     protected $fillable = [
         'company_name',
         'title',
@@ -23,6 +27,7 @@ class CareerPosting extends Model
         'salary_range_to',
         'quantity',
         'description',
+        'submitted_by_email',
         'status',
         'applicants_count',
         'is_visible',
