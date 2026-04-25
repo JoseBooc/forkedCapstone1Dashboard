@@ -249,7 +249,7 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
         return;
       }
 
-      await fetchAdminPostings();
+      await fetchRequests();
       setViewState('list');
       setIsDenying(false);
       setDenyRemarks('');
@@ -272,7 +272,7 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
         return;
       }
 
-      await fetchAdminPostings();
+      await fetchRequests();
       if (selectedRequest?.id === id) handleBackToList();
     } catch {
       alert('Unable to update posting visibility right now.');
@@ -299,7 +299,7 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
         return;
       }
 
-      await fetchAdminPostings();
+      await fetchRequests();
       alert('Expired postings deleted successfully.');
     } catch {
       alert('Unable to delete expired postings right now.');
