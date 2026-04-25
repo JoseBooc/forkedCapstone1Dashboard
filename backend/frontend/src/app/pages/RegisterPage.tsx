@@ -122,7 +122,7 @@ export function RegisterPage() {
         formDataToSend.append('valid_id_file', validIdFile);
       }
 
-      const response = await fetch('http://127.0.0.1:8000/api/users', {
+      const response = await fetch('http://localhost:8000/api/users', {
         method: 'POST',
         body: formDataToSend, // Send FormData instead of JSON
       });

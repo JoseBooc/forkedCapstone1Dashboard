@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Calendar, Clock, MapPin, Users, Eye, Award, User, FileText, Plus, X, CheckCircle, XCircle, Trash2, Edit, Download } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, Eye, Award, User, FileText, Plus, X, CheckCircle, XCircle, Trash2, Edit } from 'lucide-react';
 import { Footer } from '../Footer';
 import { EventRegistrationModal } from '../EventRegistrationModal';
 
@@ -100,7 +100,7 @@ function EventCard({ event, userRole, onApprove, onReject, onView, onRemove, onE
   const isAdmin = userRole === 'admin';
 
   return (
-    <div className="bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col h-full text-left">
+    <div className="bg-white rounded-[24px] overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col h-full text-left">
       <div className="relative h-56 overflow-hidden">
         <img src={event.image} alt={event.title} className="w-full h-full object-cover" />
         <div className="absolute top-4 right-4 flex flex-col gap-2 items-end">
@@ -250,19 +250,6 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
     image: ''
   });
 
-  const apiBaseUrl = 'http://localhost:8000/api';
-  const isApiEventId = (id: string) => /^\d+$/.test(id);
-  const toApiDate = (value: string) => {
-    if (!value) return null;
-    const parsed = new Date(value);
-    if (Number.isNaN(parsed.getTime())) return null;
-    return parsed.toISOString().split('T')[0];
-  };
-
-  const downloadEngagementReport = (path: string) => {
-    window.open(`${apiBaseUrl}${path}`, '_blank', 'noopener,noreferrer');
-  };
-
   useEffect(() => {
     localStorage.setItem('addu_events', JSON.stringify(events));
   }, [events]);
@@ -280,55 +267,22 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
     setTimeout(() => setShowSuccessToast(false), 3000);
   };
 
-  const handleApprove = async (id: string) => {
-    try {
-      if (isApiEventId(id)) {
-        await fetch(`${apiBaseUrl}/engagement/events/${id}/approve`, {
-          method: 'PATCH',
-          headers: { Accept: 'application/json' },
-        });
-      }
-    } catch {
-      // Keep local fallback behavior.
-    }
-
+  const handleApprove = (id: string) => {
     setEvents(prev => prev.map(ev => 
       ev.id === id ? { ...ev, status: 'Approved' as const, tab: 'Upcoming Events' as const } : ev
     ));
     triggerToast();
   };
 
-  const handleReject = async (id: string) => {
-    try {
-      if (isApiEventId(id)) {
-        await fetch(`${apiBaseUrl}/engagement/events/${id}/decline`, {
-          method: 'PATCH',
-          headers: { Accept: 'application/json' },
-        });
-      }
-    } catch {
-      // Keep local fallback behavior.
-    }
-
+  const handleReject = (id: string) => {
     setEvents(prev => prev.map(ev => 
       ev.id === id ? { ...ev, status: 'Rejected' as const } : ev
     ));
     triggerToast();
   };
 
-  const handleRemove = async (id: string) => {
+  const handleRemove = (id: string) => {
     if (window.confirm("Are you sure you want to permanently remove this event?")) {
-      try {
-        if (isApiEventId(id)) {
-          await fetch(`${apiBaseUrl}/engagement/events/${id}`, {
-            method: 'DELETE',
-            headers: { Accept: 'application/json' },
-          });
-        }
-      } catch {
-        // Keep local fallback behavior.
-      }
-
       setEvents(prev => prev.filter(ev => ev.id !== id));
       triggerToast();
     }
@@ -351,7 +305,7 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
     setActiveTab('Edit Event');
   };
 
-  const handleUpdateEvent = async () => {
+  const handleUpdateEvent = () => {
     if (!editEvent.title || !editEvent.category || !editEvent.date || !editEvent.startTime || !editEvent.endTime || !editEvent.location || !editEvent.description) {
       alert('Please fill in all required fields');
       return;
@@ -370,30 +324,6 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
       description: editEvent.description,
       image: editEvent.image || editingEvent.image,
     };
-
-    try {
-      if (isApiEventId(editingEvent.id)) {
-        await fetch(`${apiBaseUrl}/engagement/events/${editingEvent.id}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            Accept: 'application/json',
-          },
-          body: JSON.stringify({
-            title: editEvent.title,
-            category: editEvent.category,
-            event_date: toApiDate(editEvent.date) || editEvent.date,
-            start_time: editEvent.startTime,
-            end_time: editEvent.endTime,
-            location: editEvent.location,
-            description: editEvent.description,
-            capacity: parseInt(editEvent.capacity) || editingEvent.participants,
-          }),
-        });
-      }
-    } catch {
-      // Keep local fallback behavior.
-    }
 
     setEvents(prev => prev.map(ev => ev.id === editingEvent.id ? updatedEvent : ev));
     setEditingEvent(null);
@@ -428,48 +358,14 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
     setActiveTab('Upcoming Events');
   };
 
-  const handleCreateEvent = async () => {
+  const handleCreateEvent = () => {
     if (!newEvent.title || !newEvent.category || !newEvent.date || !newEvent.startTime || !newEvent.endTime || !newEvent.location || !newEvent.description) {
       alert('Please fill in all required fields');
       return;
     }
 
-    let createdId = Date.now().toString();
-    try {
-      const response = await fetch(`${apiBaseUrl}/engagement/events`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
-        body: JSON.stringify({
-          title: newEvent.title,
-          category: newEvent.category,
-          event_group: 'engagement',
-          event_date: toApiDate(newEvent.date) || newEvent.date,
-          start_time: newEvent.startTime,
-          end_time: newEvent.endTime,
-          location: newEvent.location,
-          description: newEvent.description,
-          capacity: parseInt(newEvent.capacity) || 0,
-          image_url: newEvent.image || null,
-          status: 'Approved',
-          posted_by: userName,
-        }),
-      });
-
-      if (response.ok) {
-        const payload = await response.json();
-        if (payload?.event?.id) {
-          createdId = String(payload.event.id);
-        }
-      }
-    } catch {
-      // Keep local fallback behavior.
-    }
-
     const createdEvent: Event = {
-      id: createdId,
+      id: Date.now().toString(),
       title: newEvent.title,
       category: newEvent.category,
       date: newEvent.date,
@@ -509,109 +405,10 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
     return event.tab === activeTab;
   });
 
-  const handleRegistrationSubmit = async (payload: {
-    firstName: string;
-    lastName: string;
-    email: string;
-    guestCount: number;
-    guests: Array<{ firstName: string; lastName: string; relationship: string }>;
-    paymentMethod: 'gcash' | 'maya' | 'card';
-    totalPrice: number;
-    pricePerGuest: number;
-  }) => {
-    if (!registrationEvent || !isApiEventId(registrationEvent.id)) {
-      return;
-    }
-
-    const eventId = registrationEvent.id;
-
-    const submitRegistration = async (body: Record<string, unknown>) => {
-      const response = await fetch(`${apiBaseUrl}/engagement/events/${eventId}/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
-        body: JSON.stringify(body),
-      });
-
-      if (!response.ok) {
-        throw new Error('Registration failed');
-      }
-    };
-
-    await submitRegistration({
-      first_name: payload.firstName,
-      last_name: payload.lastName,
-      email: payload.email,
-      is_guest: false,
-      guest_count: 0,
-      fee_amount: payload.pricePerGuest,
-      payment_status: 'Paid',
-      payment_method: payload.paymentMethod,
-    });
-
-    const guestEntries = payload.guests.slice(0, payload.guestCount);
-    for (let i = 0; i < guestEntries.length; i += 1) {
-      const guest = guestEntries[i];
-      await submitRegistration({
-        first_name: guest.firstName || `Guest ${i + 1}`,
-        last_name: guest.lastName || 'Guest',
-        email: payload.email,
-        is_guest: true,
-        guest_count: 1,
-        fee_amount: payload.pricePerGuest,
-        payment_status: 'Paid',
-        payment_method: payload.paymentMethod,
-      });
-    }
-
-    triggerToast();
-  };
-
-  const handleRecordAttendance = async (event: Event) => {
-    if (!isApiEventId(event.id)) {
-      alert('Attendance recording is available for backend-managed events only.');
-      return;
-    }
-
-    const attendeeName = window.prompt('Attendee full name');
-    if (!attendeeName || !attendeeName.trim()) {
-      return;
-    }
-
-    const attendeeEmail = window.prompt('Attendee email (optional)') || '';
-
-    try {
-      const response = await fetch(`${apiBaseUrl}/engagement/events/${event.id}/attendance`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
-        body: JSON.stringify({
-          attendee_name: attendeeName.trim(),
-          attendee_email: attendeeEmail.trim() || null,
-          attended: true,
-        }),
-      });
-
-      if (!response.ok) {
-        alert('Failed to record attendance.');
-        return;
-      }
-
-      triggerToast();
-      alert('Attendance recorded successfully.');
-    } catch {
-      alert('Unable to record attendance right now.');
-    }
-  };
-
   return (
     <div className="flex flex-col min-h-screen bg-[#F8FAFC]">
       {showSuccessToast && (
-        <div className="fixed top-8 left-1/2 -translate-x-1/2 z-100 bg-green-600 text-white px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-3 animate-bounce">
+        <div className="fixed top-8 left-1/2 -translate-x-1/2 z-[100] bg-green-600 text-white px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-3 animate-bounce">
           <CheckCircle className="w-5 h-5" />
           <span className="font-bold">Action successful!</span>
         </div>
@@ -624,39 +421,13 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
             <p className="text-gray-500 text-sm mt-1">Manage events and alumni contributions</p>
           </div>
           {userRole === 'admin' ? (
-            <div className="flex flex-wrap justify-end gap-3">
-              <button
-                onClick={() => downloadEngagementReport('/reports/engagement/participants?download=1')}
-                className="flex items-center gap-2 px-4 py-2 border border-[#003087] text-[#003087] bg-white rounded-lg hover:bg-[#003087]/5 transition-colors font-semibold"
-              >
-                <Download className="w-5 h-5" /> Participant List
-              </button>
-              <button
-                onClick={() => downloadEngagementReport('/reports/engagement/guests?download=1')}
-                className="flex items-center gap-2 px-4 py-2 border border-[#003087] text-[#003087] bg-white rounded-lg hover:bg-[#003087]/5 transition-colors font-semibold"
-              >
-                <Download className="w-5 h-5" /> Guest List
-              </button>
-              <button
-                onClick={() => downloadEngagementReport('/reports/engagement/attendance?download=1')}
-                className="flex items-center gap-2 px-4 py-2 border border-[#003087] text-[#003087] bg-white rounded-lg hover:bg-[#003087]/5 transition-colors font-semibold"
-              >
-                <Download className="w-5 h-5" /> Attendance Report
-              </button>
-              <button
-                onClick={() => downloadEngagementReport('/reports/engagement/income?download=1')}
-                className="flex items-center gap-2 px-4 py-2 border border-[#003087] text-[#003087] bg-white rounded-lg hover:bg-[#003087]/5 transition-colors font-semibold"
-              >
-                <Download className="w-5 h-5" /> Income Report
-              </button>
-              <button
-                onClick={() => setActiveTab('Create Event')}
-                className="flex items-center gap-2 px-4 py-2 bg-[#003087] text-white rounded-lg hover:bg-[#002066] transition-colors font-semibold shadow-md"
-              >
-                <Plus className="w-5 h-5" />
-                Create Event
-              </button>
-            </div>
+            <button
+              onClick={() => setActiveTab('Create Event')}
+              className="flex items-center gap-2 px-4 py-2 bg-[#003087] text-white rounded-lg hover:bg-[#002066] transition-colors font-semibold shadow-md"
+            >
+              <Plus className="w-5 h-5" />
+              Create Event
+            </button>
           ) : (
             <button
               onClick={() => setActiveTab('Submit Proposal')}
@@ -679,14 +450,14 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
             >
               {tab}
               {activeTab === tab && (
-                <div className="absolute bottom-0 left-0 w-full h-0.5 bg-[#003087]" />
+                <div className="absolute bottom-0 left-0 w-full h-[2px] bg-[#003087]" />
               )}
             </button>
           ))}
         </div>
 
         {activeTab === 'Teaching Opportunities' && (
-          <div className="bg-[#003087] rounded-3xl p-8 text-white flex flex-col md:flex-row justify-between items-center gap-6 text-left">
+          <div className="bg-[#003087] rounded-[24px] p-8 text-white flex flex-col md:flex-row justify-between items-center gap-6 text-left">
             <div>
               <h2 className="text-2xl font-bold mb-2">Share Your Expertise with Future Ateneans</h2>
               <p className="text-blue-100 text-sm max-w-2xl">Give back to your alma mater by teaching or mentoring. Help shape the next generation.</p>
@@ -697,7 +468,7 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
 
         {/* ORANGE THEMED HEADER FOR SEMINARS */}
         {activeTab === 'Seminars & Workshops' && (
-          <div className="bg-orange-600 rounded-3xl p-8 text-white flex flex-col md:flex-row justify-between items-center gap-6 text-left shadow-lg">
+          <div className="bg-orange-600 rounded-[24px] p-8 text-white flex flex-col md:flex-row justify-between items-center gap-6 text-left shadow-lg">
             <div>
               <h2 className="text-2xl font-bold mb-2">Continuous Professional Development</h2>
               <p className="text-orange-50 text-sm max-w-2xl">
@@ -1141,48 +912,14 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
               
               <div className="flex gap-3 pt-6 border-t border-gray-200">
                 <button 
-                  onClick={async () => {
+                  onClick={() => {
                     if (!newEvent.title || !newEvent.category || !newEvent.date || !newEvent.startTime || !newEvent.endTime || !newEvent.location || !newEvent.description) {
                       alert('Please fill in all required fields');
                       return;
                     }
 
-                    let proposedId = Date.now().toString();
-                    try {
-                      const response = await fetch(`${apiBaseUrl}/engagement/events`, {
-                        method: 'POST',
-                        headers: {
-                          'Content-Type': 'application/json',
-                          Accept: 'application/json',
-                        },
-                        body: JSON.stringify({
-                          title: newEvent.title,
-                          category: newEvent.category,
-                          event_group: 'engagement',
-                          event_date: toApiDate(newEvent.date) || newEvent.date,
-                          start_time: newEvent.startTime,
-                          end_time: newEvent.endTime,
-                          location: newEvent.location,
-                          description: newEvent.description,
-                          capacity: parseInt(newEvent.capacity) || 0,
-                          image_url: newEvent.image || null,
-                          status: 'Pending',
-                          posted_by: userName,
-                        }),
-                      });
-
-                      if (response.ok) {
-                        const payload = await response.json();
-                        if (payload?.event?.id) {
-                          proposedId = String(payload.event.id);
-                        }
-                      }
-                    } catch {
-                      // Keep local fallback behavior.
-                    }
-
                     const proposedEvent: Event = {
-                      id: proposedId,
+                      id: Date.now().toString(),
                       title: newEvent.title,
                       category: newEvent.category,
                       date: newEvent.date,
@@ -1245,8 +982,8 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
 
       {/* Detail View Modal */}
       {selectedEvent && (
-        <div className="fixed inset-0 z-90 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white rounded-4xl w-full max-w-lg overflow-hidden shadow-2xl">
+        <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-[32px] w-full max-w-lg overflow-hidden shadow-2xl">
             <div className="relative h-48">
                 <img src={selectedEvent.image} alt={selectedEvent.title} className="w-full h-full object-cover" />
                 <button onClick={() => setSelectedEvent(null)} className="absolute top-4 right-4 p-2 bg-black/20 hover:bg-black/40 rounded-full text-white backdrop-blur-md transition-colors">
@@ -1271,19 +1008,9 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
               <div className="bg-gray-50 p-4 rounded-2xl mb-8">
                 <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-line">{selectedEvent.description}</p>
               </div>
-              <div className="grid grid-cols-1 gap-3">
-                {userRole === 'admin' && (
-                  <button
-                    onClick={() => handleRecordAttendance(selectedEvent)}
-                    className="w-full py-3 border border-[#003087] text-[#003087] rounded-xl font-bold hover:bg-[#003087]/5 transition-colors"
-                  >
-                    Record Attendance
-                  </button>
-                )}
-                <button onClick={() => setSelectedEvent(null)} className="w-full py-3 bg-[#003087] text-white rounded-xl font-bold hover:bg-[#002566] transition-colors">
-                  Close Details
-                </button>
-              </div>
+              <button onClick={() => setSelectedEvent(null)} className="w-full py-3 bg-[#003087] text-white rounded-xl font-bold hover:bg-[#002566] transition-colors">
+                Close Details
+              </button>
             </div>
           </div>
         </div>
@@ -1293,7 +1020,6 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
       {registrationEvent && (
         <EventRegistrationModal 
           event={{
-            id: registrationEvent.id,
             title: registrationEvent.title,
             date: registrationEvent.date,
             time: registrationEvent.time,
@@ -1302,7 +1028,6 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
           }}
           onClose={() => setRegistrationEvent(null)}
           pricePerGuest={1000}
-          onSubmitRegistration={handleRegistrationSubmit}
         />
       )}
 

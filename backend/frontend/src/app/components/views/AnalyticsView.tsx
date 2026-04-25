@@ -74,7 +74,7 @@ export function AnalyticsView({ userRole }: AnalyticsViewProps) {
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-        <div className="bg-linear-to-br from-[#003087] to-[#0055cc] text-white rounded-xl p-6 relative overflow-hidden">
+        <div className="bg-gradient-to-br from-[#003087] to-[#0055cc] text-white rounded-xl p-6 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10"></div>
           <div className="relative">
             <div className="flex items-center justify-between mb-4">
@@ -89,7 +89,7 @@ export function AnalyticsView({ userRole }: AnalyticsViewProps) {
           </div>
         </div>
 
-        <div className="bg-linear-to-br from-orange-400 to-orange-600 text-white rounded-xl p-6 relative overflow-hidden">
+        <div className="bg-gradient-to-br from-orange-400 to-orange-600 text-white rounded-xl p-6 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10"></div>
           <div className="relative">
             <div className="flex items-center justify-between mb-4">

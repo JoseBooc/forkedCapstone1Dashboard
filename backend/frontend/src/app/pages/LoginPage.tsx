@@ -5,7 +5,6 @@ import ADDULogo from '../../assets/ADDULogo.jpg';
 
 export function LoginPage() {
   const navigate = useNavigate();
-  const apiBaseUrl = process.env.REACT_APP_API_URL || 'http://127.0.0.1:8000/api';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -19,7 +18,7 @@ export function LoginPage() {
     
     try {
       // Call the authentication API
-      const response = await fetch(`${apiBaseUrl}/login`, {
+      const response = await fetch('http://localhost:8000/api/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -52,7 +52,7 @@ export function ProfileView({ userRole }: ProfileViewProps) {
         return;
       }
 
-      const response = await fetch(`http://127.0.0.1:8000/api/users/${encodeURIComponent(userEmail)}`);
+      const response = await fetch(`http://localhost:8000/api/users/${encodeURIComponent(userEmail)}`);
       const userData = await response.json();
 
       setFormData({
@@ -138,7 +138,7 @@ export function ProfileView({ userRole }: ProfileViewProps) {
       const cleanIntendedMarriageAge = formData.intendedMarriageAge && formData.intendedMarriageAge.trim() !== '' ? formData.intendedMarriageAge.trim() : null;
       const cleanNoMarriageReason = formData.noMarriageReason && formData.noMarriageReason.trim() !== '' ? formData.noMarriageReason.trim() : null;
 
-      const response = await fetch(`http://127.0.0.1:8000/api/users/${encodeURIComponent(userEmail)}`, {
+      const response = await fetch(`http://localhost:8000/api/users/${encodeURIComponent(userEmail)}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
