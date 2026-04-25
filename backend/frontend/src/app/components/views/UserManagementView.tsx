@@ -1,6 +1,62 @@
 import { useState, useEffect } from 'react';
 import { Users, Search, Edit, Trash2, Plus, X, Mail, Phone, MapPin, GraduationCap, Calendar, Shield, Lock, Unlock, Check, XCircle, Eye } from 'lucide-react';
 
+const PROGRAM_OPTIONS = [
+  'BS Computer Science',
+  'BS Information Systems',
+  'BS Information Technology',
+  'BS Data Science',
+  'BS Information Management',
+  'AB Communication',
+  'AB English Language',
+  'AB Interdisciplinary Studies Minor In Language and Literature',
+  'AB Interdisciplinary Studies Minor In Media and Business',
+  'AB Interdisciplinary Studies Minor In Media and Technology',
+  'AB Interdisciplinary Studies Minor In Philosophy and Theology',
+  'AB Philosophy',
+  'AB Anthropology',
+  'AB Development Studies',
+  'AB Economics',
+  'AB International Studies Major in American Studies',
+  'AB International Studies Major in Asian Studies',
+  'AB Islamic Studies',
+  'AB Political Science',
+  'AB Psychology',
+  'AB Sociology',
+  'BS Social Work',
+  'BS Biology Major in General Biology',
+  'BS Biology Major in Medical Biology',
+  'BS Chemistry',
+  'BS Environmental Science',
+  'BS Mathematics',
+  'BS Accountancy',
+  'BS Management Accounting',
+  'BS Business Management',
+  'BS Entrepreneurship',
+  'BS Entrepreneurship Major in Agri-Business',
+  'BS Finance',
+  'BS Human Resource Development and Management',
+  'BS Marketing',
+  'Bachelor of Public Administration',
+  'BS Architecture',
+  'BS Aerospace Engineering',
+  'BS Civil Engineering',
+  'BS Chemical Engineering',
+  'BS Computer Engineering',
+  'BS Electrical Engineering',
+  'BS Electronics Engineering',
+  'BS Industrial Engineering',
+  'BS Mechanical Engineering',
+  'BS Robotics Engineering',
+  'Bachelor of Early Childhood Education',
+  'Bachelor of Elementary Education',
+  'Bachelor of Secondary Education Major In English',
+  'Bachelor of Secondary Education Major In Mathematics',
+  'Bachelor of Secondary Education Major In Social Studies',
+  'Bachelor of Secondary Education Major In Science',
+  'BS Nursing',
+];
+
 interface User {
   id: number;
   name: string;
@@ -15,7 +71,7 @@ interface User {
   telephone_number?: string;
   current_address?: string;
   country?: string;
-  geocode?: string;
+  zipcode?: string;
   sex?: string;
   religion?: string;
   religion_other?: string;
@@ -34,6 +90,7 @@ interface User {
   diploma_file_path?: string;
   id_type?: string;
   valid_id_file_path?: string;
+  profile_image_path?: string;
   created_at?: string;
 }
 
@@ -42,6 +99,7 @@ interface UserManagementViewProps {
 }
 
 export function UserManagementView({ userRole }: UserManagementViewProps) {
+  const apiBaseUrl = 'http://localhost:8000';
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'all' | 'approval'>('all');
@@ -58,6 +116,18 @@ export function UserManagementView({ userRole }: UserManagementViewProps) {
       return `${user.first_name}${user.middle_name ? ' ' + user.middle_name : ''} ${user.last_name}`.trim();
     }
     return user.name;
+  };
+
+  const getInitials = (displayName: string) => {
+    const nameParts = displayName.split(' ').filter(n => n.length > 0);
+    if (nameParts.length === 0) return 'U';
+    if (nameParts.length === 1) return nameParts[0][0].toUpperCase();
+    return `${nameParts[0][0]}${nameParts[nameParts.length - 1][0]}`.toUpperCase();
+  };
+
+  const getProfileImageUrl = (user: User) => {
+    if (!user.profile_image_path) return null;
+    return `${apiBaseUrl}/storage/${user.profile_image_path}`;
   };
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<'all' | 'alumni' | 'admin'>('all');
@@ -357,9 +427,6 @@ export function UserManagementView({ userRole }: UserManagementViewProps) {
     return matchesSearch && matchesRole && matchesCourse;
   });
 
-  // Get unique courses for the filter dropdown
-  const uniqueCourses = Array.from(new Set(users.map(u => u.course).filter(Boolean))).sort();
-
   const getRoleBadgeColor = (role: string) => {
     return role === 'admin' 
       ? 'bg-purple-100 text-purple-700 border-purple-200' 
@@ -476,7 +543,7 @@ export function UserManagementView({ userRole }: UserManagementViewProps) {
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent appearance-none bg-white cursor-pointer"
             >
               <option value="all">All Courses</option>
-              {uniqueCourses.map((course) => (
+              {PROGRAM_OPTIONS.map((course) => (
                 <option key={course} value={course}>
                   {course}
                 </option>
@@ -526,17 +593,21 @@ export function UserManagementView({ userRole }: UserManagementViewProps) {
               <tbody className="divide-y divide-gray-200">
                 {filteredUsers.map((user) => {
                   const displayName = getDisplayName(user);
+                  const profileImageUrl = getProfileImageUrl(user);
                   return (
                   <tr key={user.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-[#003087] rounded-full flex items-center justify-center text-white font-bold text-sm">
-                          {(() => {
-                            const nameParts = displayName.split(' ').filter(n => n.length > 0);
-                            if (nameParts.length === 0) return 'U';
-                            if (nameParts.length === 1) return nameParts[0][0];
-                            return nameParts[0][0] + nameParts[nameParts.length - 1][0];
-                          })()}
+                        <div className="w-10 h-10 bg-[#003087] rounded-full flex items-center justify-center text-white font-bold text-sm overflow-hidden">
+                          {profileImageUrl ? (
+                            <img
+                              src={profileImageUrl}
+                              alt={`${displayName} profile`}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            getInitials(displayName)
+                          )}
                         </div>
                         <div>
                           <p className="font-semibold text-gray-900">{displayName}</p>
@@ -667,15 +738,27 @@ export function UserManagementView({ userRole }: UserManagementViewProps) {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {pendingUsers.map((user) => (
+                  {pendingUsers.map((user) => {
+                    const displayName = getDisplayName(user);
+                    const profileImageUrl = getProfileImageUrl(user);
+
+                    return (
                     <tr key={user.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
-                            <span className="text-amber-700 font-bold text-sm">{getDisplayName(user).charAt(0).toUpperCase()}</span>
+                          <div className="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                            {profileImageUrl ? (
+                              <img
+                                src={profileImageUrl}
+                                alt={`${displayName} profile`}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <span className="text-amber-700 font-bold text-sm">{getInitials(displayName)}</span>
+                            )}
                           </div>
                           <div>
-                            <p className="font-semibold text-gray-900">{getDisplayName(user)}</p>
+                            <p className="font-semibold text-gray-900">{displayName}</p>
                             <span className="text-xs bg-amber-100 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full font-medium">Pending</span>
                           </div>
                         </div>
@@ -712,7 +795,8 @@ export function UserManagementView({ userRole }: UserManagementViewProps) {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                  );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -763,7 +847,7 @@ export function UserManagementView({ userRole }: UserManagementViewProps) {
                   <div><span className="font-medium text-gray-500">Telephone:</span><p className="text-gray-900 mt-0.5">{selectedPendingUser.telephone_number || '—'}</p></div>
                   <div className="md:col-span-2"><span className="font-medium text-gray-500">Current Address:</span><p className="text-gray-900 mt-0.5">{selectedPendingUser.current_address || '—'}</p></div>
                   <div><span className="font-medium text-gray-500">Country:</span><p className="text-gray-900 mt-0.5">{selectedPendingUser.country || '—'}</p></div>
-                  <div><span className="font-medium text-gray-500">Geocode/Zipcode:</span><p className="text-gray-900 mt-0.5">{selectedPendingUser.geocode || '—'}</p></div>
+                  <div><span className="font-medium text-gray-500">Zipcode:</span><p className="text-gray-900 mt-0.5">{selectedPendingUser.zipcode || '—'}</p></div>
                   {selectedPendingUser.country === 'Philippines' && <>
                     <div><span className="font-medium text-gray-500">Region:</span><p className="text-gray-900 mt-0.5">{selectedPendingUser.region || '—'}</p></div>
                     <div><span className="font-medium text-gray-500">Province:</span><p className="text-gray-900 mt-0.5">{selectedPendingUser.province || '—'}</p></div>

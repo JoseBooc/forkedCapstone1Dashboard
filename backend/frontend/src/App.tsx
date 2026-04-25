@@ -3,6 +3,7 @@ import { LandingPage } from './app/pages/LandingPage';
 import { LoginPage } from './app/pages/LoginPage';
 import { RegisterPage } from './app/pages/RegisterPage';
 import { Dashboard } from './app/pages/Dashboard';
+import { TracerSurveyPage } from './app/pages/TracerSurveyPage';
 
 export default function App() {
   return (
@@ -12,6 +13,7 @@ export default function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/survey/tracer" element={<TracerSurveyPage />} />
       </Routes>
     </BrowserRouter>
   );
