@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, ArrowLeft, Eye, EyeOff, User, Phone, Calendar, MapPin, Upload } from 'lucide-react';
 import ADDULogo from '../../assets/ADDULogo.jpg';
@@ -59,105 +59,26 @@ const PROGRAM_OPTIONS = [
   'BS Nursing',
 ];
 
-type RegionKey = 'ncr' | 'car' | 'region-1' | 'region-2' | 'region-3' | 'region-4a' | 'region-4b' | 'region-5' | 'region-6' | 'region-7' | 'region-8' | 'nir' | 'region-9' | 'region-10' | 'region-11' | 'region-12' | 'region-13' | 'barmm';
+const PSGC_API = 'https://psgc.cloud/api';
 
-interface RegionData {
-  name: string;
-  provinces: string[];
-  cities: string[];
-}
-
-const PHILIPPINES_REGIONS_DATA: Record<RegionKey, RegionData> = {
-  'ncr': {
-    name: 'NCR (National Capital Region)',
-    provinces: [],
-    cities: ['Manila', 'Quezon City', 'Caloocan', 'Las Piñas', 'Makati', 'Malabon', 'Mandaluyong', 'Marikina', 'Muntinlupa', 'Navotas', 'Parañaque', 'Pasay', 'Pasig', 'San Juan', 'Taguig', 'Valenzuela']
-  },
-  'car': {
-    name: 'CAR (Cordillera Administrative Region)',
-    provinces: ['Abra', 'Apayao', 'Benguet', 'Ifugao', 'Kalinga', 'Mountain Province'],
-    cities: ['Baguio City']
-  },
-  'region-1': {
-    name: 'Region I (Ilocos Region)',
-    provinces: ['Ilocos Norte', 'Ilocos Sur', 'La Union', 'Pangasinan'],
-    cities: ['Laoag', 'Batac', 'Vigan', 'Candon', 'San Fernando', 'Dagupan', 'Alaminos', 'San Carlos', 'Urdaneta']
-  },
-  'region-2': {
-    name: 'Region II (Cagayan Valley)',
-    provinces: ['Batanes', 'Cagayan', 'Isabela', 'Nueva Vizcaya', 'Quirino'],
-    cities: ['Tuguegarao', 'Cauayan', 'Ilagan', 'Santiago']
-  },
-  'region-3': {
-    name: 'Region III (Central Luzon)',
-    provinces: ['Aurora', 'Bataan', 'Bulacan', 'Nueva Ecija', 'Pampanga', 'Tarlac', 'Zambales'],
-    cities: ['Angeles', 'Olongapo', 'Balanga', 'Malolos', 'Meycauayan', 'San Jose Del Monte', 'Mabalacat', 'Cabanatuan', 'Gapan', 'Palayan', 'San Jose', 'Muñoz', 'San Fernando', 'Tarlac City']
-  },
-  'region-4a': {
-    name: 'Region IV-A (CALABARZON)',
-    provinces: ['Batangas', 'Cavite', 'Laguna', 'Quezon', 'Rizal'],
-    cities: ['Antipolo', 'Batangas City', 'Lipa', 'Santo Tomas', 'Tanauan', 'Bacoor', 'Cavite City', 'Dasmariñas', 'Gen. Trias', 'Imus', 'Tagaytay', 'Trece Martires', 'Biñan', 'Cabuyao', 'Calamba', 'San Pablo', 'Santa Rosa', 'Lucena', 'Tayabas']
-  },
-  'region-4b': {
-    name: 'Region IV-B (MIMAROPA)',
-    provinces: ['Marinduque', 'Occidental Mindoro', 'Oriental Mindoro', 'Palawan', 'Romblon'],
-    cities: ['Calapan', 'Puerto Princesa']
-  },
-  'region-5': {
-    name: 'Region V (Bicol Region)',
-    provinces: ['Albay', 'Camarines Norte', 'Camarines Sur', 'Catanduanes', 'Masbate', 'Sorsogon'],
-    cities: ['Legazpi', 'Ligao', 'Tabaco', 'Iriga', 'Naga', 'Masbate City', 'Sorsogon City']
-  },
-  'region-6': {
-    name: 'Region VI (Western Visayas)',
-    provinces: ['Aklan', 'Antique', 'Capiz', 'Guimaras', 'Iloilo'],
-    cities: ['Iloilo City', 'Passi', 'Roxas City']
-  },
-  'region-7': {
-    name: 'Region VII (Central Visayas)',
-    provinces: ['Bohol', 'Cebu'],
-    cities: ['Cebu City', 'Lapu-Lapu', 'Mandaue', 'Tagbilaran', 'Bogo', 'Carcar', 'Danao', 'Naga', 'Talisay', 'Toledo']
-  },
-  'region-8': {
-    name: 'Region VIII (Eastern Visayas)',
-    provinces: ['Biliran', 'Eastern Samar', 'Leyte', 'Northern Samar', 'Samar', 'Southern Leyte'],
-    cities: ['Tacloban', 'Ormoc', 'Baybay', 'Borongan', 'Catbalogan', 'Calbayog', 'Maasin']
-  },
-  'nir': {
-    name: 'NIR (Negros Island Region)',
-    provinces: ['Negros Occidental', 'Negros Oriental', 'Siquijor'],
-    cities: ['Bacolod', 'Bago', 'Cadiz', 'Escalante', 'Himamaylan', 'Kabankalan', 'La Carlota', 'Sagay', 'San Carlos', 'Silay', 'Sipalay', 'Talisay', 'Victorias', 'Dumaguete', 'Bais', 'Bayawan', 'Canlaon', 'Guihulngan', 'Tanjay']
-  },
-  'region-9': {
-    name: 'Region IX (Zamboanga Peninsula)',
-    provinces: ['Zamboanga del Norte', 'Zamboanga del Sur', 'Zamboanga Sibugay'],
-    cities: ['Zamboanga City', 'Isabela City', 'Dapitan', 'Dipolog', 'Pagadian']
-  },
-  'region-10': {
-    name: 'Region X (Northern Mindanao)',
-    provinces: ['Bukidnon', 'Camiguin', 'Lanao del Norte', 'Misamis Occidental', 'Misamis Oriental'],
-    cities: ['Cagayan de Oro', 'Iligan', 'Malaybalay', 'Valencia', 'Oroquieta', 'Ozamiz', 'Tangub', 'El Salvador', 'Gingoog']
-  },
-  'region-11': {
-    name: 'Region XI (Davao Region)',
-    provinces: ['Davao de Oro', 'Davao del Norte', 'Davao del Sur', 'Davao Occidental', 'Davao Oriental'],
-    cities: ['Davao City', 'Panabo', 'Island Garden City of Samal', 'Tagum', 'Digos', 'Mati']
-  },
-  'region-12': {
-    name: 'Region XII (SOCCSKSARGEN)',
-    provinces: ['Cotabato', 'Sarangani', 'South Cotabato', 'Sultan Kudarat'],
-    cities: ['General Santos', 'Koronadal', 'Kidapawan', 'Tacurong']
-  },
-  'region-13': {
-    name: 'Region XIII (Caraga)',
-    provinces: ['Agusan del Norte', 'Agusan del Sur', 'Dinagat Islands', 'Surigao del Norte', 'Surigao del Sur'],
-    cities: ['Butuan', 'Cabadbaran', 'Bayugan', 'Surigao City', 'Bislig', 'Tandag']
-  },
-  'barmm': {
-    name: 'BARMM (Bangsamoro Autonomous Region)',
-    provinces: ['Basilan', 'Lanao del Sur', 'Maguindanao del Norte', 'Maguindanao del Sur', 'Sulu', 'Tawi-Tawi'],
-    cities: ['Cotabato City', 'Lamitan', 'Marawi']
-  }
+const REGION_PSGC_CODES: Record<string, string> = {
+  'ncr': '1300000000',
+  'car': '1400000000',
+  'region-1': '0100000000',
+  'region-2': '0200000000',
+  'region-3': '0300000000',
+  'region-4a': '0400000000',
+  'region-4b': '1700000000',
+  'region-5': '0500000000',
+  'region-6': '0600000000',
+  'region-7': '0700000000',
+  'region-8': '0800000000',
+  'region-9': '0900000000',
+  'region-10': '1000000000',
+  'region-11': '1100000000',
+  'region-12': '1200000000',
+  'region-13': '1600000000',
+  'barmm': '1900000000',
 };
 
 export function RegisterPage() {
@@ -196,6 +117,74 @@ export function RegisterPage() {
   const [diplomaFile, setDiplomaFile] = useState<File | null>(null);
   const [validIdFile, setValidIdFile] = useState<File | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [countries, setCountries] = useState<string[]>([]);
+  const [provinces, setProvinces] = useState<{ code: string; name: string }[]>([]);
+  const [cities, setCities] = useState<string[]>([]);
+  const [loadingProvinces, setLoadingProvinces] = useState(false);
+  const [loadingCities, setLoadingCities] = useState(false);
+  const [phoneError, setPhoneError] = useState('');
+  const [telephoneError, setTelephoneError] = useState('');
+
+  useEffect(() => {
+    fetch('https://restcountries.com/v3.1/all?fields=name')
+      .then(res => res.json())
+      .then((data: { name: { common: string } }[]) => {
+        const sorted = data
+          .map(c => c.name.common)
+          .filter(name => name !== 'Philippines')
+          .sort((a, b) => a.localeCompare(b));
+        setCountries(['Philippines', ...sorted]);
+      })
+      .catch(() => setCountries(['Philippines']));
+  }, []);
+
+  useEffect(() => {
+    if (!formData.region) return;
+    const regionCode = REGION_PSGC_CODES[formData.region];
+    if (!regionCode) return;
+
+    setFormData(prev => ({ ...prev, province: '', city: '' }));
+    setProvinces([]);
+    setCities([]);
+
+    if (formData.region === 'ncr') {
+      setLoadingCities(true);
+      fetch(`${PSGC_API}/regions/${regionCode}/cities-municipalities`)
+        .then(res => res.json())
+        .then((data: { name: string }[]) =>
+          setCities(data.map(c => c.name).sort((a, b) => a.localeCompare(b)))
+        )
+        .catch(() => setCities([]))
+        .finally(() => setLoadingCities(false));
+    } else {
+      setLoadingProvinces(true);
+      fetch(`${PSGC_API}/regions/${regionCode}/provinces`)
+        .then(res => res.json())
+        .then((data: { code: string; name: string }[]) =>
+          setProvinces(data.sort((a, b) => a.name.localeCompare(b.name)))
+        )
+        .catch(() => setProvinces([]))
+        .finally(() => setLoadingProvinces(false));
+    }
+  }, [formData.region]);
+
+  useEffect(() => {
+    if (!formData.province || formData.region === 'ncr') return;
+    const province = provinces.find(p => p.name === formData.province);
+    if (!province) return;
+
+    setFormData(prev => ({ ...prev, city: '' }));
+    setCities([]);
+    setLoadingCities(true);
+
+    fetch(`${PSGC_API}/provinces/${province.code}/cities-municipalities`)
+      .then(res => res.json())
+      .then((data: { name: string }[]) =>
+        setCities(data.map(c => c.name).sort((a, b) => a.localeCompare(b)))
+      )
+      .catch(() => setCities([]))
+      .finally(() => setLoadingCities(false));
+  }, [formData.province, provinces]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -326,11 +315,23 @@ export function RegisterPage() {
     }
   };
 
+  const validatePhone = (value: string): string => {
+    if (!value) return '';
+    if (!/^\d+$/.test(value)) return 'Only digits are allowed';
+    if (value.startsWith('09') && value.length !== 11) return 'Philippine mobile numbers must be 11 digits (09XXXXXXXXX)';
+    if (!value.startsWith('09') && (value.length < 7 || value.length > 15)) return 'Enter a valid number with 7–15 digits';
+    return '';
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+    const { name, value } = e.target;
+    const digitsOnly = ['phoneNumber', 'telephoneNumber', 'zipcode'];
+    const sanitized = digitsOnly.includes(name) ? value.replace(/\D/g, '') : value;
+
+    setFormData({ ...formData, [name]: sanitized });
+
+    if (name === 'phoneNumber') setPhoneError(validatePhone(sanitized));
+    if (name === 'telephoneNumber') setTelephoneError(sanitized ? validatePhone(sanitized) : '');
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fileType: 'diploma' | 'validId') => {
@@ -576,35 +577,9 @@ export function RegisterPage() {
                     required
                   >
                     <option value="">Select your country</option>
-                    <option value="Philippines">Philippines</option>
-                    <option value="United States">United States</option>
-                    <option value="Canada">Canada</option>
-                    <option value="United Kingdom">United Kingdom</option>
-                    <option value="Australia">Australia</option>
-                    <option value="Japan">Japan</option>
-                    <option value="South Korea">South Korea</option>
-                    <option value="Singapore">Singapore</option>
-                    <option value="Malaysia">Malaysia</option>
-                    <option value="Thailand">Thailand</option>
-                    <option value="Vietnam">Vietnam</option>
-                    <option value="Indonesia">Indonesia</option>
-                    <option value="China">China</option>
-                    <option value="Hong Kong">Hong Kong</option>
-                    <option value="Taiwan">Taiwan</option>
-                    <option value="United Arab Emirates">United Arab Emirates</option>
-                    <option value="Saudi Arabia">Saudi Arabia</option>
-                    <option value="Qatar">Qatar</option>
-                    <option value="Kuwait">Kuwait</option>
-                    <option value="New Zealand">New Zealand</option>
-                    <option value="Germany">Germany</option>
-                    <option value="France">France</option>
-                    <option value="Italy">Italy</option>
-                    <option value="Spain">Spain</option>
-                    <option value="Netherlands">Netherlands</option>
-                    <option value="Switzerland">Switzerland</option>
-                    <option value="Norway">Norway</option>
-                    <option value="Sweden">Sweden</option>
-                    <option value="Other">Other</option>
+                    {countries.map(country => (
+                      <option key={country} value={country}>{country}</option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -652,7 +627,6 @@ export function RegisterPage() {
                     <option value="region-6">Region VI (Western Visayas)</option>
                     <option value="region-7">Region VII (Central Visayas)</option>
                     <option value="region-8">Region VIII (Eastern Visayas)</option>
-                    <option value="nir">NIR (Negros Island Region)</option>
                     <option value="region-9">Region IX (Zamboanga Peninsula)</option>
                     <option value="region-10">Region X (Northern Mindanao)</option>
                     <option value="region-12">Region XII (SOCCSKSARGEN)</option>
@@ -674,12 +648,12 @@ export function RegisterPage() {
                       required
                     >
                       <option value="" disabled hidden>Select your province</option>
-                      {formData.region && PHILIPPINES_REGIONS_DATA[formData.region as RegionKey]?.provinces.length > 0 ? (
-                        PHILIPPINES_REGIONS_DATA[formData.region as RegionKey].provinces.map((province: string) => (
-                          <option key={province} value={province}>{province}</option>
-                        ))
+                      {loadingProvinces ? (
+                        <option disabled>Loading provinces...</option>
                       ) : (
-                        <option disabled>No provinces available for this region</option>
+                        provinces.map(p => (
+                          <option key={p.code} value={p.name}>{p.name}</option>
+                        ))
                       )}
                     </select>
                   </div>
@@ -696,13 +670,13 @@ export function RegisterPage() {
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition"
                     required
                   >
-                    <option value="" disabled hidden>Select your city</option>
-                    {formData.region && PHILIPPINES_REGIONS_DATA[formData.region as RegionKey]?.cities.length > 0 ? (
-                      PHILIPPINES_REGIONS_DATA[formData.region as RegionKey].cities.map((city: string) => (
+                    <option value="" disabled hidden>Select your city/municipality</option>
+                    {loadingCities ? (
+                      <option disabled>Loading cities...</option>
+                    ) : (
+                      cities.map(city => (
                         <option key={city} value={city}>{city}</option>
                       ))
-                    ) : (
-                      <option disabled>No cities available for this region</option>
                     )}
                   </select>
                 </div>
@@ -715,39 +689,47 @@ export function RegisterPage() {
               <div>
                 <label htmlFor="phoneNumber" className="block text-gray-700 font-medium mb-2">Phone Number</label>
                 <div className="relative">
-                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <Phone className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 ${phoneError ? 'text-red-400' : 'text-gray-400'}`} />
                   <input
                     id="phoneNumber"
                     type="tel"
                     name="phoneNumber"
                     value={formData.phoneNumber}
                     onChange={handleChange}
-                    placeholder="Enter your phone number"
-                    minLength={7}
+                    placeholder="09XXXXXXXXX"
                     maxLength={15}
-                    className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition"
+                    className={`w-full pl-12 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent transition ${
+                      phoneError
+                        ? 'border-red-500 focus:ring-red-400 bg-red-50'
+                        : 'border-gray-300 focus:ring-[#003D7A]'
+                    }`}
                     required
                   />
                 </div>
+                {phoneError && <p className="mt-1 text-xs text-red-500">{phoneError}</p>}
               </div>
 
               {/* Telephone Number (Optional) */}
               <div>
-                <label htmlFor="telephoneNumber" className="block text-gray-700 font-medium mb-2">Telephone Number (Optional)</label>
+                <label htmlFor="telephoneNumber" className="block text-gray-700 font-medium mb-2">Telephone Number <span className="text-gray-400 font-normal text-sm">(Optional)</span></label>
                 <div className="relative">
-                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <Phone className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 ${telephoneError ? 'text-red-400' : 'text-gray-400'}`} />
                   <input
                     id="telephoneNumber"
                     type="tel"
                     name="telephoneNumber"
                     value={formData.telephoneNumber}
                     onChange={handleChange}
-                    placeholder="Enter your telephone number"
-                    minLength={7}
+                    placeholder="09XXXXXXXXX"
                     maxLength={15}
-                    className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition"
+                    className={`w-full pl-12 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent transition ${
+                      telephoneError
+                        ? 'border-red-500 focus:ring-red-400 bg-red-50'
+                        : 'border-gray-300 focus:ring-[#003D7A]'
+                    }`}
                   />
                 </div>
+                {telephoneError && <p className="mt-1 text-xs text-red-500">{telephoneError}</p>}
               </div>
             </div>
 
