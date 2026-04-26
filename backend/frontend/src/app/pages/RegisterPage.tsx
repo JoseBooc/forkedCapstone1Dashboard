@@ -124,6 +124,7 @@ export function RegisterPage() {
   const [loadingCities, setLoadingCities] = useState(false);
   const [phoneError, setPhoneError] = useState('');
   const [telephoneError, setTelephoneError] = useState('');
+  const [passwordMismatch, setPasswordMismatch] = useState(false);
 
   useEffect(() => {
     fetch('https://restcountries.com/v3.1/all?fields=name')
@@ -332,6 +333,13 @@ export function RegisterPage() {
 
     if (name === 'phoneNumber') setPhoneError(validatePhone(sanitized));
     if (name === 'telephoneNumber') setTelephoneError(sanitized ? validatePhone(sanitized) : '');
+
+    if (name === 'password') {
+      setPasswordMismatch(formData.confirmPassword !== '' && formData.confirmPassword !== value);
+    }
+    if (name === 'confirmPassword') {
+      setPasswordMismatch(value !== '' && value !== formData.password);
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fileType: 'diploma' | 'validId') => {
@@ -497,7 +505,7 @@ export function RegisterPage() {
             <div className="mb-6">
               <label htmlFor="password" className="block text-gray-700 font-medium mb-2">Password</label>
               <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Lock className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 ${passwordMismatch ? 'text-red-400' : 'text-gray-400'}`} />
                 <input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
@@ -505,7 +513,11 @@ export function RegisterPage() {
                   value={formData.password}
                   onChange={handleChange}
                   placeholder="Create a password"
-                  className="w-full pl-12 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition"
+                  className={`w-full pl-12 pr-12 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent transition ${
+                    passwordMismatch
+                      ? 'border-red-500 focus:ring-red-400 bg-red-50'
+                      : 'border-gray-300 focus:ring-[#003D7A]'
+                  }`}
                   required
                 />
                 <button
@@ -522,7 +534,7 @@ export function RegisterPage() {
             <div className="mb-6">
               <label htmlFor="confirmPassword" className="block text-gray-700 font-medium mb-2">Confirm Password</label>
               <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Lock className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 ${passwordMismatch ? 'text-red-400' : 'text-gray-400'}`} />
                 <input
                   id="confirmPassword"
                   type={showConfirmPassword ? 'text' : 'password'}
@@ -530,7 +542,11 @@ export function RegisterPage() {
                   value={formData.confirmPassword}
                   onChange={handleChange}
                   placeholder="Confirm your password"
-                  className="w-full pl-12 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition"
+                  className={`w-full pl-12 pr-12 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent transition ${
+                    passwordMismatch
+                      ? 'border-red-500 focus:ring-red-400 bg-red-50'
+                      : 'border-gray-300 focus:ring-[#003D7A]'
+                  }`}
                   required
                 />
                 <button
@@ -541,6 +557,7 @@ export function RegisterPage() {
                   {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
+              {passwordMismatch && <p className="mt-1 text-xs text-red-500">Passwords do not match</p>}
             </div>
 
             {/* Current Address */}
