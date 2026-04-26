@@ -57,7 +57,11 @@ export function ProfileView({ userRole }: ProfileViewProps) {
   const [loadingCities, setLoadingCities] = useState(false);
   const [phoneError, setPhoneError] = useState('');
   const [telephoneError, setTelephoneError] = useState('');
-  
+  const [passwordData, setPasswordData] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordSuccess, setPasswordSuccess] = useState('');
+  const [changingPassword, setChangingPassword] = useState(false);
+
   // Main State
   const [formData, setFormData] = useState({
     firstName: "",
@@ -257,6 +261,49 @@ export function ProfileView({ userRole }: ProfileViewProps) {
       return;
     }
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleChangePassword = async () => {
+    setPasswordError('');
+    setPasswordSuccess('');
+    const { currentPassword, newPassword, confirmPassword } = passwordData;
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setPasswordError('All password fields are required.');
+      return;
+    }
+    if (newPassword.length < 8) {
+      setPasswordError('New password must be at least 8 characters.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError('New passwords do not match.');
+      return;
+    }
+    const userEmail = localStorage.getItem('userEmail');
+    if (!userEmail) return;
+    try {
+      setChangingPassword(true);
+      const response = await fetch(`http://localhost:8000/api/users/${encodeURIComponent(userEmail)}/change-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          current_password: currentPassword,
+          new_password: newPassword,
+          confirm_password: confirmPassword,
+        }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setPasswordSuccess('Password changed successfully.');
+        setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      } else {
+        setPasswordError(data.error || 'Failed to change password.');
+      }
+    } catch {
+      setPasswordError('Error connecting to server.');
+    } finally {
+      setChangingPassword(false);
+    }
   };
 
   const handleEdit = () => {
@@ -920,6 +967,52 @@ export function ProfileView({ userRole }: ProfileViewProps) {
               />
             </div>
           </div>
+        </div>
+
+        {/* Change Password Section */}
+        <div className="bg-white rounded-[32px] p-8 border border-gray-100 shadow-sm text-left">
+          <h3 className="text-xl font-bold text-gray-900 mb-6">Change Password</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4 max-w-3xl">
+            <div className="space-y-1">
+              <label className="text-sm font-semibold text-gray-700">Current Password</label>
+              <input
+                type="password"
+                value={passwordData.currentPassword}
+                onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                placeholder="Enter current password"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-400"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-sm font-semibold text-gray-700">New Password</label>
+              <input
+                type="password"
+                value={passwordData.newPassword}
+                onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                placeholder="Min. 8 characters"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-400"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-sm font-semibold text-gray-700">Confirm New Password</label>
+              <input
+                type="password"
+                value={passwordData.confirmPassword}
+                onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                placeholder="Repeat new password"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-400"
+              />
+            </div>
+          </div>
+          {passwordError && <p className="text-sm text-red-500 mt-4">{passwordError}</p>}
+          {passwordSuccess && <p className="text-sm text-green-600 mt-4">{passwordSuccess}</p>}
+          <button
+            onClick={handleChangePassword}
+            disabled={changingPassword}
+            className="mt-5 px-6 py-2 bg-[#003087] text-white rounded-lg font-bold text-sm hover:bg-blue-800 transition-all shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {changingPassword ? 'Changing...' : 'Change Password'}
+          </button>
         </div>
 
         {/* Education Section */}

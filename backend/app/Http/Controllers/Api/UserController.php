@@ -247,6 +247,33 @@ class UserController extends Controller
         ]);
     }
 
+    // Change password by email
+    public function changePassword(Request $request, $email)
+    {
+        $user = User::where('email', $email)->first();
+
+        if (!$user) {
+            return response()->json(['error' => 'User not found'], 404);
+        }
+
+        if (!Hash::check($request->current_password, $user->password)) {
+            return response()->json(['error' => 'Current password is incorrect'], 422);
+        }
+
+        if ($request->new_password !== $request->confirm_password) {
+            return response()->json(['error' => 'New passwords do not match'], 422);
+        }
+
+        if (strlen($request->new_password) < 8) {
+            return response()->json(['error' => 'New password must be at least 8 characters'], 422);
+        }
+
+        $user->password = Hash::make($request->new_password);
+        $user->save();
+
+        return response()->json(['message' => 'Password changed successfully']);
+    }
+
     // Update user by ID
     public function updateById(Request $request, $id)
     {
