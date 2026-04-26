@@ -137,6 +137,8 @@ export function UserManagementView({ userRole }: UserManagementViewProps) {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [editPhoneError, setEditPhoneError] = useState('');
+  const [createPhoneError, setCreatePhoneError] = useState('');
   const [newUser, setNewUser] = useState({
     first_name: '',
     middle_name: '',
@@ -229,6 +231,20 @@ export function UserManagementView({ userRole }: UserManagementViewProps) {
       console.error('Error disapproving user:', error);
       alert('Error disapproving user. Please check your connection.');
     }
+  };
+
+  const validatePhone = (value: string, target: 'edit' | 'create') => {
+    if (!value) {
+      target === 'edit' ? setEditPhoneError('') : setCreatePhoneError('');
+      return;
+    }
+    const isValid = value.startsWith('09')
+      ? value.length === 11
+      : value.length >= 7 && value.length <= 15;
+    const msg = isValid ? '' : value.startsWith('09')
+      ? 'Philippine mobile numbers must be 11 digits (e.g. 09171234567)'
+      : 'Enter a valid phone number (7–15 digits)';
+    target === 'edit' ? setEditPhoneError(msg) : setCreatePhoneError(msg);
   };
 
   const fetchUsers = async () => {
@@ -385,6 +401,7 @@ export function UserManagementView({ userRole }: UserManagementViewProps) {
         const result = await response.json();
         setUsers([...users, result.user]);
         setIsCreateModalOpen(false);
+        setCreatePhoneError('');
         setNewUser({
           first_name: '',
           middle_name: '',
@@ -955,6 +972,7 @@ export function UserManagementView({ userRole }: UserManagementViewProps) {
                 onClick={() => {
                   setIsModalOpen(false);
                   setSelectedUser(null);
+                  setEditPhoneError('');
                 }}
                 className="text-white hover:bg-white/20 p-2 rounded-lg transition-colors"
               >
@@ -1020,9 +1038,15 @@ export function UserManagementView({ userRole }: UserManagementViewProps) {
                 <input
                   type="text"
                   value={selectedUser.phone_number || ''}
-                  onChange={(e) => setSelectedUser({ ...selectedUser, phone_number: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087]"
+                  onChange={(e) => {
+                    const digits = e.target.value.replace(/\D/g, '');
+                    setSelectedUser({ ...selectedUser, phone_number: digits });
+                    validatePhone(digits, 'edit');
+                  }}
+                  inputMode="numeric"
+                  className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] ${editPhoneError ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
                 />
+                {editPhoneError && <p className="text-xs text-red-500 mt-1">{editPhoneError}</p>}
               </div>
 
               <div>
@@ -1038,19 +1062,16 @@ export function UserManagementView({ userRole }: UserManagementViewProps) {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Course Graduated</label>
-                  <select
+                  <input
+                    list="edit-course-options"
                     value={selectedUser.course || ''}
                     onChange={(e) => setSelectedUser({ ...selectedUser, course: e.target.value })}
+                    placeholder="Type or select course"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087]"
-                  >
-                    <option value="">Select course</option>
-                    <option value="bs-computer-science">BS Computer Science</option>
-                    <option value="bs-information-technology">BS Information Technology</option>
-                    <option value="bs-information-systems">BS Information Systems</option>
-                    <option value="bs-information-management">BS Information Management</option>
-                    <option value="bs-data-science">BS Data Science</option>
-                    <option value="other">Other</option>
-                  </select>
+                  />
+                  <datalist id="edit-course-options">
+                    {PROGRAM_OPTIONS.map(opt => <option key={opt} value={opt} />)}
+                  </datalist>
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Batch Year</label>
@@ -1078,6 +1099,7 @@ export function UserManagementView({ userRole }: UserManagementViewProps) {
                   onClick={() => {
                     setIsModalOpen(false);
                     setSelectedUser(null);
+                    setEditPhoneError('');
                   }}
                   className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-semibold"
                 >
@@ -1101,6 +1123,7 @@ export function UserManagementView({ userRole }: UserManagementViewProps) {
               <button
                 onClick={() => {
                   setIsCreateModalOpen(false);
+                  setCreatePhoneError('');
                   setNewUser({
                     first_name: '',
                     middle_name: '',
@@ -1192,10 +1215,16 @@ export function UserManagementView({ userRole }: UserManagementViewProps) {
                 <input
                   type="text"
                   value={newUser.phone_number}
-                  onChange={(e) => setNewUser({ ...newUser, phone_number: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087]"
-                  placeholder="+639171234567"
+                  onChange={(e) => {
+                    const digits = e.target.value.replace(/\D/g, '');
+                    setNewUser({ ...newUser, phone_number: digits });
+                    validatePhone(digits, 'create');
+                  }}
+                  inputMode="numeric"
+                  className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] ${createPhoneError ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
+                  placeholder="09171234567"
                 />
+                {createPhoneError && <p className="text-xs text-red-500 mt-1">{createPhoneError}</p>}
               </div>
 
               <div>
@@ -1212,19 +1241,16 @@ export function UserManagementView({ userRole }: UserManagementViewProps) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Course Graduated</label>
-                  <select
+                  <input
+                    list="create-course-options"
                     value={newUser.course}
                     onChange={(e) => setNewUser({ ...newUser, course: e.target.value })}
+                    placeholder="Type or select course"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087]"
-                  >
-                    <option value="">Select course</option>
-                    <option value="bs-computer-science">BS Computer Science</option>
-                    <option value="bs-information-technology">BS Information Technology</option>
-                    <option value="bs-information-systems">BS Information Systems</option>
-                    <option value="bs-information-management">BS Information Management</option>
-                    <option value="bs-data-science">BS Data Science</option>
-                    <option value="other">Other</option>
-                  </select>
+                  />
+                  <datalist id="create-course-options">
+                    {PROGRAM_OPTIONS.map(opt => <option key={opt} value={opt} />)}
+                  </datalist>
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Batch Year</label>

@@ -2,6 +2,44 @@ import { useState, useEffect, useRef, type ChangeEvent } from 'react';
 import { Mail, Phone, MapPin, Briefcase, GraduationCap, Edit3, Save, X, Trash2, Camera } from 'lucide-react';
 import { Footer } from '../Footer';
 
+const PROGRAM_OPTIONS = [
+  'BS Computer Science', 'BS Information Systems', 'BS Information Technology',
+  'BS Data Science', 'BS Information Management', 'AB Communication',
+  'AB English Language', 'AB Interdisciplinary Studies Minor In Language and Literature',
+  'AB Interdisciplinary Studies Minor In Media and Business',
+  'AB Interdisciplinary Studies Minor In Media and Technology',
+  'AB Interdisciplinary Studies Minor In Philosophy and Theology',
+  'AB Philosophy', 'AB Anthropology', 'AB Development Studies', 'AB Economics',
+  'AB International Studies Major in American Studies',
+  'AB International Studies Major in Asian Studies', 'AB Islamic Studies',
+  'AB Political Science', 'AB Psychology', 'AB Sociology', 'BS Social Work',
+  'BS Biology Major in General Biology', 'BS Biology Major in Medical Biology',
+  'BS Chemistry', 'BS Environmental Science', 'BS Mathematics', 'BS Accountancy',
+  'BS Management Accounting', 'BS Business Management', 'BS Entrepreneurship',
+  'BS Entrepreneurship Major in Agri-Business', 'BS Finance',
+  'BS Human Resource Development and Management', 'BS Marketing',
+  'Bachelor of Public Administration', 'BS Architecture', 'BS Aerospace Engineering',
+  'BS Civil Engineering', 'BS Chemical Engineering', 'BS Computer Engineering',
+  'BS Electrical Engineering', 'BS Electronics Engineering', 'BS Industrial Engineering',
+  'BS Mechanical Engineering', 'BS Robotics Engineering',
+  'Bachelor of Early Childhood Education', 'Bachelor of Elementary Education',
+  'Bachelor of Secondary Education Major In English',
+  'Bachelor of Secondary Education Major In Mathematics',
+  'Bachelor of Secondary Education Major In Social Studies',
+  'Bachelor of Secondary Education Major In Science', 'BS Nursing',
+];
+
+const PSGC_API = 'https://psgc.cloud/api';
+
+const REGION_PSGC_CODES: Record<string, string> = {
+  'ncr': '1300000000', 'car': '1400000000', 'region-1': '0100000000',
+  'region-2': '0200000000', 'region-3': '0300000000', 'region-4a': '0400000000',
+  'region-4b': '1700000000', 'region-5': '0500000000', 'region-6': '0600000000',
+  'region-7': '0700000000', 'region-8': '0800000000', 'region-9': '0900000000',
+  'region-10': '1000000000', 'region-11': '1100000000', 'region-12': '1200000000',
+  'region-13': '1600000000', 'barmm': '1900000000',
+};
+
 interface ProfileViewProps {
   userRole: 'alumni' | 'admin';
 }
@@ -12,6 +50,13 @@ export function ProfileView({ userRole }: ProfileViewProps) {
   const [profileImageUrl, setProfileImageUrl] = useState('');
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [countries, setCountries] = useState<string[]>([]);
+  const [provinces, setProvinces] = useState<{ code: string; name: string }[]>([]);
+  const [cities, setCities] = useState<{ code: string; name: string }[]>([]);
+  const [loadingProvinces, setLoadingProvinces] = useState(false);
+  const [loadingCities, setLoadingCities] = useState(false);
+  const [phoneError, setPhoneError] = useState('');
+  const [telephoneError, setTelephoneError] = useState('');
   
   // Main State
   const [formData, setFormData] = useState({
@@ -46,6 +91,53 @@ export function ProfileView({ userRole }: ProfileViewProps) {
     window.scrollTo(0, 0);
     fetchUserData();
   }, []);
+
+  useEffect(() => {
+    fetch('https://restcountries.com/v3.1/all?fields=name')
+      .then(r => r.json())
+      .then((data: { name: { common: string } }[]) => {
+        const names = data.map(c => c.name.common).sort();
+        setCountries(names.filter(n => n !== 'Philippines'));
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!formData.region || !REGION_PSGC_CODES[formData.region]) {
+      setProvinces([]);
+      setCities([]);
+      return;
+    }
+    setLoadingProvinces(true);
+    setProvinces([]);
+    setCities([]);
+    const code = REGION_PSGC_CODES[formData.region];
+    const endpoint = formData.region === 'ncr'
+      ? `${PSGC_API}/regions/${code}/cities-municipalities/`
+      : `${PSGC_API}/regions/${code}/provinces/`;
+    fetch(endpoint)
+      .then(r => r.json())
+      .then((data: { code: string; name: string }[]) => {
+        setProvinces(data.sort((a, b) => a.name.localeCompare(b.name)));
+      })
+      .catch(() => {})
+      .finally(() => setLoadingProvinces(false));
+  }, [formData.region]);
+
+  useEffect(() => {
+    if (!formData.province || formData.region === 'ncr') return;
+    const prov = provinces.find(p => p.name === formData.province);
+    if (!prov) return;
+    setLoadingCities(true);
+    setCities([]);
+    fetch(`${PSGC_API}/provinces/${prov.code}/cities-municipalities/`)
+      .then(r => r.json())
+      .then((data: { code: string; name: string }[]) => {
+        setCities(data.sort((a, b) => a.name.localeCompare(b.name)));
+      })
+      .catch(() => {})
+      .finally(() => setLoadingCities(false));
+  }, [formData.province, provinces]);
 
   const fetchUserData = async () => {
     try {
@@ -127,6 +219,46 @@ export function ProfileView({ userRole }: ProfileViewProps) {
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: currentYear - 1949 }, (_, i) => currentYear - i);
 
+  const validatePhone = (value: string, field: 'phone' | 'telephone') => {
+    if (!value) {
+      if (field === 'phone') setPhoneError('');
+      else setTelephoneError('');
+      return;
+    }
+    const isValid = value.startsWith('09')
+      ? value.length === 11
+      : value.length >= 7 && value.length <= 15;
+    const msg = isValid ? '' : value.startsWith('09')
+      ? 'Philippine mobile numbers must be 11 digits (e.g. 09171234567)'
+      : 'Enter a valid phone number (7–15 digits)';
+    if (field === 'phone') setPhoneError(msg);
+    else setTelephoneError(msg);
+  };
+
+  const handleFieldChange = (field: string, value: string) => {
+    if (['phone', 'telephone', 'zipcode'].includes(field)) {
+      value = value.replace(/\D/g, '');
+    }
+    if (field === 'phone') { validatePhone(value, 'phone'); setFormData(prev => ({ ...prev, phone: value })); return; }
+    if (field === 'telephone') { validatePhone(value, 'telephone'); setFormData(prev => ({ ...prev, telephone: value })); return; }
+    if (field === 'zipcode') { setFormData(prev => ({ ...prev, zipcode: value })); return; }
+    if (field === 'country') {
+      setFormData(prev => ({ ...prev, country: value, region: '', province: '', city: '' }));
+      setProvinces([]);
+      setCities([]);
+      return;
+    }
+    if (field === 'region') {
+      setFormData(prev => ({ ...prev, region: value, province: '', city: '' }));
+      return;
+    }
+    if (field === 'province') {
+      setFormData(prev => ({ ...prev, province: value, city: '' }));
+      return;
+    }
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
   const handleEdit = () => {
     setTempData(formData); // Store current data before editing
     setIsEditing(true);
@@ -159,6 +291,7 @@ export function ProfileView({ userRole }: ProfileViewProps) {
           first_name: formData.firstName,
           middle_name: cleanMiddleName,
           last_name: formData.lastName,
+          email: formData.email,
           phone_number: formData.phone,
           telephone_number: cleanTelephone,
           current_address: formData.address,
@@ -185,6 +318,10 @@ export function ProfileView({ userRole }: ProfileViewProps) {
         // Update localStorage with the new full name (only include middle name if not empty)
         const fullName = `${formData.firstName}${cleanMiddleName ? ' ' + cleanMiddleName : ''} ${formData.lastName}`.trim();
         localStorage.setItem('userName', fullName);
+        // Update stored email if it changed
+        if (formData.email && formData.email !== userEmail) {
+          localStorage.setItem('userEmail', formData.email);
+        }
         
         // Trigger a storage event to update sidebar in real-time
         window.dispatchEvent(new Event('storage'));
@@ -427,37 +564,49 @@ export function ProfileView({ userRole }: ProfileViewProps) {
             {/* Email Address */}
             <div className="space-y-1">
               <label className="text-sm font-semibold text-gray-700">Email Address</label>
-              <input 
+              <input
                 type="email"
                 value={formData.email || ''}
                 onChange={(e) => setFormData({...formData, email: e.target.value})}
-                disabled={true}
-                className="w-full px-3 py-2 border rounded-lg transition-all text-sm bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed"
+                disabled={!isEditing}
+                className={`w-full px-3 py-2 border rounded-lg transition-all text-sm ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
               />
             </div>
 
             {/* Phone Number */}
             <div className="space-y-1">
               <label className="text-sm font-semibold text-gray-700">Phone Number</label>
-              <input 
+              <input
                 type="text"
                 value={formData.phone || ''}
-                onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                onChange={(e) => handleFieldChange('phone', e.target.value)}
                 disabled={!isEditing}
-                className={`w-full px-3 py-2 border rounded-lg transition-all text-sm ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
+                inputMode="numeric"
+                className={`w-full px-3 py-2 border rounded-lg transition-all text-sm ${
+                  !isEditing ? 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'
+                  : phoneError ? 'bg-red-50 border-red-500 text-gray-900'
+                  : 'bg-white border-blue-400 text-gray-900'
+                }`}
               />
+              {phoneError && isEditing && <p className="text-xs text-red-500 mt-1">{phoneError}</p>}
             </div>
 
             {/* Telephone Number */}
             <div className="space-y-1">
               <label className="text-sm font-semibold text-gray-700">Telephone Number</label>
-              <input 
+              <input
                 type="text"
                 value={formData.telephone || ''}
-                onChange={(e) => setFormData({...formData, telephone: e.target.value})}
+                onChange={(e) => handleFieldChange('telephone', e.target.value)}
                 disabled={!isEditing}
-                className={`w-full px-3 py-2 border rounded-lg transition-all text-sm ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
+                inputMode="numeric"
+                className={`w-full px-3 py-2 border rounded-lg transition-all text-sm ${
+                  !isEditing ? 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'
+                  : telephoneError ? 'bg-red-50 border-red-500 text-gray-900'
+                  : 'bg-white border-blue-400 text-gray-900'
+                }`}
               />
+              {telephoneError && isEditing && <p className="text-xs text-red-500 mt-1">{telephoneError}</p>}
             </div>
 
             {/* Birth Date */}
@@ -475,11 +624,12 @@ export function ProfileView({ userRole }: ProfileViewProps) {
             {/* Zipcode */}
             <div className="space-y-1">
               <label className="text-sm font-semibold text-gray-700">Zipcode</label>
-              <input 
+              <input
                 type="text"
                 value={formData.zipcode || ''}
-                onChange={(e) => setFormData({...formData, zipcode: e.target.value})}
+                onChange={(e) => handleFieldChange('zipcode', e.target.value)}
                 disabled={!isEditing}
+                inputMode="numeric"
                 className={`w-full px-3 py-2 border rounded-lg transition-all text-sm ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
               />
             </div>
@@ -622,40 +772,13 @@ export function ProfileView({ userRole }: ProfileViewProps) {
               <label className="text-sm font-semibold text-gray-700">Country/Location</label>
               <select
                 value={formData.country || ''}
-                onChange={(e) => setFormData({...formData, country: e.target.value})}
+                onChange={(e) => handleFieldChange('country', e.target.value)}
                 disabled={!isEditing}
                 className={`w-full px-3 py-2 border rounded-lg transition-all text-sm ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
               >
                 <option value="">Select your country</option>
                 <option value="Philippines">Philippines</option>
-                <option value="United States">United States</option>
-                <option value="Canada">Canada</option>
-                <option value="United Kingdom">United Kingdom</option>
-                <option value="Australia">Australia</option>
-                <option value="Japan">Japan</option>
-                <option value="South Korea">South Korea</option>
-                <option value="Singapore">Singapore</option>
-                <option value="Malaysia">Malaysia</option>
-                <option value="Thailand">Thailand</option>
-                <option value="Vietnam">Vietnam</option>
-                <option value="Indonesia">Indonesia</option>
-                <option value="China">China</option>
-                <option value="Hong Kong">Hong Kong</option>
-                <option value="Taiwan">Taiwan</option>
-                <option value="United Arab Emirates">United Arab Emirates</option>
-                <option value="Saudi Arabia">Saudi Arabia</option>
-                <option value="Qatar">Qatar</option>
-                <option value="Kuwait">Kuwait</option>
-                <option value="New Zealand">New Zealand</option>
-                <option value="Germany">Germany</option>
-                <option value="France">France</option>
-                <option value="Italy">Italy</option>
-                <option value="Spain">Spain</option>
-                <option value="Netherlands">Netherlands</option>
-                <option value="Switzerland">Switzerland</option>
-                <option value="Norway">Norway</option>
-                <option value="Sweden">Sweden</option>
-                <option value="Other">Other</option>
+                {countries.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
 
@@ -667,7 +790,7 @@ export function ProfileView({ userRole }: ProfileViewProps) {
                   <label className="text-sm font-semibold text-gray-700">Region</label>
                   <select
                     value={formData.region || ''}
-                    onChange={(e) => setFormData({...formData, region: e.target.value})}
+                    onChange={(e) => handleFieldChange('region', e.target.value)}
                     disabled={!isEditing}
                     className={`w-full px-3 py-2 border rounded-lg transition-all text-sm ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
                   >
@@ -693,47 +816,56 @@ export function ProfileView({ userRole }: ProfileViewProps) {
 
                 {/* Province */}
                 <div className="space-y-1">
-                  <label className="text-sm font-semibold text-gray-700">Province</label>
-                  <input 
-                    type="text"
+                  <label className="text-sm font-semibold text-gray-700">
+                    {formData.region === 'ncr' ? 'City / Municipality' : 'Province'}
+                  </label>
+                  <select
                     value={formData.province || ''}
-                    onChange={(e) => setFormData({...formData, province: e.target.value})}
-                    disabled={!isEditing}
-                    className={`w-full px-3 py-2 border rounded-lg transition-all text-sm ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
-                  />
+                    onChange={(e) => handleFieldChange('province', e.target.value)}
+                    disabled={!isEditing || loadingProvinces || provinces.length === 0}
+                    className={`w-full px-3 py-2 border rounded-lg transition-all text-sm ${isEditing && !loadingProvinces ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
+                  >
+                    <option value="">
+                      {loadingProvinces ? 'Loading...' : formData.region === 'ncr' ? 'Select city/municipality' : 'Select province'}
+                    </option>
+                    {provinces.map(p => <option key={p.code} value={p.name}>{p.name}</option>)}
+                  </select>
                 </div>
 
                 {/* City */}
-                <div className="space-y-1">
-                  <label className="text-sm font-semibold text-gray-700">City</label>
-                  <input 
-                    type="text"
-                    value={formData.city || ''}
-                    onChange={(e) => setFormData({...formData, city: e.target.value})}
-                    disabled={!isEditing}
-                    className={`w-full px-3 py-2 border rounded-lg transition-all text-sm ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
-                  />
-                </div>
+                {formData.region !== 'ncr' && (
+                  <div className="space-y-1">
+                    <label className="text-sm font-semibold text-gray-700">City / Municipality</label>
+                    <select
+                      value={formData.city || ''}
+                      onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
+                      disabled={!isEditing || loadingCities || cities.length === 0}
+                      className={`w-full px-3 py-2 border rounded-lg transition-all text-sm ${isEditing && !loadingCities ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
+                    >
+                      <option value="">
+                        {loadingCities ? 'Loading...' : 'Select city/municipality'}
+                      </option>
+                      {cities.map(c => <option key={c.code} value={c.name}>{c.name}</option>)}
+                    </select>
+                  </div>
+                )}
               </>
             )}
 
             {/* Course */}
             <div className="space-y-1">
               <label className="text-sm font-semibold text-gray-700">Course</label>
-              <select
+              <input
+                list="course-options"
                 value={formData.course || ''}
-                onChange={(e) => setFormData({...formData, course: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, course: e.target.value })}
                 disabled={!isEditing}
+                placeholder="Type or select your course"
                 className={`w-full px-3 py-2 border rounded-lg transition-all text-sm ${isEditing ? 'bg-white border-blue-400 text-gray-900' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
-              >
-                <option value="">Select your course</option>
-                <option value="bs-computer-science">BS Computer Science</option>
-                <option value="bs-information-technology">BS Information Technology</option>
-                <option value="bs-information-systems">BS Information Systems</option>
-                <option value="bs-information-management">BS Information Management</option>
-                <option value="bs-data-science">BS Data Science</option>
-                <option value="other">Other</option>
-              </select>
+              />
+              <datalist id="course-options">
+                {PROGRAM_OPTIONS.map(opt => <option key={opt} value={opt} />)}
+              </datalist>
             </div>
 
             {/* Batch Year */}

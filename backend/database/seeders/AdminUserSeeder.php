@@ -11,14 +11,14 @@ class AdminUserSeeder extends Seeder
     public function run(): void
     {
         User::create([
+            'name' => 'Admin User',
             'first_name' => 'Admin',
             'last_name' => 'User',
             'email' => 'admin@addu.edu.ph',
             'password' => Hash::make('password'),
             'role' => 'admin',
-            'graduation_year' => 2026,
-            'degree' => 'Computer Science',
             'is_active' => true,
+            'approval_status' => 'approved',
         ]);
 
         echo "Admin user created:\n";
