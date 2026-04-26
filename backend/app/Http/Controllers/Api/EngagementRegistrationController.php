@@ -110,4 +110,13 @@ class EngagementRegistrationController extends Controller
             ->header('Content-Type', 'application/pdf')
             ->header('Content-Disposition', 'attachment; filename="giveback-receipt-' . $registration->id . '.pdf"');
     }
+
+    public function updateVisibility(Request $request, $id)
+    {
+        $registration = EngagementRegistration::findOrFail($id);
+        $registration->is_hidden = $request->input('is_hidden');
+        $registration->save();
+
+        return response()->json(['message' => 'Visibility updated successfully']);
+    }
 }

@@ -18,11 +18,13 @@ class EngagementRegistration extends Model
         'proof_path',
         'payment_status',
         'status',
+        'is_hidden',
     ];
 
     protected $casts = [
         'guests_count' => 'integer',
         'amount_due' => 'decimal:2',
+        'is_hidden' => 'boolean',
     ];
 
     protected $appends = ['full_name'];

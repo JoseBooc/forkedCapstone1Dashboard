@@ -20,38 +20,39 @@ Route::get('/test', function () {
 });
 
 // Authentication API
-Route::post('/login', [UserController::class, 'login']); // Login/authenticate user
+Route::post('/login', [UserController::class, 'login']);
 
 // User Management API
-Route::get('/users', [UserController::class, 'index']); // Get all users
-Route::post('/users', [UserController::class, 'store']); // Create new user
-Route::get('/users/pending/list', [UserController::class, 'getPendingUsers']); // Get pending approval users (must be before wildcard route)
-Route::get('/users/analytics/course-approvals', [UserController::class, 'getCourseAnalytics']); // Alumni analytics by course (must be before wildcard route)
-Route::get('/users/{email}', [UserController::class, 'show']); // Get user by email
-Route::put('/users/{email}', [UserController::class, 'update']); // Update user by email
-Route::post('/users/{email}/profile-image', [UserController::class, 'uploadProfileImage']); // Upload profile image by email
-Route::put('/users/id/{id}', [UserController::class, 'updateById']); // Update user by ID
-Route::delete('/users/{id}', [UserController::class, 'destroy']); // Delete user by ID
-Route::patch('/users/{id}/toggle-active', [UserController::class, 'toggleActive']); // Block/Unblock user
-Route::patch('/users/{id}/approve', [UserController::class, 'approveUser']); // Approve user
-Route::patch('/users/{id}/disapprove', [UserController::class, 'disapproveUser']); // Disapprove user
+Route::get('/users', [UserController::class, 'index']);
+Route::post('/users', [UserController::class, 'store']);
+Route::get('/users/pending/list', [UserController::class, 'getPendingUsers']);
+Route::get('/users/analytics/course-approvals', [UserController::class, 'getCourseAnalytics']);
+Route::get('/users/{email}', [UserController::class, 'show']);
+Route::put('/users/{email}', [UserController::class, 'update']);
+Route::post('/users/{email}/profile-image', [UserController::class, 'uploadProfileImage']);
+Route::put('/users/id/{id}', [UserController::class, 'updateById']);
+Route::delete('/users/{id}', [UserController::class, 'destroy']);
+Route::patch('/users/{id}/toggle-active', [UserController::class, 'toggleActive']);
+Route::patch('/users/{id}/approve', [UserController::class, 'approveUser']);
+Route::patch('/users/{id}/disapprove', [UserController::class, 'disapproveUser']);
 
 // Donation Campaign API
-Route::get('/campaigns', [DonationCampaignController::class, 'index']); // Get all campaigns
-Route::get('/campaigns/{id}', [DonationCampaignController::class, 'show']); // Get single campaign
-Route::post('/campaigns', [DonationCampaignController::class, 'store']); // Create campaign (admin)
-Route::put('/campaigns/{id}', [DonationCampaignController::class, 'update']); // Update campaign (admin)
-Route::delete('/campaigns/{id}', [DonationCampaignController::class, 'destroy']); // Delete campaign (admin)
-Route::post('/campaigns/{id}/donate', [DonationCampaignController::class, 'addDonation']); // Add donation to campaign
-Route::patch('/campaigns/{id}/toggle-active', [DonationCampaignController::class, 'toggleActive']); // Toggle campaign status (admin)
-Route::get('/campaigns/{id}/donors', [DonationCampaignController::class, 'getDonors']); // Get donors for campaign (admin)
+Route::get('/campaigns', [DonationCampaignController::class, 'index']);
+Route::get('/campaigns/{id}', [DonationCampaignController::class, 'show']);
+Route::post('/campaigns', [DonationCampaignController::class, 'store']);
+Route::put('/campaigns/{id}', [DonationCampaignController::class, 'update']);
+Route::delete('/campaigns/{id}', [DonationCampaignController::class, 'destroy']);
+Route::post('/campaigns/{id}/donate', [DonationCampaignController::class, 'addDonation']);
+Route::patch('/campaigns/{id}/toggle-active', [DonationCampaignController::class, 'toggleActive']);
+Route::get('/campaigns/{id}/donors', [DonationCampaignController::class, 'getDonors']);
 
 // Donation API
-Route::post('/donations', [DonationController::class, 'store']); // Create general donation
-Route::get('/donations', [DonationController::class, 'index']); // Get all donations (admin)
-Route::get('/donations/email/{email}', [DonationController::class, 'getByEmail']); // Get donations by email
-Route::get('/donations/statistics', [DonationController::class, 'getStatistics']); // Get donation statistics
-Route::get('/donations/analytics', [DonationController::class, 'getAnalytics']); // Get detailed analytics (admin)
+Route::post('/donations', [DonationController::class, 'store']);
+Route::get('/donations', [DonationController::class, 'index']);
+Route::patch('/donations/{id}/payment-status', [DonationController::class, 'updatePaymentStatus']);
+Route::get('/donations/email/{email}', [DonationController::class, 'getByEmail']);
+Route::get('/donations/statistics', [DonationController::class, 'getStatistics']);
+Route::get('/donations/analytics', [DonationController::class, 'getAnalytics']);
 
 // GiveBack Projects API
 Route::get('/giveback/projects', [GivebackProjectController::class, 'index']);
@@ -107,3 +108,9 @@ Route::patch('/giveback/posts/{id}/restore', [GivebackPostController::class, 're
 Route::get('/giveback/analytics/overview', [GivebackAnalyticsController::class, 'overview']);
 Route::get('/giveback/analytics/projects/{id}', [GivebackAnalyticsController::class, 'project']);
 Route::get('/giveback/analytics/activities/{id}', [GivebackAnalyticsController::class, 'activity']);
+
+// Registrations
+Route::patch('/giveback/registrations/{id}/visibility', [EngagementRegistrationController::class, 'updateVisibility']);
+
+// Donations
+Route::patch('/donations/{id}/visibility', [DonationController::class, 'updateVisibility']);

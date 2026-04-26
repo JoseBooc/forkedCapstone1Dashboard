@@ -1,22 +1,25 @@
-import { Users, Calendar, Heart, Globe, MapPin, Clock, GraduationCap } from 'lucide-react';
+import React from 'react';
+import { Users, Calendar, Globe, MapPin, Clock, GraduationCap, Heart, BookOpen, Award, Leaf, Scale, Stethoscope, Cpu } from 'lucide-react';
 import { Footer } from '../Footer';
-
-// FIXED PATHS: Moving up 3 levels to reach src/assets
-import adduBackground from '../../../assets/_MG_9330.jpg';
+import campusNight from '../../../assets/Roxas-Colored.jpg';
 import admissionsFairImage from '../../../assets/AdmissionsBG.jpg';
 import webDevEventImage from '../../../assets/WebDevBG.jpg';
 import careerDevImage from '../../../assets/CareerDevBG.jpg';
 
-import profile1 from '../../../assets/1stProfileHome.jpg';
-import profile2 from '../../../assets/2ndProfileHome.jpg';
-import profile3 from '../../../assets/3rdProfileHome.jpg';
-import profile4 from '../../../assets/4thProfileHome.jpg';
-import profile5 from '../../../assets/5thProfileHome.jpg';
-import profile6 from '../../../assets/6thProfileHome.jpg';
+const C = {
+  navy:   '#001F5B',
+  navyDk: '#00153D',
+  blue:   '#003087',
+  gold:   '#C5A96A',
+  goldLt: '#D4BC86',
+  slate:  '#2C3E50',
+  muted:  '#6B7280',
+} as const;
 
 interface HomeViewProps {
   userRole: 'alumni' | 'admin';
   onNavigate: (view: any) => void;
+  onLogout?: () => void;
 }
 
 function EventCard({ title, date, time, location, type, image }: any) {
@@ -43,91 +46,320 @@ function EventCard({ title, date, time, location, type, image }: any) {
   );
 }
 
-function SpotlightCard({ name, classYear, title, excerpt, image, category }: any) {
+const categoryIcons: Record<string, any> = {
+  Entrepreneurship: Cpu,
+  Healthcare: Stethoscope,
+  'Social Justice': Scale,
+  Engineering: Cpu,
+  Education: BookOpen,
+  Sustainability: Leaf,
+};
+
+function SpotlightCard({ name, classYear, title, excerpt, category }: any) {
+  const Icon = categoryIcons[category] || Award;
   return (
-    <div className="bg-white rounded-[32px] overflow-hidden border border-gray-100 shadow-sm flex flex-col md:flex-row h-full text-left">
-      <div className="md:w-[38%] h-52 md:h-auto overflow-hidden">
-        <img src={image} alt={name} className="w-full h-full object-cover" />
+    <div style={{
+      background: '#fff',
+      borderRadius: 32,
+      border: '1px solid #E5E7EB',
+      boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+      padding: '2rem',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '1rem',
+      fontFamily: "'DM Sans', sans-serif",
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{
+          width: 40, height: 40, borderRadius: '50%',
+          background: 'rgba(0,48,135,0.07)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+        }}>
+          <Icon size={18} color={C.blue} />
+        </div>
+        <span style={{
+          fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
+          textTransform: 'uppercase', color: C.blue,
+          background: 'rgba(0,48,135,0.07)',
+          padding: '3px 12px', borderRadius: 100,
+        }}>
+          {category}
+        </span>
       </div>
-      <div className="md:w-[62%] p-8 flex flex-col">
-        <div className="inline-flex items-center px-3 py-1 bg-blue-50 text-[#003087] text-[10px] rounded-full font-bold w-fit mb-4 uppercase tracking-wider">{category}</div>
-        <h3 className="text-2xl font-bold text-[#003087] mb-1">{name}</h3>
-        <p className="text-sm text-gray-400 mb-1 font-medium">Class of {classYear}</p>
-        <p className="text-sm text-[#1919FF] mb-4 font-semibold uppercase tracking-wide leading-tight">{title}</p>
-        <p className="text-sm text-gray-500 leading-relaxed mb-6 line-clamp-3">{excerpt}</p>
-        <button className="mt-auto text-[#003087] font-bold text-sm flex items-center gap-1 hover:translate-x-1 transition-transform">Read Full Story →</button>
-      </div>
+
+      <div style={{ width: 32, height: 2, background: C.gold, borderRadius: 2 }} />
+
+      <h3 style={{
+        fontFamily: "'Cormorant Garamond', serif",
+        fontSize: '1.6rem', fontWeight: 600,
+        color: C.navy, lineHeight: 1.2, margin: 0,
+      }}>
+        {name}
+      </h3>
+
+      <p style={{ fontSize: 12, color: C.muted, fontWeight: 400, margin: 0 }}>
+        Class of {classYear}
+      </p>
+
+      <p style={{
+        fontSize: 11, fontWeight: 700, letterSpacing: '0.08em',
+        textTransform: 'uppercase', color: C.blue, margin: 0,
+      }}>
+        {title}
+      </p>
+
+      <p style={{
+        fontSize: 13, color: '#6B7280', lineHeight: 1.7,
+        margin: 0, flexGrow: 1,
+      }}>
+        {excerpt}
+      </p>
+
+      <button
+        style={{
+          background: 'none', border: 'none', cursor: 'pointer',
+          fontFamily: "'DM Sans', sans-serif",
+          fontSize: 13, fontWeight: 700, color: C.blue,
+          padding: 0, display: 'flex', alignItems: 'center', gap: 4,
+          transition: 'transform 0.2s',
+          alignSelf: 'flex-start',
+        }}
+        onMouseOver={(e) => (e.currentTarget.style.transform = 'translateX(4px)')}
+        onMouseOut={(e) => (e.currentTarget.style.transform = 'translateX(0)')}
+      >
+        Read Full Story
+      </button>
     </div>
   );
 }
 
-export function HomeView({ userRole, onNavigate }: HomeViewProps) {
+export function HomeView({ userRole, onNavigate, onLogout }: HomeViewProps) {
   const spotlights = [
-    { name: "Maria Santos", classYear: "2015", title: "CEO, Tech Innovations Inc.", category: "Entrepreneurship", image: profile1, excerpt: "Maria shares her journey of innovation and how her Ateneo education shaped her entrepreneurial mindset." },
-    { name: "Dr. Roberto Cruz", classYear: "2008", title: "Medical Director, Hope Medical Center", category: "Healthcare", image: profile2, excerpt: "Dr. Cruz discusses his commitment to serving underserved communities." },
-    { name: "Atty. Angela Reyes", classYear: "2012", title: "Human Rights Lawyer & Advocate", category: "Social Justice", image: profile3, excerpt: "Angela uses her legal expertise to defend marginalized communities across Mindanao." },
-    { name: "Engineer Carlos Mendoza", classYear: "2010", title: "Senior Project Manager", category: "Engineering", image: profile4, excerpt: "Carlos credits ADDU's engineering program for his problem-solving approach." },
-    { name: "Prof. Isabel Ferrer", classYear: "2005", title: "Dean of Education", category: "Education", image: profile5, excerpt: "Prof. Ferrer shares how ADDU inspired her career in transforming Philippine education." },
-    { name: "Marcus Lim", classYear: "2018", title: "Social Entrepreneur", category: "Sustainability", image: profile6, excerpt: "Marcus founded an organization focused on sustainable agriculture." }
+    { name: "Maria Santos",            classYear: "2015", title: "CEO, Tech Innovations Inc.",           category: "Entrepreneurship", excerpt: "Maria shares her journey of innovation and how her Ateneo education shaped her entrepreneurial mindset." },
+    { name: "Dr. Roberto Cruz",        classYear: "2008", title: "Medical Director, Hope Medical Center", category: "Healthcare",       excerpt: "Dr. Cruz discusses his commitment to serving underserved communities." },
+    { name: "Atty. Angela Reyes",      classYear: "2012", title: "Human Rights Lawyer & Advocate",        category: "Social Justice",   excerpt: "Angela uses her legal expertise to defend marginalized communities across Mindanao." },
+    { name: "Engineer Carlos Mendoza", classYear: "2010", title: "Senior Project Manager",                category: "Engineering",      excerpt: "Carlos credits ADDU's engineering program for his problem-solving approach." },
+    { name: "Prof. Isabel Ferrer",     classYear: "2005", title: "Dean of Education",                    category: "Education",        excerpt: "Prof. Ferrer shares how ADDU inspired her career in transforming Philippine education." },
+    { name: "Marcus Lim",              classYear: "2018", title: "Social Entrepreneur",                  category: "Sustainability",   excerpt: "Marcus founded an organization focused on sustainable agriculture." },
   ];
 
   const events = [
-    { title: "Future Atenean unlocked 🔓💙\nYour journey starts here!", date: "Jan 23, 2026", time: "Mall hours", location: "SM Lanang", type: "Admissions", image: admissionsFairImage },
-    { title: "Web Development\nFor Beginners", date: "Jan 26, 2026", time: "6:00 PM", location: "Online", type: "Tech", image: webDevEventImage },
-    { title: "Career Development\nWorkshop", date: "Feb 20, 2026", time: "2:00 PM", location: "Virtual", type: "Professional", image: careerDevImage }
+    { title: "Alumni Homecoming\nGala Night",  date: "Coming Soon", time: "TBA", location: "Ateneo de Davao University", type: "Community",   image: admissionsFairImage },
+    { title: "Tech & Innovation\nSummit 2026", date: "Coming Soon", time: "TBA", location: "Online",                    type: "Tech",         image: webDevEventImage },
+    { title: "Career Development\nWorkshop",   date: "Coming Soon", time: "TBA", location: "Virtual",                   type: "Professional", image: careerDevImage },
   ];
 
+  const contactEmail = "mailto:alumni@addu.edu.ph";
+
   return (
-    <div className="flex flex-col min-h-screen bg-[#F8FAFC]">
-      {/* Container with consistent vertical spacing */}
+    <div className="flex flex-col min-h-screen bg-[#F8FAFC]" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,400;1,500&family=DM+Sans:wght@300;400;500;700&display=swap');
+      `}</style>
+
       <div className="p-8 space-y-24 flex-1">
-        
-        {/* Hero Section */}
-        <section className="relative h-[520px] flex items-center justify-center rounded-[40px] overflow-hidden text-center text-white shadow-2xl">
-          <div className="absolute inset-0 z-0" style={{ backgroundImage: `url(${adduBackground})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
-          <div className="absolute inset-0 bg-black/40 z-10" />
-          <div className="relative z-20 max-w-3xl px-6">
-            <h1 className="text-5xl md:text-7xl font-bold mb-6 tracking-tight">Welcome Home, Ateneans</h1>
-            <p className="text-xl text-white/90 mb-10 max-w-xl mx-auto leading-relaxed">Connecting generations of excellence. Join our community of 50,000+ alumni making a difference worldwide.</p>
-            <div className="flex flex-wrap justify-center gap-6">
-              <button onClick={() => onNavigate('profile')} className="px-10 py-4 bg-[#003087] text-white rounded-xl font-bold hover:bg-blue-800 transition-all shadow-lg">Update Profile</button>
-              <button onClick={() => onNavigate('events')} className="px-10 py-4 border-2 border-white text-white rounded-xl font-bold hover:bg-white/10 transition-all backdrop-blur-sm">Explore Events</button>
+
+        {/* Hero */}
+        <section style={{
+          position: 'relative', height: 520,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          borderRadius: 40, overflow: 'hidden',
+          textAlign: 'center', color: '#fff',
+          boxShadow: '0 20px 60px rgba(0,0,0,0.18)',
+        }}>
+          <div style={{
+            position: 'absolute', inset: 0,
+            backgroundImage: `url(${campusNight})`,
+            backgroundSize: 'cover', backgroundPosition: 'center',
+          }} />
+          <div style={{
+            position: 'absolute', inset: 0,
+            background: 'linear-gradient(160deg, rgba(0,21,61,0.92) 0%, rgba(0,48,135,0.75) 60%, rgba(0,21,61,0.88) 100%)',
+          }} />
+          <div style={{
+            position: 'absolute', top: 0, left: 0, bottom: 0, width: 4,
+            background: `linear-gradient(to bottom, transparent, ${C.gold}, transparent)`,
+            opacity: 0.7,
+          }} />
+
+          <div style={{ position: 'relative', zIndex: 2, maxWidth: 680, padding: '0 2rem' }}>
+            <span style={{
+              display: 'inline-block', marginBottom: 20,
+              padding: '3px 16px', borderRadius: 100,
+              border: `1px solid ${C.gold}`, color: C.gold,
+              fontSize: 10, fontWeight: 500, letterSpacing: '0.14em',
+              textTransform: 'uppercase',
+            }}>
+              Ad Majorem Dei Gloriam
+            </span>
+
+            <h1 style={{
+              fontFamily: "'Cormorant Garamond', serif",
+              fontSize: 'clamp(2.8rem, 5vw, 4.2rem)',
+              fontWeight: 500, lineHeight: 1.1,
+              marginBottom: 20, color: '#fff',
+            }}>
+              Welcome Home,{' '}
+              <em style={{ color: C.goldLt, fontStyle: 'italic' }}>Ateneans.</em>
+            </h1>
+
+            <p style={{
+              fontSize: 15, fontWeight: 300,
+              color: 'rgba(255,255,255,0.7)',
+              lineHeight: 1.8, maxWidth: 480, margin: '0 auto 40px',
+            }}>
+              Connecting generations of excellence. Join our community of 50,000+ alumni making a difference worldwide.
+            </p>
+
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 16, flexWrap: 'wrap' }}>
+              <button
+                onClick={() => onNavigate('profile')}
+                style={{
+                  padding: '14px 32px', background: C.blue,
+                  color: '#fff', border: 'none', borderRadius: 100,
+                  fontFamily: "'DM Sans', sans-serif",
+                  fontSize: 14, fontWeight: 500, cursor: 'pointer',
+                  transition: 'background 0.2s, transform 0.15s',
+                }}
+                onMouseOver={(e) => { e.currentTarget.style.background = C.navyDk; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                onMouseOut={(e) => { e.currentTarget.style.background = C.blue; e.currentTarget.style.transform = 'translateY(0)'; }}
+              >
+                Update Profile
+              </button>
+              <button
+                onClick={() => onNavigate('events')}
+                style={{
+                  padding: '14px 32px',
+                  background: 'transparent',
+                  color: '#fff',
+                  border: '1.5px solid rgba(255,255,255,0.6)',
+                  borderRadius: 100,
+                  fontFamily: "'DM Sans', sans-serif",
+                  fontSize: 14, fontWeight: 500, cursor: 'pointer',
+                  transition: 'background 0.2s',
+                }}
+                onMouseOver={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.1)')}
+                onMouseOut={(e) => (e.currentTarget.style.background = 'transparent')}
+              >
+                Explore Events
+              </button>
             </div>
           </div>
         </section>
 
-        {/* Stats Section */}
+        {/* Stats */}
         <section className="bg-white rounded-[32px] py-16 px-8 border border-gray-100 shadow-sm grid grid-cols-2 lg:grid-cols-4 gap-8">
-          {[{ icon: Users, label: "Active Alumni", value: "50,000+" }, { icon: Globe, label: "Countries", value: "75+" }, { icon: GraduationCap, label: "Scholars Supported", value: "500+" }, { icon: Heart, label: "Volunteer Hours", value: "25,000+" }].map((stat, i) => (
+          {[
+            { icon: Users,         label: 'Alumni',    value: '50K+' },
+            { icon: Globe,         label: 'Countries', value: '50+'  },
+            { icon: GraduationCap, label: 'Years',     value: '60+'  },
+            { icon: Heart,         label: 'Give Back', value: '1k+' },
+          ].map((stat, i) => (
             <div key={i} className="flex flex-col items-center">
-              <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center mb-6"><stat.icon className="w-8 h-8 text-[#003087]" /></div>
-              <div className="text-3xl font-extrabold text-[#003087] mb-1">{stat.value}</div>
+              <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center mb-6">
+                <stat.icon className="w-8 h-8 text-[#003087]" />
+              </div>
+              <div style={{
+                fontFamily: "'Cormorant Garamond', serif",
+                fontSize: '2rem', fontWeight: 600,
+                color: C.gold, lineHeight: 1, marginBottom: 6,
+              }}>
+                {stat.value}
+              </div>
               <div className="text-gray-400 font-bold text-[10px] uppercase tracking-[0.2em]">{stat.label}</div>
             </div>
           ))}
         </section>
 
-        {/* Events Section */}
+        {/* Events */}
         <section>
           <div className="flex items-center justify-between mb-10 px-2">
-            <h2 className="text-4xl font-bold text-[#003087] tracking-tight">Upcoming Events</h2>
-            <button onClick={() => onNavigate('events')} className="text-[#003087] font-bold text-sm hover:underline">View All →</button>
+            <h2 style={{
+              fontFamily: "'Cormorant Garamond', serif",
+              fontSize: '2.4rem', fontWeight: 500, color: C.navy,
+            }}>
+              Upcoming Events
+            </h2>
+            <button
+              onClick={() => onNavigate('events')}
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                fontFamily: "'DM Sans', sans-serif",
+                fontSize: 13, fontWeight: 500, color: C.blue,
+              }}
+            >
+              View All
+            </button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {events.map((event, i) => <EventCard key={i} {...event} />)}
+            {events.map((event, i) => (
+              <EventCard key={i} {...event} />
+            ))}
           </div>
         </section>
 
-        {/* Spotlights Section - Increased bottom padding to accommodate for removed CTA */}
-        <section className="pb-12">
+        {/* Alumni Spotlights */}
+        <section className="pb-4">
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-[#003087] tracking-tight">Alumni Spotlights</h2>
-            <p className="text-gray-500 mt-3 text-base font-medium">Inspiring stories of Ateneans making an impact</p>
+            <h2 style={{
+              fontFamily: "'Cormorant Garamond', serif",
+              fontSize: '2.4rem', fontWeight: 500, color: C.navy,
+            }}>
+              Alumni Spotlights
+            </h2>
+            <div style={{ width: 48, height: 2, background: C.gold, borderRadius: 2, margin: '12px auto 12px' }} />
+            <p style={{ fontSize: 14, color: C.muted, fontWeight: 300 }}>
+              Inspiring stories of Ateneans making an impact
+            </p>
           </div>
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-10">
-            {spotlights.map((s, i) => <SpotlightCard key={i} {...s} />)}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+            {spotlights.map((s, i) => (
+              <SpotlightCard key={i} {...s} />
+            ))}
           </div>
         </section>
+
+      </div>
+
+      {/* Help/Support Strip */}
+      <div style={{
+        background: 'rgba(0,48,135,0.04)',
+        borderTop: '1px solid rgba(0,48,135,0.08)',
+        padding: '20px 40px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: 12,
+        fontFamily: "'DM Sans', sans-serif",
+      }}>
+        <div>
+          <p style={{ fontSize: 13, fontWeight: 500, color: C.navy, margin: 0 }}>Need help or have questions?</p>
+          <p style={{ fontSize: 12, color: C.muted, margin: 0 }}>
+            Reach us at{' '}
+            <a href={contactEmail} style={{ color: C.blue, fontWeight: 500 }}>alumni@addu.edu.ph</a>
+            {' '}&middot; (082) 221-2411
+          </p>
+        </div>
+        <a
+          href={contactEmail}
+          style={{
+            display: 'inline-block',
+            padding: '10px 24px',
+            background: C.blue,
+            color: '#fff',
+            borderRadius: 100,
+            fontSize: 13,
+            fontWeight: 500,
+            textDecoration: 'none',
+            transition: 'background 0.2s',
+          }}
+          onMouseOver={(e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.background = C.navyDk)}
+          onMouseOut={(e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.background = C.blue)}
+        >
+          Contact Us
+        </a>
       </div>
 
       <Footer />

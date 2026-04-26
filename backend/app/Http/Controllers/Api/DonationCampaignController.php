@@ -121,7 +121,39 @@ class DonationCampaignController extends Controller
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
             'email' => 'required|email|max:255',
+            'payment_method' => 'required|string|in:Credit Card,GCash,Bank Transfer',
+            'reference_number' => 'nullable|string|max:255',
+            'transaction_date' => 'nullable|date',
+            'gcash_number' => 'nullable|string|max:255',
+            'account_name' => 'nullable|string|max:255',
+            'bank_name' => 'nullable|string|max:255',
+            'card_number' => 'nullable|string|max:255',
+            'proof' => 'required|image|max:5120',
         ]);
+
+        if ($validated['payment_method'] === 'GCash') {
+            if (empty($validated['gcash_number']) || empty($validated['reference_number']) || empty($validated['transaction_date'])) {
+                return response()->json(['message' => 'Please fill in all GCash payment fields.'], 422);
+            }
+        }
+
+        if ($validated['payment_method'] === 'Bank Transfer') {
+            if (empty($validated['account_name']) || empty($validated['bank_name']) || empty($validated['reference_number']) || empty($validated['transaction_date'])) {
+                return response()->json(['message' => 'Please fill in all Bank Transfer fields.'], 422);
+            }
+        }
+
+        if ($validated['payment_method'] === 'Credit Card') {
+            if (empty($validated['card_number'])) {
+                return response()->json(['message' => 'Please provide your card number.'], 422);
+            }
+        }
+
+        $proofPath = null;
+        if ($request->hasFile('proof')) {
+            $storedPath = $request->file('proof')->store('donation-proofs', 'public');
+            $proofPath = '/storage/' . $storedPath;
+        }
 
         $donation = new Donation([
             'campaign_id' => $campaign->id,
@@ -129,17 +161,23 @@ class DonationCampaignController extends Controller
             'last_name' => $validated['last_name'],
             'email' => $validated['email'],
             'amount' => $validated['amount'],
-            'payment_method' => 'card',
+            'frequency' => 'One-Time',
+            'designation' => 'Campaign: ' . $campaign->title,
+            'payment_method' => $validated['payment_method'],
+            'reference_number' => $validated['reference_number'] ?? null,
+            'transaction_date' => $validated['transaction_date'] ?? null,
+            'gcash_number' => $validated['gcash_number'] ?? null,
+            'account_name' => $validated['account_name'] ?? null,
+            'bank_name' => $validated['bank_name'] ?? null,
+            'card_number' => $validated['card_number'] ?? null,
+            'proof_path' => $proofPath,
+            'payment_status' => 'pending',
         ]);
         
         $donation->save();
-        
-        // Update campaign raised amount
-        $campaign->raised_amount += $validated['amount'];
-        $campaign->save();
-        
+
         return response()->json([
-            'message' => 'Donation recorded successfully',
+            'message' => 'Donation submitted successfully and is pending verification.',
             'donation' => $donation,
             'campaign' => $campaign,
         ], 201);

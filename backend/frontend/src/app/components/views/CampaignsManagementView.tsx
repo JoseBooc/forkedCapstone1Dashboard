@@ -40,7 +40,6 @@ export function CampaignsManagementView({ userRole }: CampaignsManagementViewPro
   const [selectedCampaignTitle, setSelectedCampaignTitle] = useState('');
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
-  
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -66,14 +65,13 @@ export function CampaignsManagementView({ userRole }: CampaignsManagementViewPro
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     try {
       const url = editingCampaign 
         ? `http://localhost:8000/api/campaigns/${editingCampaign.id}`
         : 'http://localhost:8000/api/campaigns';
       
       const method = editingCampaign ? 'PUT' : 'POST';
-      
+
       // Use FormData for file upload
       const formDataToSend = new FormData();
       formDataToSend.append('title', formData.title);
@@ -92,7 +90,7 @@ export function CampaignsManagementView({ userRole }: CampaignsManagementViewPro
         method,
         body: formDataToSend,
       });
-      
+
       fetchCampaigns();
       resetForm();
     } catch (error) {
@@ -129,7 +127,7 @@ export function CampaignsManagementView({ userRole }: CampaignsManagementViewPro
 
   const handleDelete = async (id: number) => {
     if (!window.confirm('Are you sure you want to delete this campaign?')) return;
-    
+
     try {
       await fetch(`http://localhost:8000/api/campaigns/${id}`, {
         method: 'DELETE',
@@ -438,6 +436,13 @@ export function CampaignsManagementView({ userRole }: CampaignsManagementViewPro
                 campaign.is_active ? 'border-green-200' : 'border-gray-200 opacity-60'
               }`}
             >
+              {campaign.image_url && (
+                <img
+                  src={campaign.image_url.startsWith('http') ? campaign.image_url : `http://localhost:8000${campaign.image_url}`}
+                  alt={campaign.title}
+                  className="w-full h-40 object-cover rounded-xl mb-4"
+                />
+              )}
               {/* Campaign Status Badge */}
               <div className="flex justify-between items-start mb-4">
                 <span

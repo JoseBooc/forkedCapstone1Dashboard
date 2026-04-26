@@ -12,11 +12,24 @@ class Donation extends Model
         'last_name',
         'email',
         'amount',
+        'frequency',
+        'designation',
         'payment_method',
+        'reference_number',
+        'transaction_date',
+        'gcash_number',
+        'account_name',
+        'bank_name',
+        'card_number',
+        'proof_path',
+        'payment_status',
+        'is_hidden',
     ];
 
     protected $casts = [
         'amount' => 'decimal:2',
+        'transaction_date' => 'date',
+        'is_hidden' => 'boolean',
     ];
 
     protected $appends = ['full_name'];
