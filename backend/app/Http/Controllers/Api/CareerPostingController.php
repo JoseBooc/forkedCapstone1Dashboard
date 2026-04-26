@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\CareerApplication;
 use App\Models\CareerPosting;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 
 class CareerPostingController extends Controller
 {
@@ -15,11 +16,17 @@ class CareerPostingController extends Controller
 
         $role = $request->query('role');
 
-        $query = CareerPosting::query()
-            ->withCount('applications')
-            ->orderByDesc('posting_date')
-            ->orderByDesc('date_of_posting')
-            ->orderByDesc('created_at');
+        $query = CareerPosting::query()->withCount('applications');
+
+        if (Schema::hasColumn('career_postings', 'posting_date')) {
+            $query->orderByDesc('posting_date');
+        }
+
+        if (Schema::hasColumn('career_postings', 'date_of_posting')) {
+            $query->orderByDesc('date_of_posting');
+        }
+
+        $query->orderByDesc('created_at');
 
         if ($role !== 'admin') {
             $query->where('status', 'Approved')
@@ -69,6 +76,10 @@ class CareerPostingController extends Controller
         $salaryRangeFrom = $validated['salary_range_from'] ?? $validated['salary_from'] ?? null;
         $salaryRangeTo = $validated['salary_range_to'] ?? $validated['salary_to'] ?? null;
 
+        // Frontend sends user_role in demo flows; admin-created postings should be visible immediately.
+        $isAdminSubmission = strtolower((string) $request->input('user_role', '')) === 'admin';
+        $status = $validated['status'] ?? ($isAdminSubmission ? 'Approved' : 'Pending');
+
         $posting = CareerPosting::create([
             'company_name' => $validated['company_name'],
             'title' => $title,
@@ -86,9 +97,9 @@ class CareerPostingController extends Controller
             'salary_from' => $salaryRangeFrom,
             'salary_to' => $salaryRangeTo,
             'description' => $validated['description'],
-            'status' => $validated['status'] ?? 'Pending',
+            'status' => $status,
             'applicants_count' => 0,
-            'is_visible' => ($validated['status'] ?? 'Pending') === 'Approved',
+            'is_visible' => $status === 'Approved',
             'hidden_at' => null,
         ]);
 

@@ -32,7 +32,7 @@ class ReportController extends Controller
     public function participants(Request $request)
     {
         $events = EngagementEvent::with('registrations')
-            ->orderByDesc('event_date')
+            ->orderByDesc('start_date')
             ->get();
 
         $rows = [];
@@ -53,7 +53,7 @@ class ReportController extends Controller
     public function guests(Request $request)
     {
         $events = EngagementEvent::with('registrations')
-            ->orderByDesc('event_date')
+            ->orderByDesc('start_date')
             ->get();
 
         $rows = [];
@@ -75,7 +75,7 @@ class ReportController extends Controller
     public function attendance(Request $request)
     {
         $rows = EngagementEvent::with('attendances')
-            ->orderByDesc('event_date')
+            ->orderByDesc('start_date')
             ->get()
             ->flatMap(fn ($event) => $event->attendances->map(fn ($attendance) => [
                 'Event' => $event->title,
@@ -92,7 +92,7 @@ class ReportController extends Controller
     public function income(Request $request)
     {
         $rows = EngagementEvent::with('payments')
-            ->orderByDesc('event_date')
+            ->orderByDesc('start_date')
             ->get()
             ->flatMap(fn ($event) => $event->payments->map(fn ($payment) => [
                 'Event' => $event->title,

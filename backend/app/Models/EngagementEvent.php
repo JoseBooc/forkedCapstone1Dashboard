@@ -3,36 +3,27 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 class EngagementEvent extends Model
 {
-    use SoftDeletes;
+    protected $table = 'events';
 
     protected $fillable = [
+        'category_id',
         'title',
-        'category',
-        'event_group',
-        'event_date',
-        'start_time',
-        'end_time',
-        'location',
         'description',
-        'image_url',
-        'capacity',
-        'participants_count',
-        'guest_count',
-        'registration_fee',
-        'status',
-        'posted_by',
+        'location',
+        'start_date',
+        'end_date',
+        'max_participants',
+        'is_active',
     ];
 
     protected $casts = [
-        'event_date' => 'date',
-        'capacity' => 'integer',
-        'participants_count' => 'integer',
-        'guest_count' => 'integer',
-        'registration_fee' => 'decimal:2',
+        'start_date' => 'datetime',
+        'end_date' => 'datetime',
+        'max_participants' => 'integer',
+        'is_active' => 'boolean',
     ];
 
     public function registrations()

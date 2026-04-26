@@ -72,6 +72,15 @@ export function CareersView({ userRole }: { userRole: string }) {
   const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [showApplyForm, setShowApplyForm] = useState(false);
+  const [isApplying, setIsApplying] = useState(false);
+  const [applyMessage, setApplyMessage] = useState('');
+  const [applyForm, setApplyForm] = useState({
+    applicant_name: localStorage.getItem('userName') || '',
+    applicant_email: localStorage.getItem('userEmail') || '',
+    applicant_phone: '',
+    cover_letter: '',
+  });
 
   const [postForm, setPostForm] = useState<PostOpportunityForm>({
     job_title: '',
@@ -379,6 +388,58 @@ export function CareersView({ userRole }: { userRole: string }) {
     });
   };
 
+  const handleApplySubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!selectedOpportunity) return;
+
+    setApplyMessage('');
+    setIsApplying(true);
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/career-postings/${selectedOpportunity.id}/applications`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({
+          applicant_name: applyForm.applicant_name,
+          applicant_email: applyForm.applicant_email,
+          applicant_phone: applyForm.applicant_phone || null,
+          cover_letter: applyForm.cover_letter || null,
+        }),
+      });
+
+      if (response.status === 422) {
+        setApplyMessage('Please complete all required fields before submitting.');
+        return;
+      }
+
+      if (!response.ok) {
+        setApplyMessage('Failed to submit application. Please try again.');
+        return;
+      }
+
+      setOpportunities((prev) => prev.map((item) => (
+        item.id === selectedOpportunity.id
+          ? { ...item, applicantsCount: (item.applicantsCount ?? 0) + 1 }
+          : item
+      )));
+
+      setSelectedOpportunity((prev) => (
+        prev ? { ...prev, applicantsCount: (prev.applicantsCount ?? 0) + 1 } : prev
+      ));
+
+      setApplyMessage('Application submitted successfully.');
+      setShowApplyForm(false);
+      setApplyForm((prev) => ({ ...prev, cover_letter: '', applicant_phone: prev.applicant_phone }));
+    } catch {
+      setApplyMessage('Unable to submit application right now.');
+    } finally {
+      setIsApplying(false);
+    }
+  };
+
   const filteredOpportunities = opportunities.filter(item => {
     const matchesTab = 
       activeTab === 'All Opportunities' || 
@@ -401,7 +462,11 @@ export function CareersView({ userRole }: { userRole: string }) {
         <main className="flex-1 p-8">
           <div className="max-w-4xl mx-auto text-left">
             <button 
-              onClick={() => setSelectedOpportunity(null)} 
+              onClick={() => {
+                setSelectedOpportunity(null);
+                setShowApplyForm(false);
+                setApplyMessage('');
+              }} 
               className="flex items-center gap-2 text-gray-500 font-bold mb-8 hover:text-[#003087] transition-all"
             >
               <ChevronLeft className="w-5 h-5" /> Back to Career Opportunities
@@ -502,9 +567,76 @@ export function CareersView({ userRole }: { userRole: string }) {
                           </div>
                         </div>
                       )}
-                      <button className="w-full py-4 bg-[#003087] text-white rounded-2xl font-bold shadow-lg shadow-blue-200 hover:bg-[#002566] transition-all">
-                        Apply Now
-                      </button>
+                      {userRole !== 'admin' && (
+                        <>
+                          {showApplyForm ? (
+                            <form onSubmit={handleApplySubmit} className="space-y-3 pt-2">
+                              <input
+                                type="text"
+                                required
+                                value={applyForm.applicant_name}
+                                onChange={(e) => setApplyForm((prev) => ({ ...prev, applicant_name: e.target.value }))}
+                                placeholder="Your full name"
+                                className="w-full p-3 bg-white border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-[#003087]/20"
+                              />
+                              <input
+                                type="email"
+                                required
+                                value={applyForm.applicant_email}
+                                onChange={(e) => setApplyForm((prev) => ({ ...prev, applicant_email: e.target.value }))}
+                                placeholder="Email address"
+                                className="w-full p-3 bg-white border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-[#003087]/20"
+                              />
+                              <input
+                                type="text"
+                                value={applyForm.applicant_phone}
+                                onChange={(e) => setApplyForm((prev) => ({ ...prev, applicant_phone: e.target.value }))}
+                                placeholder="Phone (optional)"
+                                className="w-full p-3 bg-white border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-[#003087]/20"
+                              />
+                              <textarea
+                                rows={3}
+                                value={applyForm.cover_letter}
+                                onChange={(e) => setApplyForm((prev) => ({ ...prev, cover_letter: e.target.value }))}
+                                placeholder="Cover letter (optional)"
+                                className="w-full p-3 bg-white border border-gray-200 rounded-xl outline-none resize-none focus:ring-2 focus:ring-[#003087]/20"
+                              />
+                              <div className="flex gap-2">
+                                <button
+                                  type="submit"
+                                  disabled={isApplying}
+                                  className="flex-1 py-3 bg-[#003087] text-white rounded-xl font-bold hover:bg-[#002566] transition-all disabled:opacity-60"
+                                >
+                                  {isApplying ? 'Submitting...' : 'Submit Application'}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setShowApplyForm(false)}
+                                  className="px-4 py-3 border border-gray-200 text-gray-600 rounded-xl font-bold hover:bg-gray-100 transition-all"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            </form>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setShowApplyForm(true);
+                                setApplyMessage('');
+                              }}
+                              className="w-full py-4 bg-[#003087] text-white rounded-2xl font-bold shadow-lg shadow-blue-200 hover:bg-[#002566] transition-all"
+                            >
+                              Apply Now
+                            </button>
+                          )}
+                          {applyMessage && (
+                            <p className={`text-sm font-medium ${applyMessage.includes('success') ? 'text-green-600' : 'text-red-600'}`}>
+                              {applyMessage}
+                            </p>
+                          )}
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>

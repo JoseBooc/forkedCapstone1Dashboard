@@ -7,6 +7,62 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
+## Demo Setup
+
+This backend app serves the React SPA from `public/index.html` and exposes API routes under `/api`.
+
+### Local setup
+
+1. Install prerequisites:
+	- PHP 8.2+
+	- Composer 2+
+	- Node.js 20+
+	- npm 10+
+
+2. From the `backend` folder, run:
+
+```powershell
+composer install
+npm install
+Copy-Item .env.example .env
+if (!(Test-Path "database\database.sqlite")) { New-Item -ItemType File -Path "database\database.sqlite" | Out-Null }
+php artisan key:generate
+php artisan migrate:fresh --seed --force
+```
+
+3. Build and publish the SPA into `public`:
+
+```powershell
+Set-Location frontend
+npm install
+npm run build
+Copy-Item -Path .\build\* -Destination ..\public -Recurse -Force
+```
+
+### Run for demo
+
+```powershell
+php artisan serve --host=127.0.0.1 --port=8000
+```
+
+### Demo URLs
+
+- SPA landing page: http://127.0.0.1:8000/
+- API health test: http://127.0.0.1:8000/api/test
+- Career postings API: http://127.0.0.1:8000/api/career-postings
+
+### Seeded demo users
+
+- Admin: admin@addu.edu.ph / admin123
+- Alumni: alumni@addu.edu.ph / alumni123
+
+### Verified locally
+
+- Composer install completed successfully
+- Backend migrations and seed data completed successfully
+- Frontend build completed successfully and was copied to `public`
+- HTTP 200 responses confirmed for `/`, `/api/test`, and `/api/career-postings`
+
 ## About Laravel
 
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:

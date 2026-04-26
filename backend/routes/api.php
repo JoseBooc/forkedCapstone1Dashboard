@@ -61,8 +61,10 @@ Route::get('/career-postings/{careerPosting}/reports/applicants', [ReportControl
 // Engagement / Events API
 Route::get('/engagement/events', [EngagementController::class, 'index']);
 Route::post('/engagement/events', [EngagementController::class, 'store']);
+Route::put('/engagement/events/{engagementEvent}', [EngagementController::class, 'update']);
 Route::patch('/engagement/events/{engagementEvent}/approve', [EngagementController::class, 'approve']);
 Route::patch('/engagement/events/{engagementEvent}/decline', [EngagementController::class, 'decline']);
+Route::delete('/engagement/events/{engagementEvent}', [EngagementController::class, 'destroy']);
 Route::post('/engagement/events/{engagementEvent}/register', [EngagementController::class, 'register']);
 Route::post('/engagement/events/{engagementEvent}/attendance', [EngagementController::class, 'attend']);
 
