@@ -10,10 +10,12 @@ import { DonationsView } from '../components/views/DonationView';
 import { AnalyticsView } from '../components/views/AnalyticsView';
 import { InternshipPostingsView } from '../components/views/InternshipPostingsView';
 import { UserManagementView } from '../components/views/UserManagementView';
+import { PaymentVerificationPanel } from '../components/PaymentVerificationPanel';
+import { RegistrationManagement } from '../components/RegistrationManagement';
 import { Sidebar } from '../components/Sidebar';
 
 export function Dashboard() {
-  const [activeView, setActiveView] = useState<'home'|'profile'|'directory'|'events'|'surveys'|'careers'|'news'|'give'|'analytics'|'internships'|'users'>('home');
+  const [activeView, setActiveView] = useState<'home'|'profile'|'directory'|'events'|'surveys'|'careers'|'news'|'give'|'payments'|'registrations'|'analytics'|'internships'|'users'>('home');
   
   // Get user role from localStorage
   const userRole = (localStorage.getItem('userRole') as 'alumni' | 'admin') || 'alumni';
@@ -36,6 +38,10 @@ export function Dashboard() {
         return <NewsView userRole={userRole} />;
       case 'give': 
         return <DonationsView userRole={userRole} />; 
+      case 'payments':
+        return <PaymentVerificationPanel userRole={userRole} />;
+      case 'registrations':
+        return <RegistrationManagement userRole={userRole} />;
       case 'analytics': 
         return <AnalyticsView userRole={userRole} />;
       case 'internships':

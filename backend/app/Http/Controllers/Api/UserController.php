@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 
 class UserController extends Controller
 {
@@ -17,7 +19,7 @@ class UserController extends Controller
             'password' => 'required|string',
         ]);
 
-        $user = User::where('email', $request->email)->first();
+        $user = User::withTrashed()->where('email', $request->email)->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {
             return response()->json([
@@ -35,7 +37,7 @@ class UserController extends Controller
         // Check if account was disapproved
         if ($user->approval_status === 'disapproved') {
             return response()->json([
-                'message' => 'Your account registration has been disapproved. Please contact the administrator for more information.'
+                'message' => 'Your registration was disapproved after verification. Your account is no longer allowed to sign in. If you believe this was a mistake or you need clarification, please contact the alumni administrator and provide your registered email so they can review your application details.'
             ], 403);
         }
 
@@ -70,7 +72,7 @@ class UserController extends Controller
             'phone_number' => 'nullable|string',
             'current_address' => 'nullable|string',
             'country' => 'nullable|string',
-            'geocode' => 'nullable|string',
+            'zipcode' => 'nullable|string',
             'sex' => 'nullable|string',
             'religion' => 'nullable|string',
             'marital_status' => 'nullable|string',
@@ -84,6 +86,7 @@ class UserController extends Controller
             'diploma_file' => 'nullable|file|mimes:png,jpg,jpeg,pdf|max:10240',
             'id_type' => 'nullable|string',
             'valid_id_file' => 'nullable|file|mimes:png,jpg,jpeg,pdf|max:10240',
+            'profile_image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
         ]);
 
         // Handle middle name - set to null if empty
@@ -111,6 +114,14 @@ class UserController extends Controller
             $validIdFilePath = $validIdFile->storeAs('uploads/ids', $validIdFileName, 'public');
         }
 
+        // Handle profile image upload
+        $profileImagePath = null;
+        if ($request->hasFile('profile_image')) {
+            $profileImage = $request->file('profile_image');
+            $profileImageName = time() . '_profile_' . $profileImage->getClientOriginalName();
+            $profileImagePath = $profileImage->storeAs('uploads/profile-images', $profileImageName, 'public');
+        }
+
         $user = User::create([
             'name' => $fullName,
             'first_name' => $request->first_name,
@@ -123,7 +134,7 @@ class UserController extends Controller
             'telephone_number' => $request->telephone_number,
             'current_address' => $request->current_address,
             'country' => $request->country,
-            'geocode' => $request->geocode,
+            'zipcode' => $request->zipcode,
             'sex' => $request->sex,
             'religion' => $request->religion,
             'religion_other' => $request->religion_other,
@@ -142,6 +153,7 @@ class UserController extends Controller
             'diploma_file_path' => $diplomaFilePath,
             'id_type' => $request->id_type,
             'valid_id_file_path' => $validIdFilePath,
+            'profile_image_path' => $profileImagePath,
             'is_active' => $request->approval_status === 'approved' ? 1 : 0,
             'approval_status' => $request->approval_status ?? 'pending',
             'email_verified_at' => now(),
@@ -205,6 +217,36 @@ class UserController extends Controller
         ]);
     }
 
+    // Upload profile image by email
+    public function uploadProfileImage(Request $request, $email)
+    {
+        $user = User::where('email', $email)->first();
+
+        if (!$user) {
+            return response()->json(['error' => 'User not found'], 404);
+        }
+
+        $request->validate([
+            'profile_image' => 'required|image|mimes:jpg,jpeg,png,webp|max:5120',
+        ]);
+
+        if ($user->profile_image_path) {
+            Storage::disk('public')->delete($user->profile_image_path);
+        }
+
+        $profileImage = $request->file('profile_image');
+        $profileImageName = time() . '_profile_' . $profileImage->getClientOriginalName();
+        $profileImagePath = $profileImage->storeAs('uploads/profile-images', $profileImageName, 'public');
+
+        $user->profile_image_path = $profileImagePath;
+        $user->save();
+
+        return response()->json([
+            'message' => 'Profile image updated successfully',
+            'user' => $user,
+        ]);
+    }
+
     // Update user by ID
     public function updateById(Request $request, $id)
     {
@@ -248,13 +290,13 @@ class UserController extends Controller
     // Delete user by ID
     public function destroy($id)
     {
-        $user = User::find($id);
+        $user = User::withTrashed()->find($id);
         
         if (!$user) {
             return response()->json(['error' => 'User not found'], 404);
         }
         
-        $user->delete();
+        $user->forceDelete();
         
         return response()->json([
             'message' => 'User deleted successfully'
@@ -271,7 +313,7 @@ class UserController extends Controller
     // Approve a user
     public function approveUser($id)
     {
-        $user = User::find($id);
+        $user = User::withTrashed()->find($id);
 
         if (!$user) {
             return response()->json(['error' => 'User not found'], 404);
@@ -279,6 +321,9 @@ class UserController extends Controller
 
         $user->approval_status = 'approved';
         $user->is_active = 1;
+        if ($user->trashed()) {
+            $user->restore();
+        }
         $user->save();
 
         return response()->json([
@@ -299,6 +344,11 @@ class UserController extends Controller
         $user->approval_status = 'disapproved';
         $user->is_active = 0;
         $user->save();
+
+        // Keep record in DB and hide from active queries via soft delete.
+        if (!$user->trashed()) {
+            $user->delete();
+        }
 
         return response()->json([
             'message' => 'User disapproved successfully',
@@ -325,6 +375,40 @@ class UserController extends Controller
         return response()->json([
             'message' => 'User status updated successfully',
             'user' => $user
+        ]);
+    }
+
+    // Get alumni counts by course (registered vs approved)
+    public function getCourseAnalytics()
+    {
+        $rows = User::withTrashed()
+            ->select(
+                'course',
+                DB::raw('COUNT(*) as registered_count'),
+                DB::raw("SUM(CASE WHEN approval_status = 'approved' THEN 1 ELSE 0 END) as approved_count")
+            )
+            ->where('role', 'alumni')
+            ->groupBy('course')
+            ->get();
+
+        $normalized = $rows
+            ->groupBy(function ($row) {
+                $course = trim((string) ($row->course ?? ''));
+                return $course !== '' ? $course : 'Unspecified';
+            })
+            ->map(function ($group, $course) {
+                return [
+                    'course' => $course,
+                    'registered_count' => (int) $group->sum('registered_count'),
+                    'approved_count' => (int) $group->sum('approved_count'),
+                ];
+            })
+            ->values()
+            ->sortByDesc('registered_count')
+            ->values();
+
+        return response()->json([
+            'data' => $normalized,
         ]);
     }
 }

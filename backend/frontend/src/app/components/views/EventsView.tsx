@@ -56,6 +56,22 @@ interface Event {
   submittedBy?: string;
 }
 
+interface GivebackActivity {
+  id: number;
+  title: string;
+  description: string;
+  venue: string;
+  schedule_start: string;
+  schedule_end: string;
+  registration_open: boolean;
+  participant_limit: number | null;
+  fee_amount: number;
+  status: 'upcoming' | 'ongoing' | 'completed';
+  image_url?: string | null;
+  created_by_name?: string | null;
+  is_archived: boolean;
+}
+
 const INITIAL_EVENTS: Event[] = [
   { id: '1', title: "Web Development For Beginners", category: "Computer Science", date: "January 26, 2026", time: "6:00 PM - 8:00 PM", location: "Online", participants: 245, description: "Learn the fundamentals of web development in this beginner-friendly workshop.", image: EngageWebDevBG, tab: 'Upcoming Events' },
   { id: '2', title: "Stocks, Funds & Investment", category: "Finance", date: "January 20, 2026", time: "Tue, Thu & Fri, 6:00 PM - 7:00 PM", location: "Online", participants: 178, description: "10 sessions comprehensive course on stocks, funds, and investment strategies.", image: StocksBG, tab: 'Upcoming Events' },
@@ -214,12 +230,122 @@ function EventCard({ event, userRole, onApprove, onReject, onView, onRemove, onE
   );
 }
 
+function ActivityCard({ activity, userRole, onEdit, onRemove, onToggleRegistration, onRegister }: any) {
+  const isAdmin = userRole === 'admin';
+  const schedule = `${new Date(activity.schedule_start).toLocaleDateString()} • ${new Date(activity.schedule_start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${new Date(activity.schedule_end).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+
+  return (
+    <div className="bg-white rounded-[24px] overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col h-full text-left">
+      <div className="relative h-56 overflow-hidden">
+        <img src={activity.image_url || CareerFairBG} alt={activity.title} className="w-full h-full object-cover" />
+        <div className="absolute top-4 right-4 flex flex-col gap-2 items-end">
+          {isAdmin && (
+            <>
+              <button
+                onClick={() => onEdit(activity)}
+                className="p-2 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-transform active:scale-95"
+              >
+                <Edit className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => onRemove(activity.id)}
+                className="p-2 bg-red-600 text-white rounded-full shadow-lg hover:bg-red-700 transition-transform active:scale-95"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </>
+          )}
+          <span className="px-4 py-1.5 bg-[#003087] text-white text-[10px] rounded-full font-bold uppercase tracking-wider shadow-lg">
+            {activity.status}
+          </span>
+        </div>
+      </div>
+
+      <div className="p-6 flex flex-col flex-1">
+        <h3 className="text-lg font-bold text-gray-900 mb-1 line-clamp-1">{activity.title}</h3>
+
+        <div className="space-y-2 mb-4">
+          <div className="flex items-start gap-2 text-gray-500 text-[13px]">
+            <Calendar className="w-4 h-4 text-gray-400 mt-0.5" /> {schedule}
+          </div>
+          <div className="flex items-start gap-2 text-gray-500 text-[13px]">
+            <MapPin className="w-4 h-4 text-gray-400 mt-0.5" /> {activity.venue}
+          </div>
+          <div className="flex items-start gap-2 text-[#003087] text-[13px] font-semibold">
+            <Users className="w-4 h-4 mt-0.5" />
+            {activity.participant_limit ? `${activity.participant_limit} slots` : 'Open slots'}
+          </div>
+          <div className="flex items-start gap-2 text-emerald-600 text-[13px] font-semibold">
+            <Award className="w-4 h-4 mt-0.5" />
+            {activity.fee_amount > 0 ? `₱${activity.fee_amount.toLocaleString()} fee` : 'Free'}
+          </div>
+        </div>
+
+        <p className="text-gray-500 text-[13px] leading-relaxed line-clamp-3 mb-6 flex-1">
+          {activity.description}
+        </p>
+
+        <div className="flex gap-2 mt-auto">
+          {isAdmin ? (
+            <button
+              onClick={() => onToggleRegistration(activity.id)}
+              className="flex-1 py-2.5 rounded-lg font-bold text-sm transition-colors bg-gray-100 text-gray-700 hover:bg-gray-200"
+            >
+              {activity.registration_open ? 'Close Registration' : 'Open Registration'}
+            </button>
+          ) : (
+            <button
+              onClick={() => onRegister(activity)}
+              disabled={!activity.registration_open}
+              className="flex-1 py-2.5 rounded-lg font-bold text-sm transition-colors bg-[#003087] text-white hover:bg-[#002566] disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {activity.registration_open ? 'Register' : 'Registration Closed'}
+            </button>
+          )}
+          <button
+            onClick={() => onRegister(activity)}
+            className="px-3 py-2.5 border border-gray-200 rounded-lg text-gray-400 hover:bg-gray-50 transition-colors"
+          >
+            <Eye className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: string; userName?: string }) {
   const [activeTab, setActiveTab] = useState('Upcoming Events');
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
-  const [registrationEvent, setRegistrationEvent] = useState<Event | null>(null);
+  const [registrationEvent, setRegistrationEvent] = useState<{
+    id: number;
+    title: string;
+    date: string;
+    time: string;
+    location: string;
+    image: string;
+    feeAmount: number;
+  } | null>(null);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+
+  const [activities, setActivities] = useState<GivebackActivity[]>([]);
+  const [loadingActivities, setLoadingActivities] = useState(true);
+  const [editingActivity, setEditingActivity] = useState<GivebackActivity | null>(null);
+  const [activityImage, setActivityImage] = useState<File | null>(null);
+  const [activityImagePreview, setActivityImagePreview] = useState<string | null>(null);
+  const [activityForm, setActivityForm] = useState({
+    title: '',
+    description: '',
+    venue: '',
+    date: '',
+    startTime: '',
+    endTime: '',
+    participantLimit: '',
+    feeAmount: '',
+    status: 'upcoming',
+    registrationOpen: true
+  });
 
   const [events, setEvents] = useState<Event[]>(() => {
     const saved = localStorage.getItem('addu_events');
@@ -255,8 +381,22 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
   }, [events]);
 
   useEffect(() => {
+    fetchActivities();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userRole]);
+
+  useEffect(() => {
     const handleRegisterEvent = (event: any) => {
-      setRegistrationEvent(event.detail.event);
+      const selected = event.detail.event;
+      setRegistrationEvent({
+        id: Number(selected.id) || 0,
+        title: selected.title,
+        date: selected.date,
+        time: selected.time,
+        location: selected.location,
+        image: selected.image,
+        feeAmount: 1000
+      });
     };
     window.addEventListener('registerEvent', handleRegisterEvent as EventListener);
     return () => window.removeEventListener('registerEvent', handleRegisterEvent as EventListener);
@@ -265,6 +405,181 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
   const triggerToast = () => {
     setShowSuccessToast(true);
     setTimeout(() => setShowSuccessToast(false), 3000);
+  };
+
+  const fetchActivities = async () => {
+    setLoadingActivities(true);
+    try {
+      const includeArchived = userRole === 'admin' ? '?include_archived=true' : '';
+      const response = await fetch(`http://localhost:8000/api/giveback/activities${includeArchived}`);
+      if (response.ok) {
+        const data = await response.json();
+        setActivities(data);
+      }
+    } catch (error) {
+      console.error('Error fetching activities:', error);
+    } finally {
+      setLoadingActivities(false);
+    }
+  };
+
+  const resetActivityForm = () => {
+    setActivityForm({
+      title: '',
+      description: '',
+      venue: '',
+      date: '',
+      startTime: '',
+      endTime: '',
+      participantLimit: '',
+      feeAmount: '',
+      status: 'upcoming',
+      registrationOpen: true
+    });
+    setActivityImage(null);
+    setActivityImagePreview(null);
+    setEditingActivity(null);
+  };
+
+  const handleCreateActivity = async () => {
+    if (!activityForm.title || !activityForm.description || !activityForm.venue || !activityForm.date || !activityForm.startTime || !activityForm.endTime) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('title', activityForm.title);
+    formData.append('description', activityForm.description);
+    formData.append('venue', activityForm.venue);
+    formData.append('schedule_start', `${activityForm.date}T${activityForm.startTime}`);
+    formData.append('schedule_end', `${activityForm.date}T${activityForm.endTime}`);
+    formData.append('participant_limit', activityForm.participantLimit || '');
+    formData.append('fee_amount', activityForm.feeAmount || '0');
+    formData.append('status', activityForm.status);
+    formData.append('registration_open', String(activityForm.registrationOpen));
+    formData.append('created_by_name', userRole === 'admin' ? 'Admin' : userName);
+    if (activityImage) {
+      formData.append('image', activityImage);
+    }
+
+    try {
+      const response = await fetch('http://localhost:8000/api/giveback/activities', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (response.ok) {
+        await fetchActivities();
+        resetActivityForm();
+        setActiveTab('GiveBack Activities');
+        triggerToast();
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        alert(errorData.message || 'Failed to create activity');
+      }
+    } catch (error) {
+      console.error('Error creating activity:', error);
+      alert('Failed to create activity');
+    }
+  };
+
+  const handleEditActivity = (activity: GivebackActivity) => {
+    setEditingActivity(activity);
+    const start = new Date(activity.schedule_start);
+    const end = new Date(activity.schedule_end);
+    setActivityForm({
+      title: activity.title,
+      description: activity.description,
+      venue: activity.venue,
+      date: start.toISOString().split('T')[0],
+      startTime: start.toTimeString().slice(0, 5),
+      endTime: end.toTimeString().slice(0, 5),
+      participantLimit: activity.participant_limit ? String(activity.participant_limit) : '',
+      feeAmount: String(activity.fee_amount || 0),
+      status: activity.status,
+      registrationOpen: activity.registration_open
+    });
+    setActivityImagePreview(activity.image_url || null);
+    setActiveTab('Edit GiveBack Activity');
+  };
+
+  const handleUpdateActivity = async () => {
+    if (!editingActivity) return;
+    if (!activityForm.title || !activityForm.description || !activityForm.venue || !activityForm.date || !activityForm.startTime || !activityForm.endTime) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('title', activityForm.title);
+    formData.append('description', activityForm.description);
+    formData.append('venue', activityForm.venue);
+    formData.append('schedule_start', `${activityForm.date}T${activityForm.startTime}`);
+    formData.append('schedule_end', `${activityForm.date}T${activityForm.endTime}`);
+    formData.append('participant_limit', activityForm.participantLimit || '');
+    formData.append('fee_amount', activityForm.feeAmount || '0');
+    formData.append('status', activityForm.status);
+    formData.append('registration_open', String(activityForm.registrationOpen));
+    formData.append('created_by_name', editingActivity.created_by_name || userName);
+    if (activityImage) {
+      formData.append('image', activityImage);
+    }
+
+    try {
+      const response = await fetch(`http://localhost:8000/api/giveback/activities/${editingActivity.id}`, {
+        method: 'PUT',
+        body: formData
+      });
+
+      if (response.ok) {
+        await fetchActivities();
+        resetActivityForm();
+        setActiveTab('GiveBack Activities');
+        triggerToast();
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        alert(errorData.message || 'Failed to update activity');
+      }
+    } catch (error) {
+      console.error('Error updating activity:', error);
+      alert('Failed to update activity');
+    }
+  };
+
+  const handleRemoveActivity = async (id: number) => {
+    if (!window.confirm('Are you sure you want to delete this activity?')) return;
+
+    try {
+      const response = await fetch(`http://localhost:8000/api/giveback/activities/${id}`, {
+        method: 'DELETE'
+      });
+      if (response.ok) {
+        await fetchActivities();
+        triggerToast();
+      } else {
+        alert('Failed to delete activity');
+      }
+    } catch (error) {
+      console.error('Error deleting activity:', error);
+      alert('Failed to delete activity');
+    }
+  };
+
+  const handleToggleActivityRegistration = async (id: number) => {
+    try {
+      const response = await fetch(`http://localhost:8000/api/giveback/activities/${id}/toggle-registration`, {
+        method: 'PATCH'
+      });
+      if (response.ok) {
+        await fetchActivities();
+        triggerToast();
+      } else {
+        alert('Failed to update registration status');
+      }
+    } catch (error) {
+      console.error('Error toggling registration:', error);
+      alert('Failed to update registration status');
+    }
   };
 
   const handleApprove = (id: string) => {
@@ -393,15 +708,31 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
     triggerToast();
   };
 
-  const baseTabs = ['Upcoming Events', 'Past Events', 'Teaching Opportunities', 'Seminars & Workshops'];
-  let tabs = userRole === 'admin' ? [...baseTabs, 'Alumni Proposals', 'Create Event'] : [...baseTabs, 'My Submissions'];
+  const baseTabs = ['GiveBack Activities', 'Upcoming Events', 'Past Events', 'Teaching Opportunities', 'Seminars & Workshops'];
+  let tabs = userRole === 'admin'
+    ? [...baseTabs, 'Alumni Proposals', 'Create Event', 'Create GiveBack Activity']
+    : [...baseTabs, 'My Submissions'];
+
   if (editingEvent && activeTab === 'Edit Event') {
     tabs = [...tabs, 'Edit Event'];
   }
 
+  if (editingActivity && activeTab === 'Edit GiveBack Activity') {
+    tabs = [...tabs, 'Edit GiveBack Activity'];
+  }
+
   const filteredEvents = events.filter(event => {
     if (activeTab === 'My Submissions') return event.status !== undefined && event.submittedBy === userName;
-    if (activeTab === 'Create Event' || activeTab === 'Submit Proposal' || activeTab === 'Edit Event') return false;
+    if (
+      activeTab === 'Create Event' ||
+      activeTab === 'Submit Proposal' ||
+      activeTab === 'Edit Event' ||
+      activeTab === 'GiveBack Activities' ||
+      activeTab === 'Create GiveBack Activity' ||
+      activeTab === 'Edit GiveBack Activity'
+    ) {
+      return false;
+    }
     return event.tab === activeTab;
   });
 
@@ -422,11 +753,11 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
           </div>
           {userRole === 'admin' ? (
             <button
-              onClick={() => setActiveTab('Create Event')}
+              onClick={() => setActiveTab(activeTab === 'GiveBack Activities' ? 'Create GiveBack Activity' : 'Create Event')}
               className="flex items-center gap-2 px-4 py-2 bg-[#003087] text-white rounded-lg hover:bg-[#002066] transition-colors font-semibold shadow-md"
             >
               <Plus className="w-5 h-5" />
-              Create Event
+              {activeTab === 'GiveBack Activities' ? 'Create GiveBack Activity' : 'Create Event'}
             </button>
           ) : (
             <button
@@ -487,7 +818,41 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
           </div>
         )}
 
-        {activeTab !== 'Create Event' && activeTab !== 'Submit Proposal' && activeTab !== 'Edit Event' && (
+        {activeTab === 'GiveBack Activities' && (
+          <div>
+            {loadingActivities ? (
+              <div className="text-center py-10 text-gray-500">Loading GiveBack activities...</div>
+            ) : activities.filter(activity => !activity.is_archived).length === 0 ? (
+              <div className="text-center py-10 text-gray-500">No GiveBack activities available yet.</div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {activities.filter(activity => !activity.is_archived).map((activity) => (
+                  <ActivityCard
+                    key={activity.id}
+                    activity={activity}
+                    userRole={userRole}
+                    onEdit={handleEditActivity}
+                    onRemove={handleRemoveActivity}
+                    onToggleRegistration={handleToggleActivityRegistration}
+                    onRegister={(selected: GivebackActivity) =>
+                      setRegistrationEvent({
+                        id: selected.id,
+                        title: selected.title,
+                        date: new Date(selected.schedule_start).toLocaleDateString(),
+                        time: `${new Date(selected.schedule_start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${new Date(selected.schedule_end).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+                        location: selected.venue,
+                        image: selected.image_url || CareerFairBG,
+                        feeAmount: Number(selected.fee_amount || 0)
+                      })
+                    }
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab !== 'Create Event' && activeTab !== 'Submit Proposal' && activeTab !== 'Edit Event' && activeTab !== 'GiveBack Activities' && activeTab !== 'Create GiveBack Activity' && activeTab !== 'Edit GiveBack Activity' && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredEvents.map((event) => (
               <EventCard 
@@ -502,6 +867,319 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
                 activeTab={activeTab}
               />
             ))}
+          </div>
+        )}
+
+        {activeTab === 'Create GiveBack Activity' && userRole === 'admin' && (
+          <div className="bg-white rounded-xl border-2 border-[#003087]/20 p-8 shadow-sm">
+            <h3 className="text-2xl font-bold text-gray-900 mb-6">Create GiveBack Activity</h3>
+
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Activity Title *</label>
+                <input
+                  type="text"
+                  placeholder="Enter activity title"
+                  value={activityForm.title}
+                  onChange={(e) => setActivityForm({ ...activityForm, title: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Date *</label>
+                  <input
+                    type="date"
+                    value={activityForm.date}
+                    onChange={(e) => setActivityForm({ ...activityForm, date: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Status *</label>
+                  <select
+                    value={activityForm.status}
+                    onChange={(e) => setActivityForm({ ...activityForm, status: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
+                  >
+                    <option value="upcoming">Upcoming</option>
+                    <option value="ongoing">Ongoing</option>
+                    <option value="completed">Completed</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Start Time *</label>
+                  <input
+                    type="time"
+                    value={activityForm.startTime}
+                    onChange={(e) => setActivityForm({ ...activityForm, startTime: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">End Time *</label>
+                  <input
+                    type="time"
+                    value={activityForm.endTime}
+                    onChange={(e) => setActivityForm({ ...activityForm, endTime: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Venue *</label>
+                <input
+                  type="text"
+                  placeholder="Enter venue or location"
+                  value={activityForm.venue}
+                  onChange={(e) => setActivityForm({ ...activityForm, venue: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Description *</label>
+                <textarea
+                  rows={6}
+                  placeholder="Describe the activity details..."
+                  value={activityForm.description}
+                  onChange={(e) => setActivityForm({ ...activityForm, description: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent resize-none"
+                ></textarea>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Participant Limit</label>
+                  <input
+                    type="number"
+                    placeholder="Maximum number of participants"
+                    value={activityForm.participantLimit}
+                    onChange={(e) => setActivityForm({ ...activityForm, participantLimit: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Fee Amount (PHP)</label>
+                  <input
+                    type="number"
+                    placeholder="0 for free"
+                    value={activityForm.feeAmount}
+                    onChange={(e) => setActivityForm({ ...activityForm, feeAmount: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={activityForm.registrationOpen}
+                  onChange={(e) => setActivityForm({ ...activityForm, registrationOpen: e.target.checked })}
+                  className="w-4 h-4 accent-[#003087]"
+                />
+                <span className="text-sm font-semibold text-gray-700">Open registration</span>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Poster / Image</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setActivityImage(file);
+                      setActivityImagePreview(URL.createObjectURL(file));
+                    }
+                  }}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
+                />
+                {activityImagePreview && (
+                  <img src={activityImagePreview} alt="Preview" className="mt-3 h-32 rounded-lg object-cover" />
+                )}
+              </div>
+
+              <div className="flex gap-3 pt-6 border-t border-gray-200">
+                <button
+                  onClick={handleCreateActivity}
+                  className="px-6 py-3 bg-[#003087] text-white rounded-lg hover:bg-[#002066] transition-colors font-semibold"
+                >
+                  Create Activity
+                </button>
+                <button
+                  onClick={() => {
+                    resetActivityForm();
+                    setActiveTab('GiveBack Activities');
+                  }}
+                  className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-semibold"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'Edit GiveBack Activity' && userRole === 'admin' && editingActivity && (
+          <div className="bg-white rounded-xl border-2 border-blue-200 p-8 shadow-sm">
+            <h3 className="text-2xl font-bold text-gray-900 mb-6">Edit GiveBack Activity</h3>
+            <p className="text-gray-600 text-sm mb-6">Update the activity details below.</p>
+
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Activity Title *</label>
+                <input
+                  type="text"
+                  placeholder="Enter activity title"
+                  value={activityForm.title}
+                  onChange={(e) => setActivityForm({ ...activityForm, title: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Date *</label>
+                  <input
+                    type="date"
+                    value={activityForm.date}
+                    onChange={(e) => setActivityForm({ ...activityForm, date: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Status *</label>
+                  <select
+                    value={activityForm.status}
+                    onChange={(e) => setActivityForm({ ...activityForm, status: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
+                  >
+                    <option value="upcoming">Upcoming</option>
+                    <option value="ongoing">Ongoing</option>
+                    <option value="completed">Completed</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Start Time *</label>
+                  <input
+                    type="time"
+                    value={activityForm.startTime}
+                    onChange={(e) => setActivityForm({ ...activityForm, startTime: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">End Time *</label>
+                  <input
+                    type="time"
+                    value={activityForm.endTime}
+                    onChange={(e) => setActivityForm({ ...activityForm, endTime: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Venue *</label>
+                <input
+                  type="text"
+                  placeholder="Enter venue or location"
+                  value={activityForm.venue}
+                  onChange={(e) => setActivityForm({ ...activityForm, venue: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Description *</label>
+                <textarea
+                  rows={6}
+                  placeholder="Describe the activity details..."
+                  value={activityForm.description}
+                  onChange={(e) => setActivityForm({ ...activityForm, description: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent resize-none"
+                ></textarea>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Participant Limit</label>
+                  <input
+                    type="number"
+                    placeholder="Maximum number of participants"
+                    value={activityForm.participantLimit}
+                    onChange={(e) => setActivityForm({ ...activityForm, participantLimit: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Fee Amount (PHP)</label>
+                  <input
+                    type="number"
+                    placeholder="0 for free"
+                    value={activityForm.feeAmount}
+                    onChange={(e) => setActivityForm({ ...activityForm, feeAmount: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={activityForm.registrationOpen}
+                  onChange={(e) => setActivityForm({ ...activityForm, registrationOpen: e.target.checked })}
+                  className="w-4 h-4 accent-[#003087]"
+                />
+                <span className="text-sm font-semibold text-gray-700">Open registration</span>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Poster / Image</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setActivityImage(file);
+                      setActivityImagePreview(URL.createObjectURL(file));
+                    }
+                  }}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
+                />
+                {activityImagePreview && (
+                  <img src={activityImagePreview} alt="Preview" className="mt-3 h-32 rounded-lg object-cover" />
+                )}
+              </div>
+
+              <div className="flex gap-3 pt-6 border-t border-gray-200">
+                <button
+                  onClick={handleUpdateActivity}
+                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+                >
+                  Update Activity
+                </button>
+                <button
+                  onClick={() => {
+                    resetActivityForm();
+                    setActiveTab('GiveBack Activities');
+                  }}
+                  className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-semibold"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
@@ -1020,14 +1698,15 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
       {registrationEvent && (
         <EventRegistrationModal 
           event={{
+            id: registrationEvent.id,
             title: registrationEvent.title,
             date: registrationEvent.date,
             time: registrationEvent.time,
             location: registrationEvent.location,
-            image: registrationEvent.image
+            image: registrationEvent.image,
+            feeAmount: registrationEvent.feeAmount
           }}
           onClose={() => setRegistrationEvent(null)}
-          pricePerGuest={1000}
         />
       )}
 
