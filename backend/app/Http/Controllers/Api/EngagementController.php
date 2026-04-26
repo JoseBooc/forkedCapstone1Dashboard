@@ -98,7 +98,11 @@ class EngagementController extends Controller
             'payment_status' => $validated['payment_status'] ?? (($validated['fee_amount'] ?? $engagementEvent->registration_fee) > 0 ? 'Paid' : 'Unpaid'),
         ]);
 
-        $engagementEvent->increment($registration->is_guest ? 'guest_count' : 'participants_count');
+        $guestCount = (int) ($registration->guest_count ?? 0);
+        $engagementEvent->increment('participants_count', 1 + $guestCount);
+        if ($guestCount > 0) {
+            $engagementEvent->increment('guest_count', $guestCount);
+        }
 
         if (($registration->fee_amount ?? 0) > 0) {
             EventPayment::create([

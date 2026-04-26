@@ -68,6 +68,8 @@ class CareerPostingController extends Controller
         $postingDate = $validated['posting_date'] ?? $validated['date_of_posting'];
         $salaryRangeFrom = $validated['salary_range_from'] ?? $validated['salary_from'] ?? null;
         $salaryRangeTo = $validated['salary_range_to'] ?? $validated['salary_to'] ?? null;
+        $isAdminSubmission = strtolower((string) $request->input('user_role', '')) === 'admin';
+        $status = $validated['status'] ?? ($isAdminSubmission ? 'Approved' : 'Pending');
 
         $posting = CareerPosting::create([
             'company_name' => $validated['company_name'],
@@ -86,9 +88,9 @@ class CareerPostingController extends Controller
             'salary_from' => $salaryRangeFrom,
             'salary_to' => $salaryRangeTo,
             'description' => $validated['description'],
-            'status' => $validated['status'] ?? 'Pending',
+            'status' => $status,
             'applicants_count' => 0,
-            'is_visible' => ($validated['status'] ?? 'Pending') === 'Approved',
+            'is_visible' => $status === 'Approved',
             'hidden_at' => null,
         ]);
 

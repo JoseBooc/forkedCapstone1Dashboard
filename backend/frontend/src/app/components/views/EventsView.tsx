@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Calendar, Clock, MapPin, Users, Eye, Award, User, FileText, Plus, X, CheckCircle, XCircle, Trash2, Edit, Download } from 'lucide-react';
 import { Footer } from '../Footer';
 import { EventRegistrationModal } from '../EventRegistrationModal';
@@ -40,6 +40,10 @@ import PharmaBG from '../../../assets/PharmaBG.jpg';
 
 interface Event {
   id: string;
+  apiId?: number;
+  rawEventDate?: string;
+  rawStartTime?: string;
+  rawEndTime?: string;
   title: string;
   category: string;
   date: string;
@@ -221,10 +225,7 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
   const [registrationEvent, setRegistrationEvent] = useState<Event | null>(null);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
 
-  const [events, setEvents] = useState<Event[]>(() => {
-    const saved = localStorage.getItem('addu_events');
-    return saved ? JSON.parse(saved) : INITIAL_EVENTS;
-  });
+  const [events, setEvents] = useState<Event[]>(INITIAL_EVENTS);
 
   const [newEvent, setNewEvent] = useState({
     title: '',
@@ -252,13 +253,102 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
 
   const apiBaseUrl = 'http://localhost:8000/api';
 
+  const formatDateLabel = (value?: string) => {
+    if (!value) return 'TBD';
+    const dt = new Date(value);
+    if (Number.isNaN(dt.getTime())) return value;
+    return dt.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  };
+
+  const formatTimeLabel = (start?: string, end?: string) => {
+    const to12Hour = (input?: string) => {
+      if (!input) return '';
+      const [h, m] = input.split(':').map((v) => Number(v));
+      if (Number.isNaN(h) || Number.isNaN(m)) return input;
+      const date = new Date();
+      date.setHours(h, m, 0, 0);
+      return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    };
+
+    const startLabel = to12Hour(start);
+    const endLabel = to12Hour(end);
+
+    if (startLabel && endLabel) return `${startLabel} - ${endLabel}`;
+    return startLabel || endLabel || 'TBD';
+  };
+
+  const mapApiEventToCard = (item: any): Event => {
+    const eventDate = item.event_date;
+    const now = new Date();
+    const parsedDate = eventDate ? new Date(eventDate) : null;
+
+    let tab: Event['tab'] = 'Upcoming Events';
+
+    if (item.status === 'Pending' || item.status === 'Rejected' || item.status === 'Draft') {
+      tab = 'Alumni Proposals';
+    } else if (parsedDate && !Number.isNaN(parsedDate.getTime()) && parsedDate < now) {
+      tab = 'Past Events';
+    }
+
+    return {
+      id: `api-${item.id}`,
+      apiId: Number(item.id),
+      rawEventDate: item.event_date || undefined,
+      rawStartTime: item.start_time || undefined,
+      rawEndTime: item.end_time || undefined,
+      title: item.title,
+      category: item.category,
+      date: formatDateLabel(item.event_date),
+      time: formatTimeLabel(item.start_time, item.end_time),
+      location: item.location || 'TBD',
+      participants: Number(item.participants_count ?? 0),
+      description: item.description || '',
+      image: item.image_url || CareerFairBG,
+      tab,
+      postedBy: item.posted_by || undefined,
+      postedDate: item.created_at ? 'Recently posted' : undefined,
+      status: item.status,
+      submittedBy: item.posted_by || undefined,
+    };
+  };
+
+  const parseApiEventId = (id: string): number | null => {
+    if (!id.startsWith('api-')) return null;
+    const numericId = Number(id.replace('api-', ''));
+    return Number.isFinite(numericId) ? numericId : null;
+  };
+
+  const fetchEngagementEvents = useCallback(async () => {
+    try {
+      const params = new URLSearchParams({ role: userRole });
+      if (userRole !== 'admin' && userName) {
+        params.set('posted_by', userName);
+      }
+
+      const response = await fetch(`${apiBaseUrl}/engagement/events?${params.toString()}`);
+      if (!response.ok) return;
+
+      const payload = await response.json();
+      if (!Array.isArray(payload)) return;
+
+      const apiEvents = payload.map(mapApiEventToCard);
+
+      setEvents((prev) => {
+        const localOnly = prev.filter((ev) => !ev.id.startsWith('api-'));
+        return [...apiEvents, ...localOnly];
+      });
+    } catch {
+      // Keep local fallback data when API is unavailable.
+    }
+  }, [userRole]);
+
   const downloadEngagementReport = (path: string) => {
     window.open(`${apiBaseUrl}${path}`, '_blank', 'noopener,noreferrer');
   };
 
   useEffect(() => {
-    localStorage.setItem('addu_events', JSON.stringify(events));
-  }, [events]);
+    fetchEngagementEvents();
+  }, [fetchEngagementEvents]);
 
   useEffect(() => {
     const handleRegisterEvent = (event: any) => {
@@ -273,22 +363,206 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
     setTimeout(() => setShowSuccessToast(false), 3000);
   };
 
-  const handleApprove = (id: string) => {
-    setEvents(prev => prev.map(ev => 
+  const handleRegistrationSubmit = async (payload: {
+    eventApiId?: number;
+    eventId?: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    guestCount: number;
+    totalAmount: number;
+    paymentMethod: 'gcash' | 'maya' | 'card';
+  }): Promise<{ success: boolean; message?: string }> => {
+    const { eventApiId, eventId, firstName, lastName, email, guestCount, totalAmount, paymentMethod } = payload;
+    const resolvedApiId = eventApiId ?? (eventId ? parseApiEventId(eventId) : null);
+
+    if (resolvedApiId == null) {
+      if (eventId) {
+        setEvents((prev) => prev.map((ev) => (
+          ev.id === eventId
+            ? { ...ev, participants: ev.participants + 1 + guestCount }
+            : ev
+        )));
+      }
+
+      triggerToast();
+
+      return {
+        success: true,
+        message: 'Demo payment successful! Registration completed for this event.',
+      };
+    }
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/engagement/events/${resolvedApiId}/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({
+          first_name: firstName,
+          last_name: lastName,
+          email,
+          is_guest: false,
+          guest_count: guestCount,
+          fee_amount: totalAmount,
+          payment_status: 'Paid',
+          payment_method: paymentMethod,
+        }),
+      });
+
+      if (!response.ok) {
+        let errorMessage = 'Failed to register for this event. Please try again.';
+
+        try {
+          const body = await response.json();
+          if (body?.message) {
+            errorMessage = body.message;
+          }
+        } catch {
+          // Keep default message when response body is not JSON.
+        }
+
+        return { success: false, message: errorMessage };
+      }
+
+      let registeredEvent: any = null;
+      try {
+        const body = await response.json();
+        registeredEvent = body?.event ?? null;
+      } catch {
+        // Ignore non-JSON responses; fallback update handles UI feedback.
+      }
+
+      const incrementBy = 1 + Math.max(0, guestCount);
+      setEvents((prev) => prev.map((ev) => {
+        const currentApiId = ev.apiId ?? parseApiEventId(ev.id);
+        const isMatchedByApiId = currentApiId === resolvedApiId;
+        const isMatchedById = eventId ? ev.id === eventId : false;
+        if (!isMatchedByApiId && !isMatchedById) return ev;
+
+        if (registeredEvent) {
+          const mapped = mapApiEventToCard(registeredEvent);
+          return {
+            ...ev,
+            ...mapped,
+            id: ev.id,
+          };
+        }
+
+        return {
+          ...ev,
+          participants: ev.participants + incrementBy,
+        };
+      }));
+
+      await fetchEngagementEvents();
+      triggerToast();
+
+      return {
+        success: true,
+        message: 'Demo payment successful! You are now registered for this event.',
+      };
+    } catch {
+      return {
+        success: false,
+        message: 'Unable to complete registration right now. Please try again.',
+      };
+    }
+  };
+
+  const handleApprove = async (id: string) => {
+    const apiId = parseApiEventId(id);
+
+    if (apiId !== null) {
+      try {
+        const response = await fetch(`${apiBaseUrl}/engagement/events/${apiId}/approve`, {
+          method: 'PATCH',
+          headers: {
+            Accept: 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          alert('Failed to approve event. Please try again.');
+          return;
+        }
+
+        await fetchEngagementEvents();
+        triggerToast();
+        return;
+      } catch {
+        alert('Unable to approve event right now.');
+        return;
+      }
+    }
+
+    setEvents(prev => prev.map(ev =>
       ev.id === id ? { ...ev, status: 'Approved' as const, tab: 'Upcoming Events' as const } : ev
     ));
     triggerToast();
   };
 
-  const handleReject = (id: string) => {
-    setEvents(prev => prev.map(ev => 
+  const handleReject = async (id: string) => {
+    const apiId = parseApiEventId(id);
+
+    if (apiId !== null) {
+      try {
+        const response = await fetch(`${apiBaseUrl}/engagement/events/${apiId}/decline`, {
+          method: 'PATCH',
+          headers: {
+            Accept: 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          alert('Failed to reject event. Please try again.');
+          return;
+        }
+
+        await fetchEngagementEvents();
+        triggerToast();
+        return;
+      } catch {
+        alert('Unable to reject event right now.');
+        return;
+      }
+    }
+
+    setEvents(prev => prev.map(ev =>
       ev.id === id ? { ...ev, status: 'Rejected' as const } : ev
     ));
     triggerToast();
   };
 
-  const handleRemove = (id: string) => {
+  const handleRemove = async (id: string) => {
     if (window.confirm("Are you sure you want to permanently remove this event?")) {
+      const apiId = parseApiEventId(id);
+
+      if (apiId !== null) {
+        try {
+          const response = await fetch(`${apiBaseUrl}/engagement/events/${apiId}`, {
+            method: 'DELETE',
+            headers: {
+              Accept: 'application/json',
+            },
+          });
+
+          if (!response.ok) {
+            alert('Failed to delete event. Please try again.');
+            return;
+          }
+
+          await fetchEngagementEvents();
+          triggerToast();
+          return;
+        } catch {
+          alert('Unable to delete event right now.');
+          return;
+        }
+      }
+
       setEvents(prev => prev.filter(ev => ev.id !== id));
       triggerToast();
     }
@@ -296,13 +570,25 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
 
   const handleEdit = (event: Event) => {
     setEditingEvent(event);
-    const timeParts = event.time.split(' - ');
+    const toDateInput = (value: string) => {
+      const parsed = new Date(value);
+      if (Number.isNaN(parsed.getTime())) return '';
+      return parsed.toISOString().slice(0, 10);
+    };
+
+    const dateValue = event.rawEventDate
+      ? event.rawEventDate.slice(0, 10)
+      : toDateInput(event.date);
+
+    const startValue = event.rawStartTime ?? '';
+    const endValue = event.rawEndTime ?? '';
+
     setEditEvent({
       title: event.title,
       category: event.category,
-      date: event.date,
-      startTime: timeParts[0] || '',
-      endTime: timeParts[1] || '',
+      date: dateValue,
+      startTime: startValue,
+      endTime: endValue,
       location: event.location,
       description: event.description,
       capacity: event.participants.toString(),
@@ -311,7 +597,7 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
     setActiveTab('Edit Event');
   };
 
-  const handleUpdateEvent = () => {
+  const handleUpdateEvent = async () => {
     if (!editEvent.title || !editEvent.category || !editEvent.date || !editEvent.startTime || !editEvent.endTime || !editEvent.location || !editEvent.description) {
       alert('Please fill in all required fields');
       return;
@@ -319,19 +605,57 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
 
     if (!editingEvent) return;
 
-    const updatedEvent: Event = {
-      ...editingEvent,
-      title: editEvent.title,
-      category: editEvent.category,
-      date: editEvent.date,
-      time: `${editEvent.startTime} - ${editEvent.endTime}`,
-      location: editEvent.location,
-      participants: parseInt(editEvent.capacity) || editingEvent.participants,
-      description: editEvent.description,
-      image: editEvent.image || editingEvent.image,
-    };
+    const apiId = editingEvent.apiId ?? parseApiEventId(editingEvent.id);
 
-    setEvents(prev => prev.map(ev => ev.id === editingEvent.id ? updatedEvent : ev));
+    if (apiId !== null) {
+      try {
+        const response = await fetch(`${apiBaseUrl}/engagement/events/${apiId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+          },
+          body: JSON.stringify({
+            title: editEvent.title,
+            category: editEvent.category,
+            event_date: editEvent.date,
+            start_time: editEvent.startTime,
+            end_time: editEvent.endTime,
+            location: editEvent.location,
+            description: editEvent.description,
+            image_url: editEvent.image || null,
+            capacity: parseInt(editEvent.capacity) || 0,
+            status: editingEvent.status || 'Approved',
+            posted_by: editingEvent.postedBy || userName,
+          }),
+        });
+
+        if (!response.ok) {
+          alert('Failed to update event. Please try again.');
+          return;
+        }
+
+        await fetchEngagementEvents();
+      } catch {
+        alert('Unable to update event right now.');
+        return;
+      }
+    } else {
+      const updatedEvent: Event = {
+        ...editingEvent,
+        title: editEvent.title,
+        category: editEvent.category,
+        date: editEvent.date,
+        time: `${editEvent.startTime} - ${editEvent.endTime}`,
+        location: editEvent.location,
+        participants: parseInt(editEvent.capacity) || editingEvent.participants,
+        description: editEvent.description,
+        image: editEvent.image || editingEvent.image,
+      };
+
+      setEvents(prev => prev.map(ev => ev.id === editingEvent.id ? updatedEvent : ev));
+    }
+
     setEditingEvent(null);
     setEditEvent({
       title: '',
@@ -364,26 +688,46 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
     setActiveTab('Upcoming Events');
   };
 
-  const handleCreateEvent = () => {
+  const handleCreateEvent = async () => {
     if (!newEvent.title || !newEvent.category || !newEvent.date || !newEvent.startTime || !newEvent.endTime || !newEvent.location || !newEvent.description) {
       alert('Please fill in all required fields');
       return;
     }
 
-    const createdEvent: Event = {
-      id: Date.now().toString(),
-      title: newEvent.title,
-      category: newEvent.category,
-      date: newEvent.date,
-      time: `${newEvent.startTime} - ${newEvent.endTime}`,
-      location: newEvent.location,
-      participants: parseInt(newEvent.capacity) || 0,
-      description: newEvent.description,
-      image: newEvent.image || CareerFairBG,
-      tab: 'Upcoming Events',
-    };
+    try {
+      const response = await fetch(`${apiBaseUrl}/engagement/events`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({
+          title: newEvent.title,
+          category: newEvent.category,
+          event_date: newEvent.date,
+          start_time: newEvent.startTime,
+          end_time: newEvent.endTime,
+          location: newEvent.location,
+          description: newEvent.description,
+          image_url: newEvent.image || null,
+          capacity: parseInt(newEvent.capacity) || 0,
+          status: 'Approved',
+          posted_by: userName,
+          user_role: userRole,
+        }),
+      });
 
-    setEvents(prev => [createdEvent, ...prev]);
+      if (!response.ok) {
+        alert('Failed to create event. Please try again.');
+        return;
+      }
+
+      await fetchEngagementEvents();
+    } catch {
+      alert('Unable to create event right now. Please try again.');
+      return;
+    }
+
     setNewEvent({
       title: '',
       category: '',
@@ -944,30 +1288,53 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
               
               <div className="flex gap-3 pt-6 border-t border-gray-200">
                 <button 
-                  onClick={() => {
+                  onClick={async () => {
                     if (!newEvent.title || !newEvent.category || !newEvent.date || !newEvent.startTime || !newEvent.endTime || !newEvent.location || !newEvent.description) {
                       alert('Please fill in all required fields');
                       return;
                     }
 
-                    const proposedEvent: Event = {
-                      id: Date.now().toString(),
-                      title: newEvent.title,
-                      category: newEvent.category,
-                      date: newEvent.date,
-                      time: `${newEvent.startTime} - ${newEvent.endTime}`,
-                      location: newEvent.location,
-                      participants: parseInt(newEvent.capacity) || 0,
-                      description: newEvent.description,
-                      image: newEvent.image || CareerFairBG,
-                      tab: 'Alumni Proposals',
-                      status: 'Pending',
-                      postedBy: userName,
-                      postedDate: 'Just now',
-                      submittedBy: userName
-                    };
+                    try {
+                      const response = await fetch(`${apiBaseUrl}/engagement/events`, {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          Accept: 'application/json',
+                        },
+                        body: JSON.stringify({
+                          title: newEvent.title,
+                          category: newEvent.category,
+                          event_group: 'proposal',
+                          event_date: newEvent.date,
+                          start_time: newEvent.startTime,
+                          end_time: newEvent.endTime,
+                          location: newEvent.location,
+                          description: newEvent.description,
+                          image_url: newEvent.image || null,
+                          capacity: parseInt(newEvent.capacity) || 0,
+                          status: 'Pending',
+                          posted_by: userName,
+                          user_role: userRole,
+                        }),
+                      });
 
-                    setEvents(prev => [proposedEvent, ...prev]);
+                      if (!response.ok) {
+                        alert('Failed to submit proposal. Please try again.');
+                        return;
+                      }
+
+                      const payload = await response.json();
+                      if (payload?.event) {
+                        const mapped = mapApiEventToCard(payload.event);
+                        setEvents((prev) => [mapped, ...prev.filter((ev) => ev.id !== mapped.id)]);
+                      } else {
+                        await fetchEngagementEvents();
+                      }
+                    } catch {
+                      alert('Unable to submit proposal right now.');
+                      return;
+                    }
+
                     setNewEvent({
                       title: '',
                       category: '',
@@ -1052,6 +1419,8 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
       {registrationEvent && (
         <EventRegistrationModal 
           event={{
+            apiId: registrationEvent.apiId,
+            id: registrationEvent.id,
             title: registrationEvent.title,
             date: registrationEvent.date,
             time: registrationEvent.time,
@@ -1060,6 +1429,7 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
           }}
           onClose={() => setRegistrationEvent(null)}
           pricePerGuest={1000}
+          onSubmitRegistration={handleRegistrationSubmit}
         />
       )}
 
