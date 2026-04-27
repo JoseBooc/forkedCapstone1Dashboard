@@ -60,6 +60,7 @@ interface PostOpportunityForm {
 
 export function CareersView({ userRole }: { userRole: string }) {
   const [showPostForm, setShowPostForm] = useState(false);
+  const [editingOpportunity, setEditingOpportunity] = useState<Opportunity | null>(null);
   const [submissionStatus, setSubmissionStatus] = useState<'idle' | 'published' | 'draft'>('idle');
   const [opportunityType, setOpportunityType] = useState<'job' | 'internship' | null>('job');
   
@@ -281,6 +282,7 @@ export function CareersView({ userRole }: { userRole: string }) {
 
   const handleCloseForm = () => {
     setShowPostForm(false);
+    setEditingOpportunity(null);
     setSubmissionStatus('idle');
     setFormErrors({});
     setPostForm({
@@ -300,6 +302,57 @@ export function CareersView({ userRole }: { userRole: string }) {
     });
   };
 
+  const handleOpenEditForm = (opportunity: Opportunity) => {
+    setEditingOpportunity(opportunity);
+    setSubmissionStatus('idle');
+    setShowPostForm(true);
+    setOpportunityType(opportunity.type === 'Internship' ? 'internship' : 'job');
+    setFormErrors({});
+    setPostForm({
+      job_title: opportunity.title,
+      company_name: opportunity.company,
+      location: opportunity.location,
+      work_type: opportunity.workType,
+      modality: opportunity.modality,
+      date_from: opportunity.dateFrom || '',
+      date_to: opportunity.dateTo || '',
+      posting_date: opportunity.dateOfPosting || '',
+      quantity: opportunity.quantity?.toString() || '1',
+      salary_range_from: opportunity.salaryFrom || '',
+      salary_range_to: opportunity.salaryTo || '',
+      description: opportunity.description,
+      application_email: '',
+    });
+  };
+
+  const handleDeleteOpportunity = async (opportunity: Opportunity) => {
+    if (!window.confirm('Are you sure you want to delete this posting?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/career-postings/${opportunity.id}`, {
+        method: 'DELETE',
+        headers: {
+          Accept: 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        alert('Failed to delete posting. Please try again.');
+        return;
+      }
+
+      setOpportunities((prev) => prev.filter((item) => item.id !== opportunity.id));
+      if (selectedOpportunity?.id === opportunity.id) {
+        setSelectedOpportunity(null);
+      }
+      alert('Posting deleted successfully.');
+    } catch {
+      alert('Unable to delete posting right now.');
+    }
+  };
+
   const setField = (field: keyof PostOpportunityForm, value: string) => {
     setPostForm((prev) => ({ ...prev, [field]: value }));
     setFormErrors((prev) => ({ ...prev, [field]: '' }));
@@ -312,8 +365,14 @@ export function CareersView({ userRole }: { userRole: string }) {
     setFormErrors({});
 
     try {
-      const response = await fetch(`${apiBaseUrl}/career-postings`, {
-        method: 'POST',
+      const isEditing = Boolean(editingOpportunity);
+
+      const response = await fetch(
+        isEditing
+          ? `${apiBaseUrl}/career-postings/${editingOpportunity?.id}`
+          : `${apiBaseUrl}/career-postings`,
+        {
+        method: isEditing ? 'PUT' : 'POST',
         headers: {
           'Content-Type': 'application/json',
           Accept: 'application/json',
@@ -334,6 +393,7 @@ export function CareersView({ userRole }: { userRole: string }) {
           salary_range_from: postForm.salary_range_from === '' ? null : Number(postForm.salary_range_from),
           salary_range_to: postForm.salary_range_to === '' ? null : Number(postForm.salary_range_to),
           description: postForm.description,
+          status: editingOpportunity?.status,
         }),
       });
 
@@ -357,7 +417,15 @@ export function CareersView({ userRole }: { userRole: string }) {
 
       const payload = await response.json();
       if (payload?.posting) {
-        setOpportunities((prev) => [mapPostingToOpportunity(payload.posting), ...prev]);
+        const normalizedPosting = mapPostingToOpportunity(payload.posting);
+        if (editingOpportunity) {
+          setOpportunities((prev) => prev.map((item) => (
+            item.id === editingOpportunity.id ? normalizedPosting : item
+          )));
+          setSelectedOpportunity(normalizedPosting);
+        } else {
+          setOpportunities((prev) => [normalizedPosting, ...prev]);
+        }
       } else {
         await fetchOpportunities();
       }
@@ -487,6 +555,22 @@ export function CareersView({ userRole }: { userRole: string }) {
                           <div className="flex gap-3">
                             <button
                               type="button"
+                              onClick={() => handleOpenEditForm(selectedOpportunity)}
+                              className="flex-1 py-4 bg-blue-50 text-[#003087] rounded-2xl font-bold hover:bg-blue-100 transition-all"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteOpportunity(selectedOpportunity)}
+                              className="flex-1 py-4 bg-red-50 text-red-600 rounded-2xl font-bold hover:bg-red-100 transition-all"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                          <div className="flex gap-3">
+                            <button
+                              type="button"
                               onClick={() => handleCareerAction('approve')}
                               className="flex-1 py-4 bg-green-600 text-white rounded-2xl font-bold hover:bg-green-700 transition-all flex items-center justify-center gap-2"
                             >
@@ -525,7 +609,7 @@ export function CareersView({ userRole }: { userRole: string }) {
             {submissionStatus === 'idle' ? (
               <>
                 <div className="flex justify-between items-center mb-10">
-                  <h1 className="text-2xl font-bold text-gray-900 text-left">Post a New Opportunity</h1>
+                  <h1 className="text-2xl font-bold text-gray-900 text-left">{editingOpportunity ? 'Edit Opportunity' : 'Post a New Opportunity'}</h1>
                   <button onClick={handleCloseForm} className="text-gray-500 font-bold hover:text-gray-700 flex items-center gap-1 transition-colors">
                     Cancel
                   </button>
@@ -625,9 +709,9 @@ export function CareersView({ userRole }: { userRole: string }) {
                   {formErrors.form && <p className="text-sm text-red-600">{formErrors.form}</p>}
                   <div className="pt-6 flex gap-4">
                     <button type="submit" disabled={isSubmitting} className="px-10 py-4 bg-[#003087] text-white rounded-xl font-bold hover:bg-[#002566] transition-all shadow-lg shadow-blue-900/10 disabled:opacity-60 disabled:cursor-not-allowed">
-                      {isSubmitting ? 'Posting...' : 'Post Opportunity'}
+                      {isSubmitting ? (editingOpportunity ? 'Updating...' : 'Posting...') : (editingOpportunity ? 'Update Opportunity' : 'Post Opportunity')}
                     </button>
-                    <button type="button" onClick={() => setSubmissionStatus('draft')} className="px-10 py-4 bg-white border border-gray-200 text-gray-700 rounded-xl font-bold hover:bg-gray-50 transition-all">
+                    <button type="button" onClick={() => setSubmissionStatus('draft')} className="px-10 py-4 bg-white border border-gray-200 text-gray-700 rounded-xl font-bold hover:bg-gray-50 transition-all" disabled={Boolean(editingOpportunity)}>
                       Save as Draft
                     </button>
                   </div>
@@ -778,11 +862,27 @@ export function CareersView({ userRole }: { userRole: string }) {
                   </div>
                 </div>
                 <div className="flex flex-row md:flex-col justify-end gap-3 min-w-45">
+                  {userRole === 'admin' && (
+                    <>
+                      <button
+                        onClick={() => handleOpenEditForm(item)}
+                        className={`px-8 py-3 rounded-2xl font-bold text-sm transition-all flex-1 md:flex-none border ${item.isPriority ? 'bg-white/10 border-white/20 text-white hover:bg-white/20' : 'bg-blue-50 border-blue-100 text-[#003087] hover:bg-blue-100'}`}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDeleteOpportunity(item)}
+                        className={`px-8 py-3 rounded-2xl font-bold text-sm transition-all flex-1 md:flex-none border ${item.isPriority ? 'bg-red-500/20 border-red-300/30 text-white hover:bg-red-500/30' : 'bg-red-50 border-red-100 text-red-600 hover:bg-red-100'}`}
+                      >
+                        Delete
+                      </button>
+                    </>
+                  )}
                   <button 
                     onClick={() => setSelectedOpportunity(item)}
                     className={`px-8 py-4 rounded-2xl font-bold text-sm transition-all flex-1 md:flex-none shadow-sm ${item.isPriority ? 'bg-white text-[#003087] hover:bg-blue-50' : 'bg-[#003087] text-white hover:bg-[#002566]'}`}
                   >
-                    {item.isPriority ? 'Apply Now' : 'View Details'}
+                    {userRole === 'admin' ? 'View Details' : item.isPriority ? 'Apply Now' : 'View Details'}
                   </button>
                   <button className={`p-4 rounded-2xl transition-all border flex justify-center ${item.isPriority ? 'bg-white/10 border-white/10 text-white hover:bg-white/20' : 'bg-gray-50 border-gray-100 text-gray-400 hover:bg-gray-100'}`}><Bookmark className="w-5 h-5" /></button>
                 </div>

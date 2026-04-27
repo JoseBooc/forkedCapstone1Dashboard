@@ -41,6 +41,74 @@ class CareerPostingController extends Controller
         return response()->json($careerPosting->loadCount('applications'));
     }
 
+    public function update(Request $request, CareerPosting $careerPosting)
+    {
+        $validated = $request->validate([
+            'job_title' => 'nullable|string|max:255|required_without:title',
+            'company_name' => 'required|string|max:255',
+            'title' => 'nullable|string|max:255|required_without:job_title',
+            'type' => 'required|string|in:Job,Internship',
+            'location' => 'required|string|max:255',
+            'work_type' => 'required|string|max:255',
+            'modality' => 'required|string|max:255',
+            'date_from' => 'required|date',
+            'date_to' => 'required|date|after_or_equal:date_from',
+            'posting_date' => 'nullable|date|required_without:date_of_posting',
+            'date_of_posting' => 'nullable|date|required_without:posting_date',
+            'quantity' => 'required|integer|min:1',
+            'salary_range_from' => 'nullable|numeric|min:0',
+            'salary_range_to' => 'nullable|numeric|min:0|gte:salary_range_from',
+            'salary_from' => 'nullable|numeric|min:0',
+            'salary_to' => 'nullable|numeric|min:0|gte:salary_from',
+            'description' => 'required|string',
+            'status' => 'nullable|string|in:Pending,Approved,Declined,Expired',
+        ]);
+
+        $title = $validated['title'] ?? $validated['job_title'];
+        $postingDate = $validated['posting_date'] ?? $validated['date_of_posting'];
+        $salaryRangeFrom = $validated['salary_range_from'] ?? $validated['salary_from'] ?? null;
+        $salaryRangeTo = $validated['salary_range_to'] ?? $validated['salary_to'] ?? null;
+        $status = $validated['status'] ?? $careerPosting->status;
+
+        $isVisible = $careerPosting->is_visible;
+        $hiddenAt = $careerPosting->hidden_at;
+
+        if ($status === 'Approved') {
+            $isVisible = true;
+            $hiddenAt = null;
+        } elseif (in_array($status, ['Declined', 'Expired'], true)) {
+            $isVisible = false;
+            $hiddenAt = now();
+        }
+
+        $careerPosting->update([
+            'company_name' => $validated['company_name'],
+            'title' => $title,
+            'type' => $validated['type'],
+            'location' => $validated['location'],
+            'work_type' => $validated['work_type'],
+            'modality' => $validated['modality'],
+            'date_from' => $validated['date_from'],
+            'date_to' => $validated['date_to'],
+            'posting_date' => $postingDate,
+            'date_of_posting' => $postingDate,
+            'quantity' => $validated['quantity'],
+            'salary_range_from' => $salaryRangeFrom,
+            'salary_range_to' => $salaryRangeTo,
+            'salary_from' => $salaryRangeFrom,
+            'salary_to' => $salaryRangeTo,
+            'description' => $validated['description'],
+            'status' => $status,
+            'is_visible' => $isVisible,
+            'hidden_at' => $hiddenAt,
+        ]);
+
+        return response()->json([
+            'message' => 'Career posting updated successfully',
+            'posting' => $careerPosting->fresh(),
+        ]);
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([

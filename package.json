@@ -3,6 +3,7 @@
     "private": true,
     "type": "module",
     "scripts": {
+        "demo": "concurrently -k -n backend,root -c \"cyan,green\" \"cd backend && php artisan serve --host=127.0.0.1 --port=8000\" \"php artisan serve --host=127.0.0.1 --port=8001\"",
         "build": "vite build",
         "dev": "vite"
     },
