@@ -13,17 +13,23 @@ class UserSeeder extends Seeder
         User::updateOrCreate(
             ['email' => 'admin@test.com'],
             [
-                'name' => 'Admin Test',
-                'password' => Hash::make('password123'),
+                'name' => 'Admin User',
+                'password' => Hash::make('admin123'),
+                'email_verified_at' => now(),
             ]
         );
 
         User::updateOrCreate(
-            ['email' => 'user@test.com'],
+            ['email' => 'alumni@test.com'],
             [
-                'name' => 'Regular User',
-                'password' => Hash::make('password123'),
+                'name' => 'Alumni User',
+                'password' => Hash::make('alumni123'),
+                'email_verified_at' => now(),
             ]
         );
+
+        echo "Seeded local test accounts:\n";
+        echo "Admin:  admin@test.com / admin123\n";
+        echo "Alumni: alumni@test.com / alumni123\n";
     }
 }

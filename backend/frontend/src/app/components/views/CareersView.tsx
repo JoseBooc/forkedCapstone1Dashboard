@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { 
   Briefcase, 
   Search, 
@@ -219,7 +219,7 @@ export function CareersView({ userRole }: { userRole: string }) {
 
   const [opportunities, setOpportunities] = useState<Opportunity[]>(seedOpportunities);
 
-  const mapPostingToOpportunity = (posting: any): Opportunity => {
+  const mapPostingToOpportunity = useCallback((posting: any): Opportunity => {
     const salaryFrom = posting.salary_range_from ?? posting.salary_from;
     const salaryTo = posting.salary_range_to ?? posting.salary_to;
     const postingDate = posting.posting_date ?? posting.date_of_posting;
@@ -247,9 +247,9 @@ export function CareersView({ userRole }: { userRole: string }) {
       applicantsCount: posting.applicants_count ?? posting.applications_count ?? 0,
       status: posting.status,
     };
-  };
+  }, []);
 
-  const fetchOpportunities = async () => {
+  const fetchOpportunities = useCallback(async () => {
     try {
       const response = await fetch(`${apiBaseUrl}/career-postings?role=${encodeURIComponent(userRole)}`);
       if (!response.ok) return;
@@ -270,11 +270,11 @@ export function CareersView({ userRole }: { userRole: string }) {
     } catch {
       // Keep seeded UI data if backend is unavailable.
     }
-  };
+  }, [apiBaseUrl, userRole, mapPostingToOpportunity]);
 
   useEffect(() => {
     fetchOpportunities();
-  }, [userRole]);
+  }, [fetchOpportunities]);
 
   const handleToggleOpportunity = (type: 'job' | 'internship') => {
     setOpportunityType(opportunityType === type ? null : type);

@@ -14,6 +14,46 @@ interface Alumnus {
   officerRole?: string;
 }
 
+const allAlumni: Alumnus[] = [
+  { id: 1, name: "Maria Santos", class: "2015", program: "Data Structures and Algorithms", role: "CEO", company: "Tech Innovations Inc.", location: "Manila, Philippines", email: "maria.s@email.com", initials: "MS" },
+  { id: 2, name: "Roberto Cruz", class: "2018", program: "Web Development", role: "Full Stack Developer", company: "Digital Solutions", location: "Davao City, Philippines", email: "roberto.c@email.com", initials: "RC" },
+  { id: 3, name: "Jennifer Lim", class: "2012", program: "Database Management Systems", role: "Database Administrator", company: "TechCorp", location: "Cebu City, Philippines", email: "jennifer.l@email.com", initials: "JL" },
+  { id: 4, name: "Carlos Mendoza", class: "2020", program: "Software Engineering", role: "Software Engineer", company: "Global Corp", location: "Makati, Philippines", email: "carlos.m@email.com", initials: "CM" },
+  { id: 5, name: "Sofia Reyes", class: "2016", program: "Mobile Application Development", role: "Mobile Developer", company: "AppWorks Inc.", location: "Davao City, Philippines", email: "sofia.r@email.com", initials: "SR" },
+  { id: 6, name: "Miguel Torres", class: "2019", program: "Computer Networks and Security", role: "Network Security Specialist", company: "CyberSafe", location: "Cagayan de Oro, Philippines", email: "miguel.t@email.com", initials: "MT" },
+  { id: 7, name: "Anna Garcia", class: "2021", program: "Artificial Intelligence", role: "ML Engineer", company: "AI Solutions", location: "Manila, Philippines", email: "anna.g@email.com", initials: "AG" },
+  { id: 8, name: "David Lee", class: "2017", program: "Human Computer Interaction", role: "UX Designer", company: "Creative Studio", location: "Davao City, Philippines", email: "david.l@email.com", initials: "DL" },
+  { id: 9, name: "Patricia Aquino", class: "2014", program: "Information Systems", role: "IT Consultant", company: "Accenture Philippines", location: "Taguig City, Philippines", email: "patricia.a@email.com", initials: "PA" },
+  { id: 10, name: "Raphael Domingo", class: "2019", program: "Cloud Computing", role: "DevOps Engineer", company: "Amazon Web Services", location: "Singapore", email: "raphael.d@email.com", initials: "RD" },
+  { id: 11, name: "Isabella Martinez", class: "2013", program: "Business Administration", role: "Marketing Director", company: "Unilever Philippines", location: "Makati City, Philippines", email: "isabella.m@email.com", initials: "IM" },
+  { id: 12, name: "Francisco Bautista", class: "2016", program: "Entrepreneurship", role: "Founder & CEO", company: "StartUp Davao Hub", location: "Davao City, Philippines", email: "francisco.b@email.com", initials: "FB" },
+  { id: 13, name: "Catherine Velasco", class: "2018", program: "Accounting", role: "Senior Auditor", company: "SGV & Co.", location: "Manila, Philippines", email: "catherine.v@email.com", initials: "CV" },
+  { id: 14, name: "Vincent Ramos", class: "2015", program: "Finance", role: "Investment Banker", company: "BPI Capital", location: "Makati City, Philippines", email: "vincent.r@email.com", initials: "VR" },
+  { id: 15, name: "Samantha Ocampo", class: "2020", program: "Human Resource Management", role: "HR Manager", company: "Jollibee Foods Corporation", location: "Pasig City, Philippines", email: "samantha.o@email.com", initials: "SO" },
+  { id: 16, name: "Engineer Mark Fernandez", class: "2011", program: "Civil Engineering", role: "Project Manager", company: "DMCI Holdings", location: "Davao City, Philippines", email: "mark.f@email.com", initials: "EMF" },
+  { id: 17, name: "Engineer Lisa Castillo", class: "2017", program: "Electrical Engineering", role: "Electrical Engineer", company: "Meralco", location: "Quezon City, Philippines", email: "lisa.c@email.com", initials: "ELC" },
+  { id: 18, name: "Engineer Daniel Villar", class: "2019", program: "Mechanical Engineering", role: "Automotive Engineer", company: "Toyota Motor Philippines", location: "Laguna, Philippines", email: "daniel.v@email.com", initials: "EDV" },
+  { id: 19, name: "Engineer Grace Navarro", class: "2014", program: "Electronics Engineering", role: "R&D Engineer", company: "Texas Instruments Philippines", location: "Baguio City, Philippines", email: "grace.n@email.com", initials: "EGN" },
+  { id: 20, name: "Engineer Raymond Sy", class: "2016", program: "Industrial Engineering", role: "Operations Manager", company: "San Miguel Corporation", location: "Bulacan, Philippines", email: "raymond.s@email.com", initials: "ERS" },
+  { id: 21, name: "Dr. Gabriel Rivera", class: "2010", program: "Medicine", role: "Cardiologist", company: "Davao Doctors Hospital", location: "Davao City, Philippines", email: "gabriel.r@email.com", initials: "DGR" },
+  { id: 22, name: "Dr. Olivia Santiago", class: "2012", program: "Nursing", role: "Head Nurse", company: "St. Luke's Medical Center", location: "Quezon City, Philippines", email: "olivia.s@email.com", initials: "DOS" },
+  { id: 23, name: "Dr. Benjamin Torres", class: "2015", program: "Physical Therapy", role: "Physical Therapist", company: "The Medical City", location: "Pasig City, Philippines", email: "benjamin.t@email.com", initials: "DBT" },
+  { id: 24, name: "Pharmacist Elena Cruz", class: "2018", program: "Pharmacy", role: "Clinical Pharmacist", company: "Mercury Drug Corporation", location: "Manila, Philippines", email: "elena.c@email.com", initials: "PEC" },
+  { id: 25, name: "Prof. Amanda Reyes", class: "2008", program: "Elementary Education", role: "Principal", company: "ADDU Grade School", location: "Davao City, Philippines", email: "amanda.r@email.com", initials: "PAR" },
+  { id: 26, name: "Prof. Jonathan Pascual", class: "2013", program: "Secondary Education - Mathematics", role: "Math Teacher", company: "Philippine Science High School", location: "Quezon City, Philippines", email: "jonathan.p@email.com", initials: "PJP" },
+  { id: 27, name: "Prof. Christina Morales", class: "2016", program: "Special Education", role: "SPED Coordinator", company: "Ateneo de Manila University", location: "Quezon City, Philippines", email: "christina.m@email.com", initials: "PCM" },
+  { id: 28, name: "Atty. Marco Gonzales", class: "2009", program: "Political Science", role: "Corporate Lawyer", company: "Romulo Mabanta Law Firm", location: "Makati City, Philippines", email: "marco.g@email.com", initials: "AMG" },
+  { id: 29, name: "Atty. Jessica Lim", class: "2014", program: "Legal Management", role: "Human Rights Lawyer", company: "Public Attorney's Office", location: "Manila, Philippines", email: "jessica.l@email.com", initials: "AJL" },
+  { id: 30, name: "Dr. Thomas Valdez", class: "2011", program: "Psychology", role: "Clinical Psychologist", company: "Mind You Clinic", location: "Davao City, Philippines", email: "thomas.v@email.com", initials: "DTV" },
+  { id: 31, name: "Michelle Chen", class: "2017", program: "International Relations", role: "Diplomat", company: "Department of Foreign Affairs", location: "Singapore", email: "michelle.c@email.com", initials: "MC" },
+  { id: 32, name: "Alexander Wong", class: "2015", program: "Software Engineering", role: "Software Architect", company: "Google", location: "San Francisco, USA", email: "alex.w@email.com", initials: "AW" },
+  { id: 33, name: "Sophia Ahmed", class: "2016", program: "Business Administration", role: "Management Consultant", company: "McKinsey & Company", location: "Dubai, UAE", email: "sophia.a@email.com", initials: "SA" },
+  { id: 34, name: "Ricardo Fernandez", class: "2014", program: "Mechanical Engineering", role: "Aerospace Engineer", company: "Boeing", location: "Seattle, USA", email: "ricardo.f@email.com", initials: "RF" },
+  { id: 35, name: "Victoria Tan", class: "2018", program: "Data Science", role: "Data Scientist", company: "Microsoft", location: "Vancouver, Canada", email: "victoria.t@email.com", initials: "VT" },
+  { id: 36, name: "Nathan Park", class: "2019", program: "Computer Science", role: "Backend Engineer", company: "Shopify", location: "Toronto, Canada", email: "nathan.p@email.com", initials: "NP" },
+];
+
+
 export function DirectoryView({ userRole }: { userRole: string }) {
   const [activeTab, setActiveTab] = useState<'all' | 'officers'>('all');
   const [searchQuery, setSearchQuery] = useState("");
@@ -22,44 +62,7 @@ export function DirectoryView({ userRole }: { userRole: string }) {
   const [locationFilter, setLocationFilter] = useState("All Locations");
   const [showFilters, setShowFilters] = useState(true);
 
-  const allAlumni: Alumnus[] = [
-    { id: 1, name: "Maria Santos", class: "2015", program: "Data Structures and Algorithms", role: "CEO", company: "Tech Innovations Inc.", location: "Manila, Philippines", email: "maria.s@email.com", initials: "MS" },
-    { id: 2, name: "Roberto Cruz", class: "2018", program: "Web Development", role: "Full Stack Developer", company: "Digital Solutions", location: "Davao City, Philippines", email: "roberto.c@email.com", initials: "RC" },
-    { id: 3, name: "Jennifer Lim", class: "2012", program: "Database Management Systems", role: "Database Administrator", company: "TechCorp", location: "Cebu City, Philippines", email: "jennifer.l@email.com", initials: "JL" },
-    { id: 4, name: "Carlos Mendoza", class: "2020", program: "Software Engineering", role: "Software Engineer", company: "Global Corp", location: "Makati, Philippines", email: "carlos.m@email.com", initials: "CM" },
-    { id: 5, name: "Sofia Reyes", class: "2016", program: "Mobile Application Development", role: "Mobile Developer", company: "AppWorks Inc.", location: "Davao City, Philippines", email: "sofia.r@email.com", initials: "SR" },
-    { id: 6, name: "Miguel Torres", class: "2019", program: "Computer Networks and Security", role: "Network Security Specialist", company: "CyberSafe", location: "Cagayan de Oro, Philippines", email: "miguel.t@email.com", initials: "MT" },
-    { id: 7, name: "Anna Garcia", class: "2021", program: "Artificial Intelligence", role: "ML Engineer", company: "AI Solutions", location: "Manila, Philippines", email: "anna.g@email.com", initials: "AG" },
-    { id: 8, name: "David Lee", class: "2017", program: "Human Computer Interaction", role: "UX Designer", company: "Creative Studio", location: "Davao City, Philippines", email: "david.l@email.com", initials: "DL" },
-    { id: 9, name: "Patricia Aquino", class: "2014", program: "Information Systems", role: "IT Consultant", company: "Accenture Philippines", location: "Taguig City, Philippines", email: "patricia.a@email.com", initials: "PA" },
-    { id: 10, name: "Raphael Domingo", class: "2019", program: "Cloud Computing", role: "DevOps Engineer", company: "Amazon Web Services", location: "Singapore", email: "raphael.d@email.com", initials: "RD" },
-    { id: 11, name: "Isabella Martinez", class: "2013", program: "Business Administration", role: "Marketing Director", company: "Unilever Philippines", location: "Makati City, Philippines", email: "isabella.m@email.com", initials: "IM" },
-    { id: 12, name: "Francisco Bautista", class: "2016", program: "Entrepreneurship", role: "Founder & CEO", company: "StartUp Davao Hub", location: "Davao City, Philippines", email: "francisco.b@email.com", initials: "FB" },
-    { id: 13, name: "Catherine Velasco", class: "2018", program: "Accounting", role: "Senior Auditor", company: "SGV & Co.", location: "Manila, Philippines", email: "catherine.v@email.com", initials: "CV" },
-    { id: 14, name: "Vincent Ramos", class: "2015", program: "Finance", role: "Investment Banker", company: "BPI Capital", location: "Makati City, Philippines", email: "vincent.r@email.com", initials: "VR" },
-    { id: 15, name: "Samantha Ocampo", class: "2020", program: "Human Resource Management", role: "HR Manager", company: "Jollibee Foods Corporation", location: "Pasig City, Philippines", email: "samantha.o@email.com", initials: "SO" },
-    { id: 16, name: "Engineer Mark Fernandez", class: "2011", program: "Civil Engineering", role: "Project Manager", company: "DMCI Holdings", location: "Davao City, Philippines", email: "mark.f@email.com", initials: "EMF" },
-    { id: 17, name: "Engineer Lisa Castillo", class: "2017", program: "Electrical Engineering", role: "Electrical Engineer", company: "Meralco", location: "Quezon City, Philippines", email: "lisa.c@email.com", initials: "ELC" },
-    { id: 18, name: "Engineer Daniel Villar", class: "2019", program: "Mechanical Engineering", role: "Automotive Engineer", company: "Toyota Motor Philippines", location: "Laguna, Philippines", email: "daniel.v@email.com", initials: "EDV" },
-    { id: 19, name: "Engineer Grace Navarro", class: "2014", program: "Electronics Engineering", role: "R&D Engineer", company: "Texas Instruments Philippines", location: "Baguio City, Philippines", email: "grace.n@email.com", initials: "EGN" },
-    { id: 20, name: "Engineer Raymond Sy", class: "2016", program: "Industrial Engineering", role: "Operations Manager", company: "San Miguel Corporation", location: "Bulacan, Philippines", email: "raymond.s@email.com", initials: "ERS" },
-    { id: 21, name: "Dr. Gabriel Rivera", class: "2010", program: "Medicine", role: "Cardiologist", company: "Davao Doctors Hospital", location: "Davao City, Philippines", email: "gabriel.r@email.com", initials: "DGR" },
-    { id: 22, name: "Dr. Olivia Santiago", class: "2012", program: "Nursing", role: "Head Nurse", company: "St. Luke's Medical Center", location: "Quezon City, Philippines", email: "olivia.s@email.com", initials: "DOS" },
-    { id: 23, name: "Dr. Benjamin Torres", class: "2015", program: "Physical Therapy", role: "Physical Therapist", company: "The Medical City", location: "Pasig City, Philippines", email: "benjamin.t@email.com", initials: "DBT" },
-    { id: 24, name: "Pharmacist Elena Cruz", class: "2018", program: "Pharmacy", role: "Clinical Pharmacist", company: "Mercury Drug Corporation", location: "Manila, Philippines", email: "elena.c@email.com", initials: "PEC" },
-    { id: 25, name: "Prof. Amanda Reyes", class: "2008", program: "Elementary Education", role: "Principal", company: "ADDU Grade School", location: "Davao City, Philippines", email: "amanda.r@email.com", initials: "PAR" },
-    { id: 26, name: "Prof. Jonathan Pascual", class: "2013", program: "Secondary Education - Mathematics", role: "Math Teacher", company: "Philippine Science High School", location: "Quezon City, Philippines", email: "jonathan.p@email.com", initials: "PJP" },
-    { id: 27, name: "Prof. Christina Morales", class: "2016", program: "Special Education", role: "SPED Coordinator", company: "Ateneo de Manila University", location: "Quezon City, Philippines", email: "christina.m@email.com", initials: "PCM" },
-    { id: 28, name: "Atty. Marco Gonzales", class: "2009", program: "Political Science", role: "Corporate Lawyer", company: "Romulo Mabanta Law Firm", location: "Makati City, Philippines", email: "marco.g@email.com", initials: "AMG" },
-    { id: 29, name: "Atty. Jessica Lim", class: "2014", program: "Legal Management", role: "Human Rights Lawyer", company: "Public Attorney's Office", location: "Manila, Philippines", email: "jessica.l@email.com", initials: "AJL" },
-    { id: 30, name: "Dr. Thomas Valdez", class: "2011", program: "Psychology", role: "Clinical Psychologist", company: "Mind You Clinic", location: "Davao City, Philippines", email: "thomas.v@email.com", initials: "DTV" },
-    { id: 31, name: "Michelle Chen", class: "2017", program: "International Relations", role: "Diplomat", company: "Department of Foreign Affairs", location: "Singapore", email: "michelle.c@email.com", initials: "MC" },
-    { id: 32, name: "Alexander Wong", class: "2015", program: "Software Engineering", role: "Software Architect", company: "Google", location: "San Francisco, USA", email: "alex.w@email.com", initials: "AW" },
-    { id: 33, name: "Sophia Ahmed", class: "2016", program: "Business Administration", role: "Management Consultant", company: "McKinsey & Company", location: "Dubai, UAE", email: "sophia.a@email.com", initials: "SA" },
-    { id: 34, name: "Ricardo Fernandez", class: "2014", program: "Mechanical Engineering", role: "Aerospace Engineer", company: "Boeing", location: "Seattle, USA", email: "ricardo.f@email.com", initials: "RF" },
-    { id: 35, name: "Victoria Tan", class: "2018", program: "Data Science", role: "Data Scientist", company: "Microsoft", location: "Vancouver, Canada", email: "victoria.t@email.com", initials: "VT" },
-    { id: 36, name: "Nathan Park", class: "2019", program: "Computer Science", role: "Backend Engineer", company: "Shopify", location: "Toronto, Canada", email: "nathan.p@email.com", initials: "NP" },
-  ];
+  
 
   const chapters = [
     {
@@ -97,7 +100,7 @@ export function DirectoryView({ userRole }: { userRole: string }) {
       else if (yearFilter === "2010-2014") matchesYear = year >= 2010 && year <= 2014;
       return matchesSearch && matchesYear && (courseFilter === "All Courses" || a.program === courseFilter) && (locationFilter === "All Locations" || a.location.includes(locationFilter));
     });
-  }, [searchQuery, yearFilter, courseFilter, locationFilter, allAlumni]);
+  }, [searchQuery, yearFilter, courseFilter, locationFilter]);
 
   return (
     <div className="flex flex-col min-h-screen bg-[#F8FAFC]">

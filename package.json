@@ -9,10 +9,14 @@
     },
     "devDependencies": {
         "@tailwindcss/vite": "^4.2.1",
+        "@types/node": "^26.1.2",
+        "@types/react": "^19.2.18",
+        "@types/react-dom": "^19.2.4",
         "axios": "^1.11.0",
         "concurrently": "^9.0.1",
         "laravel-vite-plugin": "^2.0.0",
         "tailwindcss": "^4.2.1",
+        "typescript": "^7.0.2",
         "vite": "^7.0.7"
     },
     "dependencies": {

@@ -28,8 +28,7 @@ import {
   Target,
   TrendingUp,
   BarChart3,
-  Users,
-  TrendingDown
+  Users
 } from 'lucide-react';
 import { Footer } from '../Footer';
 
@@ -103,7 +102,6 @@ export function DonationsView({ userRole, onNavigate }: DonationsViewProps) {
   
   const [selectedAmount, setSelectedAmount] = useState<string | null>(null);
   const [selectedFreq, setSelectedFreq] = useState<string | null>(null);
-  const [selectedDesignation, setSelectedDesignation] = useState<string | null>(null);
   
   // Default and selectable payment state
   const [selectedPayment, setSelectedPayment] = useState<string>("Credit Card");

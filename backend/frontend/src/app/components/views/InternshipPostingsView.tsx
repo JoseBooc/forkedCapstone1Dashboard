@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
   PlusCircle, 
   Clock, 
@@ -86,7 +86,7 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
     localStorage.setItem('job_postings_data', JSON.stringify(postings));
   }, [postings]);
 
-  const mapApiPostingToRequest = (posting: any): InternshipPosting => {
+  const mapApiPostingToRequest = useCallback((posting: any): InternshipPosting => {
     const statusRaw = `${posting.status || ''}`.toLowerCase();
     let status = 'Pending';
     if (statusRaw === 'approved') status = 'Approved';
@@ -110,9 +110,9 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
       hidden: posting.is_visible === false,
       submittedByEmail: posting.submitted_by_email || posting.user_email || posting.email || undefined,
     };
-  };
+  }, []);
 
-  const fetchRequests = async () => {
+  const fetchRequests = useCallback(async () => {
     try {
       const params = new URLSearchParams({ role });
       if (role === 'alumni' && currentUserEmail) {
@@ -129,11 +129,11 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
     } catch {
       // Keep local fallback data if API is unavailable.
     }
-  };
+  }, [role, currentUserEmail, apiBaseUrl, mapApiPostingToRequest]);
 
   useEffect(() => {
     fetchRequests();
-  }, [role, currentUserEmail]);
+  }, [fetchRequests]);
   
   const [viewState, setViewState] = useState<'list' | 'form' | 'success' | 'applicants' | 'detail'>('list');
   const [displayMode, setDisplayMode] = useState<'grid' | 'table'>('grid');
@@ -153,7 +153,7 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
 
   const defaultStartDate = now.toISOString().split('T')[0];
   const defaultEndDate = threeYearsLater.toISOString().split('T')[0];
-  const todayFormatted = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  // const todayFormatted = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
   const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

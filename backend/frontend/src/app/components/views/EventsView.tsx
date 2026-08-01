@@ -277,7 +277,7 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
     return startLabel || endLabel || 'TBD';
   };
 
-  const mapApiEventToCard = (item: any): Event => {
+  const mapApiEventToCard = useCallback((item: any): Event => {
     const eventDate = item.event_date;
     const now = new Date();
     const parsedDate = eventDate ? new Date(eventDate) : null;
@@ -310,7 +310,7 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
       status: item.status,
       submittedBy: item.posted_by || undefined,
     };
-  };
+  }, []);
 
   const parseApiEventId = (id: string): number | null => {
     if (!id.startsWith('api-')) return null;
@@ -340,7 +340,7 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
     } catch {
       // Keep local fallback data when API is unavailable.
     }
-  }, [userRole]);
+  }, [userRole, mapApiEventToCard, userName]);
 
   const downloadEngagementReport = (path: string) => {
     window.open(`${apiBaseUrl}${path}`, '_blank', 'noopener,noreferrer');
@@ -755,6 +755,37 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
     return event.tab === activeTab;
   });
 
+  const activeEventTabs: Event['tab'][] = ['Upcoming Events', 'Teaching Opportunities', 'Seminars & Workshops'];
+  const totalActiveEvents = events.filter((event) => activeEventTabs.includes(event.tab)).length;
+  const totalRegistrations = events
+    .filter((event) => activeEventTabs.includes(event.tab))
+    .reduce((total, event) => total + event.participants, 0);
+  const pendingProposals = events.filter((event) => event.tab === 'Alumni Proposals' && event.status === 'Pending').length;
+
+  const summaryCards = [
+    {
+      label: 'Total Active Events',
+      value: totalActiveEvents.toLocaleString(),
+      description: 'Live and upcoming engagements currently available.',
+      icon: Calendar,
+      iconClassName: 'bg-blue-50 text-[#003087]',
+    },
+    {
+      label: 'Total Registrations',
+      value: totalRegistrations.toLocaleString(),
+      description: 'Combined registrations across active engagement listings.',
+      icon: Users,
+      iconClassName: 'bg-emerald-50 text-emerald-600',
+    },
+    {
+      label: 'Pending Proposals',
+      value: pendingProposals.toLocaleString(),
+      description: 'Alumni-submitted proposals waiting for review.',
+      icon: FileText,
+      iconClassName: 'bg-amber-50 text-amber-600',
+    },
+  ];
+
   return (
     <div className="flex flex-col min-h-screen bg-[#F8FAFC]">
       {showSuccessToast && (
@@ -769,6 +800,27 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
           <div className="text-left">
             <h1 className="text-3xl font-bold text-gray-900">Engagement</h1>
             <p className="text-gray-500 text-sm mt-1">Manage events and alumni contributions</p>
+            <div className="mt-5 grid grid-cols-1 md:grid-cols-3 gap-5">
+              {summaryCards.map((card) => {
+                const Icon = card.icon;
+
+                return (
+                  <div
+                    key={card.label}
+                    className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5 flex items-start gap-4"
+                  >
+                    <div className={`h-12 w-12 rounded-2xl flex items-center justify-center ${card.iconClassName}`}>
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-gray-500">{card.label}</p>
+                      <p className="mt-1 text-3xl font-bold text-gray-900 tracking-tight">{card.value}</p>
+                      <p className="mt-2 text-xs leading-5 text-gray-500">{card.description}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
           {userRole === 'admin' ? (
             <div className="flex flex-wrap justify-end gap-3">
