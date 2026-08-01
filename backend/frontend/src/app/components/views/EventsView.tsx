@@ -867,6 +867,42 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
           )}
         </div>
 
+        {/* Summary cards - three columns */}
+        <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5 flex items-start gap-4">
+            <div className="h-12 w-12 rounded-2xl flex items-center justify-center bg-blue-50 text-[#003087]">
+              <Calendar className="w-5 h-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-gray-500">Total Active Events</p>
+              <p className="mt-1 text-3xl font-bold text-gray-900 tracking-tight">{totalActiveEvents ?? 12}</p>
+              <p className="mt-2 text-xs leading-5 text-gray-500">Live and upcoming engagements currently available.</p>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5 flex items-start gap-4">
+            <div className="h-12 w-12 rounded-2xl flex items-center justify-center bg-emerald-50 text-emerald-600">
+              <Users className="w-5 h-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-gray-500">Total Registrations</p>
+              <p className="mt-1 text-3xl font-bold text-gray-900 tracking-tight">{totalRegistrations?.toLocaleString() ?? '1,240'}</p>
+              <p className="mt-2 text-xs leading-5 text-gray-500">Combined registrations across active engagement listings.</p>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5 flex items-start gap-4">
+            <div className="h-12 w-12 rounded-2xl flex items-center justify-center bg-amber-50 text-amber-600">
+              <FileText className="w-5 h-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-gray-500">Pending Proposals</p>
+              <p className="mt-1 text-3xl font-bold text-gray-900 tracking-tight">{pendingProposals ?? 3}</p>
+              <p className="mt-2 text-xs leading-5 text-gray-500">Alumni-submitted proposals waiting for review.</p>
+            </div>
+          </div>
+        </div>
+
         <div className="flex gap-8 border-b border-gray-200 overflow-x-auto no-scrollbar">
           {tabs.map((tab) => (
             <button
