@@ -307,6 +307,9 @@ export function RegisterPage() {
 
       const response = await fetch('http://localhost:8000/api/users', {
         method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+        },
         body: formDataToSend,
       });
 
