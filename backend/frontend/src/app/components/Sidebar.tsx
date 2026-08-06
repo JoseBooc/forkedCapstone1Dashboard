@@ -7,14 +7,22 @@ import {
   FileText, 
   Briefcase, 
   Heart, 
+  CreditCard,
   Settings, 
   LogOut,
-  ClipboardList, // Added this icon for the new view
+  ClipboardList,
   UserCog
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import ADDULogo from '../../assets/ADDULogo.jpg'; 
+import ADDULogo from '../../assets/ADDULogo.jpg';
+
+const C = {
+  navy:   '#001F5B',
+  navyDk: '#00153D',
+  blue:   '#003087',
+  gold:   '#C5A96A',
+} as const;
 
 interface SidebarProps {
   activeView: string;
@@ -27,12 +35,10 @@ export function Sidebar({ activeView, onNavigate, userRole }: SidebarProps) {
   const [userName, setUserName] = useState(localStorage.getItem('userName') || 'User');
   const [profileImageUrl, setProfileImageUrl] = useState(localStorage.getItem('userProfileImage') || '');
   
-  // Fetch user data from database to ensure name and profile image are up-to-date
   const fetchUserName = async () => {
     try {
       const userEmail = localStorage.getItem('userEmail');
       if (!userEmail) return;
-
       const response = await fetch(`http://localhost:8000/api/users/${encodeURIComponent(userEmail)}`);
       if (response.ok) {
         const userData = await response.json();
@@ -42,7 +48,6 @@ export function Sidebar({ activeView, onNavigate, userRole }: SidebarProps) {
           setUserName(fullName);
         }
         
-        // Also fetch and store the profile image URL
         if (userData.profile_image_path) {
           const imageUrl = `http://localhost:8000/storage/${userData.profile_image_path}`;
           localStorage.setItem('userProfileImage', imageUrl);
@@ -57,7 +62,6 @@ export function Sidebar({ activeView, onNavigate, userRole }: SidebarProps) {
     }
   };
   
-  // Listen for storage changes and profile updates to update name and image in real-time
   useEffect(() => {
     const handleStorageChange = () => {
       setUserName(localStorage.getItem('userName') || 'User');
@@ -67,115 +71,231 @@ export function Sidebar({ activeView, onNavigate, userRole }: SidebarProps) {
     const handleProfileUpdate = () => {
       setUserName(localStorage.getItem('userName') || 'User');
       setProfileImageUrl(localStorage.getItem('userProfileImage') || '');
-      // Also fetch latest data from server
       fetchUserName();
     };
     
-    // Fetch the latest name and image from database on mount
     fetchUserName();
-    
     window.addEventListener('storage', handleStorageChange);
     window.addEventListener('userProfileUpdated', handleProfileUpdate);
-    
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('userProfileUpdated', handleProfileUpdate);
     };
   }, []);
-  
-  // Base menu items for all users
+
   const baseMenuItems = [
-    { id: 'home', icon: Home, label: 'Home' },
-    ...(userRole === 'admin' ? [{ id: 'users', icon: UserCog, label: 'Users' }] : []),
-    { id: 'news', icon: Newspaper, label: 'News & Updates' },
-    { id: 'profile', icon: User, label: 'My Profile' },
-    { id: 'directory', icon: Users, label: 'Alumni Directory' },
-    { id: 'events', icon: Calendar, label: 'Engagement' },
-    { id: 'surveys', icon: FileText, label: 'Tracer & Surveys' },
-    { id: 'careers', icon: Briefcase, label: 'Career Opportunities' },
-    { id: 'internships', icon: ClipboardList, label: 'Hiring Requests' }, 
-    { id: 'give', icon: Heart, label: 'Give Back' },
+    { id: 'home',        label: 'Home' },
+    { id: 'news',        label: 'News & Updates' },
+    { id: 'directory',   label: 'Alumni Directory' },
+    { id: 'events',      label: 'Engagement' },
+    { id: 'surveys',     label: 'Tracer & Surveys' },
+    { id: 'careers',     label: 'Career Opportunities' },
+    { id: 'internships', label: 'Hiring Requests' },
+    { id: 'give',        label: 'Give Back' },
   ];
-  
-  // Admin-only menu items
+
   const adminMenuItems = [
-    { id: 'analytics', icon: Settings, label: 'Analytics' },
+    { id: 'users',         label: 'Users' },
+    { id: 'payments',      label: 'Payment Verification' },
+    { id: 'registrations', label: 'Registrations' },
+    { id: 'analytics',     label: 'Analytics' },
   ];
-  
-  // Combine menu items based on role
-  const menuItems = userRole === 'admin' 
-    ? [...baseMenuItems, ...adminMenuItems] 
+
+  const menuItems = userRole === 'admin'
+    ? [...baseMenuItems, ...adminMenuItems]
     : baseMenuItems;
 
+  const initials = (() => {
+    const parts = userName.split(' ').filter((n) => n.length > 0);
+    if (parts.length === 0) return 'U';
+    if (parts.length === 1) return parts[0][0];
+    return parts[0][0] + parts[parts.length - 1][0];
+  })();
+
+  const roleLabel = userRole === 'admin' ? 'Admin' : 'Alumni';
+
   return (
-    <aside className="w-64 bg-white h-screen fixed left-0 top-0 border-r border-gray-200 flex flex-col z-50 text-left">
-      <div className="bg-gradient-to-b from-[#0051C3] to-[#003087] p-6 relative overflow-hidden">
-        <div className="relative z-10 flex items-center gap-4">
-          <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-lg overflow-hidden shrink-0">
-             <img src={ADDULogo} alt="ADDU Logo" className="w-full h-full object-contain p-0.5" />
-          </div>
-          <div className="text-white">
-            <h1 className="font-bold text-base leading-tight">Alumni Portal</h1>
-            <p className="text-[11px] opacity-90 font-medium">Ateneo de Davao</p>
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;700&display=swap');
+        body { margin-top: 64px; }
+      `}</style>
+
+      <aside
+        style={{
+          width: '100%',
+          height: 64,
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          background: C.navyDk,
+          boxShadow: '0 4px 24px rgba(0,0,0,0.18)',
+          display: 'flex',
+          alignItems: 'center',
+          zIndex: 50,
+          fontFamily: "'DM Sans', sans-serif",
+          padding: '0 24px',
+        }}
+      >
+        {/* ── LEFT: Logo + Title (fixed width) ── */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          flexShrink: 0,
+          width: 210,
+        }}>
+          <img
+            src={ADDULogo}
+            alt="ADDU Logo"
+            style={{ width: 38, height: 38, objectFit: 'contain', flexShrink: 0 }}
+          />
+          <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.25 }}>
+            <span style={{
+              fontSize: 13,
+              fontWeight: 700,
+              color: '#fff',
+              whiteSpace: 'nowrap',
+            }}>
+              ADDU Alumni
+            </span>
+            <span style={{
+              fontSize: 8.5,
+              fontWeight: 500,
+              color: 'rgba(255,255,255,0.6)',
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              whiteSpace: 'nowrap',
+            }}>
+              Ateneo de Davao University
+            </span>
           </div>
         </div>
-        <div className="absolute bottom-0 left-0 w-full h-[4px] bg-[#FFB800]"></div>
-      </div>
 
-      <nav className="flex-grow p-4 space-y-1 mt-2 overflow-y-auto"> {/* Added overflow-y-auto in case list gets long */}
-        {menuItems.map((item) => (
+        {/* ── CENTER: Nav items (fills remaining space) ── */}
+        <nav style={{
+          flex: 1,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 18,
+          overflow: 'hidden',
+        }}>
+          {menuItems.map((item) => {
+            const isActive = activeView === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => onNavigate(item.id)}
+                style={{
+                  whiteSpace: 'nowrap',
+                  border: 'none',
+                  borderBottom: isActive ? `2px solid ${C.gold}` : '2px solid transparent',
+                  background: 'transparent',
+                  cursor: 'pointer',
+                  fontSize: 10,
+                  fontWeight: 700,
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                  color: isActive ? '#fff' : 'rgba(255,255,255,0.7)',
+                  paddingBottom: 2,
+                  paddingLeft: 0,
+                  paddingRight: 0,
+                  transition: 'color 0.2s, border-color 0.2s',
+                  fontFamily: "'DM Sans', sans-serif",
+                }}
+                onMouseOver={(e) => (e.currentTarget.style.color = '#fff')}
+                onMouseOut={(e) => (e.currentTarget.style.color = isActive ? '#fff' : 'rgba(255,255,255,0.7)')}
+              >
+                {item.label}
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* ── RIGHT: Avatar + Role + Sign Out (fixed width) ── */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          flexShrink: 0,
+          width: 210,
+          justifyContent: 'flex-end',
+        }}>
+          {/* Avatar + role label — clickable to go to profile */}
           <button
-            key={item.id}
-            onClick={() => onNavigate(item.id)}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-semibold text-sm ${
-              activeView === item.id 
-                ? 'bg-[#003087] text-white shadow-md' 
-                : 'text-gray-600 hover:bg-gray-50'
-            }`}
+            onClick={() => onNavigate('profile')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              padding: '4px 6px',
+              borderRadius: 8,
+              transition: 'background 0.2s',
+            }}
+            onMouseOver={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
+            onMouseOut={(e) => (e.currentTarget.style.background = 'transparent')}
+            title="View my profile"
           >
-            <item.icon className={`w-5 h-5 ${activeView === item.id ? 'text-white' : 'text-gray-400'}`} />
-            <span className="truncate">{item.label}</span>
+            <div style={{
+              width: 34, height: 34,
+              borderRadius: '50%',
+              background: activeView === 'profile' ? 'rgba(197,169,106,0.3)' : 'rgba(59,130,246,0.25)',
+              border: activeView === 'profile' ? `1px solid ${C.gold}` : '1px solid rgba(255,255,255,0.25)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: '#fff', fontSize: 11, fontWeight: 700,
+              flexShrink: 0,
+              overflow: 'hidden',
+            }}>
+              {profileImageUrl ? (
+                <img src={profileImageUrl} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : (
+                initials
+              )}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.25, textAlign: 'left' }}>
+              <span style={{ fontSize: 11, fontWeight: 600, color: '#fff', whiteSpace: 'nowrap' }}>
+                {userName.split(' ')[0]}
+              </span>
+              <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.55)', whiteSpace: 'nowrap', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                {roleLabel}
+              </span>
+            </div>
           </button>
-        ))}
-      </nav>
 
-      <div className="p-4 border-t border-gray-100 space-y-1">
-        <div className="flex items-center gap-3 px-4 py-3 mb-2 text-left">
-          <div className="w-10 h-10 bg-[#003087] rounded-full flex items-center justify-center text-white text-xs font-bold overflow-hidden shrink-0">
-            {profileImageUrl ? (
-              <img src={profileImageUrl} alt="Profile" className="w-full h-full object-cover" />
-            ) : (
-              (() => {
-                const nameParts = userName.split(' ').filter(n => n.length > 0);
-                if (nameParts.length === 0) return 'U';
-                if (nameParts.length === 1) return nameParts[0][0];
-                return nameParts[0][0] + nameParts[nameParts.length - 1][0];
-              })()
-            )}
-          </div>
-          <div>
-            <p className="text-xs font-bold text-gray-900">{userName}</p>
-            <p className="text-[10px] text-gray-500 font-medium capitalize">{userRole}</p>
-          </div>
+          {/* Sign Out */}
+          <button
+            onClick={() => {
+              localStorage.removeItem('userRole');
+              localStorage.removeItem('userName');
+              localStorage.removeItem('userEmail');
+              navigate('/');
+            }}
+            style={{
+              border: '1px solid rgba(255,255,255,0.3)',
+              borderRadius: 100,
+              padding: '5px 14px',
+              background: 'transparent',
+              color: '#fff',
+              cursor: 'pointer',
+              fontSize: 10,
+              fontWeight: 700,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              fontFamily: "'DM Sans', sans-serif",
+              whiteSpace: 'nowrap',
+              transition: 'background 0.2s',
+            }}
+            onMouseOver={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.1)')}
+            onMouseOut={(e) => (e.currentTarget.style.background = 'transparent')}
+          >
+            Sign Out
+          </button>
         </div>
-        <button className="w-full flex items-center gap-3 px-4 py-2 text-gray-500 hover:text-gray-900 rounded-lg text-sm transition-all text-left">
-          <Settings className="w-4 h-4" />
-          <span>Settings</span>
-        </button>
-        <button 
-          onClick={() => {
-            // Clear user data from localStorage
-            localStorage.removeItem('userRole');
-            localStorage.removeItem('userName');
-            localStorage.removeItem('userEmail');
-            navigate('/');
-          }}
-          className="w-full flex items-center gap-3 px-4 py-2 text-gray-500 hover:text-red-600 rounded-lg text-sm transition-all text-left"
-        >
-          <LogOut className="w-4 h-4" />
-          <span>Sign Out</span>
-        </button>
-      </div>
-    </aside>
+      </aside>
+    </>
   );
 }

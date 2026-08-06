@@ -1,7 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, ArrowLeft, Eye, EyeOff, User, Phone, Calendar, MapPin, Upload } from 'lucide-react';
 import ADDULogo from '../../assets/ADDULogo.jpg';
+import campusNight from '../../assets/Roxas-Colored.jpg';
+
+const C = {
+  navy:   '#001F5B',
+  navyDk: '#00153D',
+  blue:   '#003087',
+  gold:   '#C5A96A',
+  goldLt: '#D4BC86',
+  slate:  '#2C3E50',
+  muted:  '#6B7280',
+  white:  '#FFFFFF',
+} as const;
 
 const PROGRAM_OPTIONS = [
   'BS Computer Science',
@@ -59,26 +71,105 @@ const PROGRAM_OPTIONS = [
   'BS Nursing',
 ];
 
-const PSGC_API = 'https://psgc.cloud/api';
+type RegionKey = 'ncr' | 'car' | 'region-1' | 'region-2' | 'region-3' | 'region-4a' | 'region-4b' | 'region-5' | 'region-6' | 'region-7' | 'region-8' | 'nir' | 'region-9' | 'region-10' | 'region-11' | 'region-12' | 'region-13' | 'barmm';
 
-const REGION_PSGC_CODES: Record<string, string> = {
-  'ncr': '1300000000',
-  'car': '1400000000',
-  'region-1': '0100000000',
-  'region-2': '0200000000',
-  'region-3': '0300000000',
-  'region-4a': '0400000000',
-  'region-4b': '1700000000',
-  'region-5': '0500000000',
-  'region-6': '0600000000',
-  'region-7': '0700000000',
-  'region-8': '0800000000',
-  'region-9': '0900000000',
-  'region-10': '1000000000',
-  'region-11': '1100000000',
-  'region-12': '1200000000',
-  'region-13': '1600000000',
-  'barmm': '1900000000',
+interface RegionData {
+  name: string;
+  provinces: string[];
+  cities: string[];
+}
+
+const PHILIPPINES_REGIONS_DATA: Record<RegionKey, RegionData> = {
+  'ncr': {
+    name: 'NCR (National Capital Region)',
+    provinces: [],
+    cities: ['Manila', 'Quezon City', 'Caloocan', 'Las Piñas', 'Makati', 'Malabon', 'Mandaluyong', 'Marikina', 'Muntinlupa', 'Navotas', 'Parañaque', 'Pasay', 'Pasig', 'San Juan', 'Taguig', 'Valenzuela']
+  },
+  'car': {
+    name: 'CAR (Cordillera Administrative Region)',
+    provinces: ['Abra', 'Apayao', 'Benguet', 'Ifugao', 'Kalinga', 'Mountain Province'],
+    cities: ['Baguio City']
+  },
+  'region-1': {
+    name: 'Region I (Ilocos Region)',
+    provinces: ['Ilocos Norte', 'Ilocos Sur', 'La Union', 'Pangasinan'],
+    cities: ['Laoag', 'Batac', 'Vigan', 'Candon', 'San Fernando', 'Dagupan', 'Alaminos', 'San Carlos', 'Urdaneta']
+  },
+  'region-2': {
+    name: 'Region II (Cagayan Valley)',
+    provinces: ['Batanes', 'Cagayan', 'Isabela', 'Nueva Vizcaya', 'Quirino'],
+    cities: ['Tuguegarao', 'Cauayan', 'Ilagan', 'Santiago']
+  },
+  'region-3': {
+    name: 'Region III (Central Luzon)',
+    provinces: ['Aurora', 'Bataan', 'Bulacan', 'Nueva Ecija', 'Pampanga', 'Tarlac', 'Zambales'],
+    cities: ['Angeles', 'Olongapo', 'Balanga', 'Malolos', 'Meycauayan', 'San Jose Del Monte', 'Mabalacat', 'Cabanatuan', 'Gapan', 'Palayan', 'San Jose', 'Muñoz', 'San Fernando', 'Tarlac City']
+  },
+  'region-4a': {
+    name: 'Region IV-A (CALABARZON)',
+    provinces: ['Batangas', 'Cavite', 'Laguna', 'Quezon', 'Rizal'],
+    cities: ['Antipolo', 'Batangas City', 'Lipa', 'Santo Tomas', 'Tanauan', 'Bacoor', 'Cavite City', 'Dasmariñas', 'Gen. Trias', 'Imus', 'Tagaytay', 'Trece Martires', 'Biñan', 'Cabuyao', 'Calamba', 'San Pablo', 'Santa Rosa', 'Lucena', 'Tayabas']
+  },
+  'region-4b': {
+    name: 'Region IV-B (MIMAROPA)',
+    provinces: ['Marinduque', 'Occidental Mindoro', 'Oriental Mindoro', 'Palawan', 'Romblon'],
+    cities: ['Calapan', 'Puerto Princesa']
+  },
+  'region-5': {
+    name: 'Region V (Bicol Region)',
+    provinces: ['Albay', 'Camarines Norte', 'Camarines Sur', 'Catanduanes', 'Masbate', 'Sorsogon'],
+    cities: ['Legazpi', 'Ligao', 'Tabaco', 'Iriga', 'Naga', 'Masbate City', 'Sorsogon City']
+  },
+  'region-6': {
+    name: 'Region VI (Western Visayas)',
+    provinces: ['Aklan', 'Antique', 'Capiz', 'Guimaras', 'Iloilo'],
+    cities: ['Iloilo City', 'Passi', 'Roxas City']
+  },
+  'region-7': {
+    name: 'Region VII (Central Visayas)',
+    provinces: ['Bohol', 'Cebu'],
+    cities: ['Cebu City', 'Lapu-Lapu', 'Mandaue', 'Tagbilaran', 'Bogo', 'Carcar', 'Danao', 'Naga', 'Talisay', 'Toledo']
+  },
+  'region-8': {
+    name: 'Region VIII (Eastern Visayas)',
+    provinces: ['Biliran', 'Eastern Samar', 'Leyte', 'Northern Samar', 'Samar', 'Southern Leyte'],
+    cities: ['Tacloban', 'Ormoc', 'Baybay', 'Borongan', 'Catbalogan', 'Calbayog', 'Maasin']
+  },
+  'nir': {
+    name: 'NIR (Negros Island Region)',
+    provinces: ['Negros Occidental', 'Negros Oriental', 'Siquijor'],
+    cities: ['Bacolod', 'Bago', 'Cadiz', 'Escalante', 'Himamaylan', 'Kabankalan', 'La Carlota', 'Sagay', 'San Carlos', 'Silay', 'Sipalay', 'Talisay', 'Victorias', 'Dumaguete', 'Bais', 'Bayawan', 'Canlaon', 'Guihulngan', 'Tanjay']
+  },
+  'region-9': {
+    name: 'Region IX (Zamboanga Peninsula)',
+    provinces: ['Zamboanga del Norte', 'Zamboanga del Sur', 'Zamboanga Sibugay'],
+    cities: ['Zamboanga City', 'Isabela City', 'Dapitan', 'Dipolog', 'Pagadian']
+  },
+  'region-10': {
+    name: 'Region X (Northern Mindanao)',
+    provinces: ['Bukidnon', 'Camiguin', 'Lanao del Norte', 'Misamis Occidental', 'Misamis Oriental'],
+    cities: ['Cagayan de Oro', 'Iligan', 'Malaybalay', 'Valencia', 'Oroquieta', 'Ozamiz', 'Tangub', 'El Salvador', 'Gingoog']
+  },
+  'region-11': {
+    name: 'Region XI (Davao Region)',
+    provinces: ['Davao de Oro', 'Davao del Norte', 'Davao del Sur', 'Davao Occidental', 'Davao Oriental'],
+    cities: ['Davao City', 'Panabo', 'Island Garden City of Samal', 'Tagum', 'Digos', 'Mati']
+  },
+  'region-12': {
+    name: 'Region XII (SOCCSKSARGEN)',
+    provinces: ['Cotabato', 'Sarangani', 'South Cotabato', 'Sultan Kudarat'],
+    cities: ['General Santos', 'Koronadal', 'Kidapawan', 'Tacurong']
+  },
+  'region-13': {
+    name: 'Region XIII (Caraga)',
+    provinces: ['Agusan del Norte', 'Agusan del Sur', 'Dinagat Islands', 'Surigao del Norte', 'Surigao del Sur'],
+    cities: ['Butuan', 'Cabadbaran', 'Bayugan', 'Surigao City', 'Bislig', 'Tandag']
+  },
+  'barmm': {
+    name: 'BARMM (Bangsamoro Autonomous Region)',
+    provinces: ['Basilan', 'Lanao del Sur', 'Maguindanao del Norte', 'Maguindanao del Sur', 'Sulu', 'Tawi-Tawi'],
+    cities: ['Cotabato City', 'Lamitan', 'Marawi']
+  }
 };
 
 export function RegisterPage() {
@@ -117,79 +208,10 @@ export function RegisterPage() {
   const [diplomaFile, setDiplomaFile] = useState<File | null>(null);
   const [validIdFile, setValidIdFile] = useState<File | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [countries, setCountries] = useState<string[]>([]);
-  const [provinces, setProvinces] = useState<{ code: string; name: string }[]>([]);
-  const [cities, setCities] = useState<string[]>([]);
-  const [loadingProvinces, setLoadingProvinces] = useState(false);
-  const [loadingCities, setLoadingCities] = useState(false);
-  const [phoneError, setPhoneError] = useState('');
-  const [telephoneError, setTelephoneError] = useState('');
-  const [passwordMismatch, setPasswordMismatch] = useState(false);
-
-  useEffect(() => {
-    fetch('https://restcountries.com/v3.1/all?fields=name')
-      .then(res => res.json())
-      .then((data: { name: { common: string } }[]) => {
-        const sorted = data
-          .map(c => c.name.common)
-          .filter(name => name !== 'Philippines')
-          .sort((a, b) => a.localeCompare(b));
-        setCountries(['Philippines', ...sorted]);
-      })
-      .catch(() => setCountries(['Philippines']));
-  }, []);
-
-  useEffect(() => {
-    if (!formData.region) return;
-    const regionCode = REGION_PSGC_CODES[formData.region];
-    if (!regionCode) return;
-
-    setFormData(prev => ({ ...prev, province: '', city: '' }));
-    setProvinces([]);
-    setCities([]);
-
-    if (formData.region === 'ncr') {
-      setLoadingCities(true);
-      fetch(`${PSGC_API}/regions/${regionCode}/cities-municipalities`)
-        .then(res => res.json())
-        .then((data: { name: string }[]) =>
-          setCities(data.map(c => c.name).sort((a, b) => a.localeCompare(b)))
-        )
-        .catch(() => setCities([]))
-        .finally(() => setLoadingCities(false));
-    } else {
-      setLoadingProvinces(true);
-      fetch(`${PSGC_API}/regions/${regionCode}/provinces`)
-        .then(res => res.json())
-        .then((data: { code: string; name: string }[]) =>
-          setProvinces(data.sort((a, b) => a.name.localeCompare(b.name)))
-        )
-        .catch(() => setProvinces([]))
-        .finally(() => setLoadingProvinces(false));
-    }
-  }, [formData.region]);
-
-  useEffect(() => {
-    if (!formData.province || formData.region === 'ncr') return;
-    const province = provinces.find(p => p.name === formData.province);
-    if (!province) return;
-
-    setFormData(prev => ({ ...prev, city: '' }));
-    setCities([]);
-    setLoadingCities(true);
-
-    fetch(`${PSGC_API}/provinces/${province.code}/cities-municipalities`)
-      .then(res => res.json())
-      .then((data: { name: string }[]) =>
-        setCities(data.map(c => c.name).sort((a, b) => a.localeCompare(b)))
-      )
-      .catch(() => setCities([]))
-      .finally(() => setLoadingCities(false));
-  }, [formData.province, provinces]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validate password match
     if (formData.password !== formData.confirmPassword) {
       alert('Passwords do not match. Please ensure both passwords are identical.');
@@ -216,8 +238,7 @@ export function RegisterPage() {
         return;
       }
     }
-    
-    // Validate required file uploads
+
     if (!validIdFile) {
       alert('Please upload your Valid ID');
       return;
@@ -227,40 +248,32 @@ export function RegisterPage() {
       alert('Please upload your Diploma/Degree');
       return;
     }
-    
-    // Basic email validation
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
       alert('Please enter a valid email address (e.g., user@gmail.com)');
       return;
     }
 
-    // Validate email domain (ensure it's a real email provider)
     const emailDomain = formData.email.split('@')[1]?.toLowerCase();
     const commonDomains = [
-      'gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 
+      'gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com',
       'icloud.com', 'protonmail.com', 'zoho.com', 'aol.com',
       'addu.edu.ph', 'mail.com', 'yandex.com', 'gmx.com'
     ];
-    
+
     if (!emailDomain || (!commonDomains.includes(emailDomain) && !emailDomain.includes('.'))) {
       alert('Please use a valid email provider (Gmail, Yahoo, Outlook, etc.)');
       return;
     }
 
     try {
-      // Clean and prepare middle name - ensure empty string becomes null
       const cleanMiddleName = formData.middleName && formData.middleName.trim() !== '' ? formData.middleName.trim() : null;
-      
-      // Construct full name - only include middle name if it exists
-      const fullName = cleanMiddleName 
+      const fullName = cleanMiddleName
         ? `${formData.firstName} ${cleanMiddleName} ${formData.lastName}`.trim()
         : `${formData.firstName} ${formData.lastName}`.trim();
-      
-      // Create FormData to handle file uploads
+
       const formDataToSend = new FormData();
-      
-      // Append all user data fields
       formDataToSend.append('first_name', formData.firstName.trim());
       formDataToSend.append('middle_name', cleanMiddleName || '');
       formDataToSend.append('last_name', formData.lastName.trim());
@@ -287,20 +300,17 @@ export function RegisterPage() {
       formDataToSend.append('course', formData.course);
       formDataToSend.append('batch_year', formData.batchYear);
       formDataToSend.append('name', fullName);
-      
-      // Append file upload fields
       formDataToSend.append('has_diploma', formData.hasDiploma);
-      if (diplomaFile) {
-        formDataToSend.append('diploma_file', diplomaFile);
-      }
+      if (diplomaFile) formDataToSend.append('diploma_file', diplomaFile);
       formDataToSend.append('id_type', formData.idType);
-      if (validIdFile) {
-        formDataToSend.append('valid_id_file', validIdFile);
-      }
+      if (validIdFile) formDataToSend.append('valid_id_file', validIdFile);
 
       const response = await fetch('http://localhost:8000/api/users', {
         method: 'POST',
-        body: formDataToSend, // Send FormData instead of JSON
+        headers: {
+          'Accept': 'application/json',
+        },
+        body: formDataToSend,
       });
 
       if (response.ok) {
@@ -316,40 +326,15 @@ export function RegisterPage() {
     }
   };
 
-  const validatePhone = (value: string): string => {
-    if (!value) return '';
-    if (!/^\d+$/.test(value)) return 'Only digits are allowed';
-    if (value.startsWith('09') && value.length !== 11) return 'Philippine mobile numbers must be 11 digits (09XXXXXXXXX)';
-    if (!value.startsWith('09') && (value.length < 7 || value.length > 15)) return 'Enter a valid number with 7–15 digits';
-    return '';
-  };
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    const digitsOnly = ['phoneNumber', 'telephoneNumber', 'zipcode'];
-    const sanitized = digitsOnly.includes(name) ? value.replace(/\D/g, '') : value;
-
-    setFormData({ ...formData, [name]: sanitized });
-
-    if (name === 'phoneNumber') setPhoneError(validatePhone(sanitized));
-    if (name === 'telephoneNumber') setTelephoneError(sanitized ? validatePhone(sanitized) : '');
-
-    if (name === 'password') {
-      setPasswordMismatch(formData.confirmPassword !== '' && formData.confirmPassword !== value);
-    }
-    if (name === 'confirmPassword') {
-      setPasswordMismatch(value !== '' && value !== formData.password);
-    }
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fileType: 'diploma' | 'validId') => {
     const file = e.target.files?.[0];
     if (file) {
-      if (fileType === 'diploma') {
-        setDiplomaFile(file);
-      } else {
-        setValidIdFile(file);
-      }
+      if (fileType === 'diploma') setDiplomaFile(file);
+      else setValidIdFile(file);
     }
   };
 
@@ -357,45 +342,131 @@ export function RegisterPage() {
   const years = Array.from({ length: currentYear - 1949 }, (_, i) => currentYear - i);
 
   return (
-    <div className="min-h-screen flex bg-gray-100">
-      {/* Left Side - Blue Background with Campus Image */}
-      <div 
-        className="hidden lg:flex lg:w-1/2 bg-[#003087] relative overflow-hidden"
+    <div className="min-h-screen flex bg-gray-100" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,400;1,500&family=DM+Sans:wght@300;400;500&display=swap');
+      `}</style>
+
+      {/* Left Side */}
+      <div
+        className="hidden lg:flex lg:w-1/2 relative overflow-hidden"
         style={{
-          background: `linear-gradient(rgba(0, 61, 122, 0.85), rgba(0, 61, 122, 0.85)), url('https://upload.wikimedia.org/wikipedia/en/3/3e/Ateneo_De_Davao_University_%28Roxas_Avenue%2C_Davao_City%3B_08-21-2023%29.jpg') center/cover`
+          background: `linear-gradient(160deg, rgba(0,21,61,0.92) 0%, rgba(0,48,135,0.75) 60%, rgba(0,21,61,0.88) 100%), url(${campusNight}) center/cover`
         }}
       >
-        {/* Back to Home Button - Desktop */}
+        {/* Gold line accent */}
+        <div style={{
+          position: 'absolute', top: 0, left: 0, bottom: 0, width: 3,
+          background: `linear-gradient(to bottom, transparent, ${C.gold}, transparent)`,
+          opacity: 0.6,
+        }} />
+
+        {/* Back to Home */}
         <button
           onClick={() => navigate('/')}
-          className="absolute top-8 left-8 flex items-center gap-2 text-white hover:text-gray-200 transition"
+          style={{
+            position: 'absolute', top: 36, left: 36, zIndex: 10,
+            display: 'inline-flex', alignItems: 'center', gap: 8,
+            background: 'none', border: 'none', cursor: 'pointer',
+            fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 400,
+            letterSpacing: '0.03em', color: 'rgba(255,255,255,0.7)',
+            transition: 'opacity 0.2s',
+          }}
+          onMouseOver={e => (e.currentTarget.style.opacity = '0.7')}
+          onMouseOut={e => (e.currentTarget.style.opacity = '1')}
         >
-          <ArrowLeft className="w-5 h-5" />
-          <span className="font-medium">Back to Home</span>
+          <ArrowLeft size={16} />
+          Back to Home
         </button>
 
-        {/* Content */}
-        <div className="flex flex-col justify-center items-center w-full px-12 text-white">
+        {/* Centered content */}
+        <div style={{
+          position: 'relative', zIndex: 2,
+          height: '100%',
+          display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center',
+          padding: '0 4rem', textAlign: 'center',
+        }}>
           {/* Logo */}
-          <div className="mb-8">
-            <div className="w-32 h-32 bg-white rounded-full flex items-center justify-center mb-6 p-4">
-              <img src={ADDULogo} alt="ADDU Logo" className="w-full h-full object-contain" />
-            </div>
+          <div style={{
+            width: 88, height: 88, borderRadius: '50%',
+            background: '#fff',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            overflow: 'hidden', marginBottom: 28,
+            boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+          }}>
+            <img src={ADDULogo} alt="ADDU Logo" style={{ width: '80%', height: '80%', objectFit: 'contain' }} />
           </div>
 
-          {/* Title */}
-          <h1 className="text-4xl font-bold mb-2 text-center">Alumni Portal</h1>
-          <p className="text-xl mb-8 text-blue-100">Ateneo de Davao University</p>
+          {/* Eyebrow */}
+          <span style={{
+            display: 'inline-block',
+            padding: '3px 14px',
+            borderRadius: 100,
+            border: `1px solid ${C.gold}`,
+            color: C.gold,
+            fontSize: 10,
+            fontWeight: 500,
+            letterSpacing: '0.14em',
+            textTransform: 'uppercase',
+            marginBottom: 20,
+          }}>
+            Ad Majorem Dei Gloriam
+          </span>
 
-          {/* Welcome Text */}
-          <h2 className="text-3xl font-bold mb-6 text-center">
-            Welcome Home, <span className="text-orange-400">Ateneans</span>
-          </h2>
+          {/* Headline */}
+          <h1 style={{
+            fontFamily: "'Cormorant Garamond', serif",
+            fontSize: 'clamp(2.4rem, 3.5vw, 3.2rem)',
+            fontWeight: 500,
+            color: '#fff',
+            lineHeight: 1.15,
+            marginBottom: 16,
+          }}>
+            Welcome Home,<br />
+            <em style={{ color: C.goldLt, fontStyle: 'italic' }}>Ateneans.</em>
+          </h1>
 
-          {/* Description */}
-          <p className="text-lg text-center max-w-md text-blue-100">
+          <p style={{
+            fontSize: 14, fontWeight: 300,
+            color: 'rgba(255,255,255,0.55)',
+            lineHeight: 1.8, maxWidth: 340,
+            marginBottom: 40,
+          }}>
             Connecting generations of excellence. Join our thriving community of over 50,000 alumni making a difference worldwide.
           </p>
+
+          {/* Stats */}
+          <div style={{
+            display: 'flex', gap: '2rem',
+            borderTop: '1px solid rgba(255,255,255,0.1)',
+            paddingTop: 32,
+          }}>
+            {[
+              { n: '50K+', l: 'Alumni' },
+              { n: '50+',  l: 'Countries' },
+              { n: '60+',  l: 'Years' },
+            ].map(({ n, l }) => (
+              <div key={l} style={{ textAlign: 'center' }}>
+                <div style={{
+                  fontFamily: "'Cormorant Garamond', serif",
+                  fontSize: '1.7rem', fontWeight: 600,
+                  color: C.gold, lineHeight: 1,
+                }}>
+                  {n}
+                </div>
+                <div style={{
+                  fontSize: 10, fontWeight: 300,
+                  color: 'rgba(255,255,255,0.4)',
+                  letterSpacing: '0.1em', textTransform: 'uppercase',
+                  marginTop: 4,
+                }}>
+                  {l}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -418,86 +489,41 @@ export function RegisterPage() {
             </div>
           </div>
 
-          {/* Title */}
           <h2 className="text-3xl font-bold text-[#003087] mb-2">Register</h2>
           <p className="text-gray-600 mb-8">Create your alumni account</p>
 
-          {/* Register Form */}
           <form onSubmit={handleSubmit}>
             {/* Name Fields */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              {/* First Name */}
               <div>
                 <label htmlFor="firstName" className="block text-gray-700 font-medium mb-2">First Name</label>
                 <div className="relative">
                   <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
-                    id="firstName"
-                    type="text"
-                    name="firstName"
-                    value={formData.firstName}
-                    onChange={handleChange}
-                    placeholder="First Name"
-                    className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition"
-                    required
-                  />
+                  <input id="firstName" type="text" name="firstName" value={formData.firstName} onChange={handleChange} placeholder="First Name" className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition" required />
                 </div>
               </div>
-
-              {/* Middle Name */}
               <div>
                 <label htmlFor="middleName" className="block text-gray-700 font-medium mb-2">Middle Name <span className="text-gray-400 font-normal text-sm">(Optional)</span></label>
                 <div className="relative">
                   <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
-                    id="middleName"
-                    type="text"
-                    name="middleName"
-                    value={formData.middleName}
-                    onChange={handleChange}
-                    placeholder="Middle Name (if applicable)"
-                    autoComplete="off"
-                    className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition"
-                  />
+                  <input id="middleName" type="text" name="middleName" value={formData.middleName} onChange={handleChange} placeholder="Middle Name (if applicable)" autoComplete="off" className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition" />
                 </div>
               </div>
-
-              {/* Last Name */}
               <div>
                 <label htmlFor="lastName" className="block text-gray-700 font-medium mb-2">Last Name</label>
                 <div className="relative">
                   <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
-                    id="lastName"
-                    type="text"
-                    name="lastName"
-                    value={formData.lastName}
-                    onChange={handleChange}
-                    placeholder="Last Name"
-                    className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition"
-                    required
-                  />
+                  <input id="lastName" type="text" name="lastName" value={formData.lastName} onChange={handleChange} placeholder="Last Name" className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition" required />
                 </div>
               </div>
             </div>
 
-            {/* Email Address */}
+            {/* Email */}
             <div className="mb-6">
               <label htmlFor="email" className="block text-gray-700 font-medium mb-2">Email Address</label>
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  id="email"
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder="Enter your email (e.g., user@gmail.com)"
-                  pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$"
-                  title="Please enter a valid email address"
-                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition"
-                  required
-                />
+                <input id="email" type="email" name="email" value={formData.email} onChange={handleChange} placeholder="Enter your email (e.g., user@gmail.com)" pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$" title="Please enter a valid email address" className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition" required />
               </div>
             </div>
 
@@ -505,26 +531,9 @@ export function RegisterPage() {
             <div className="mb-6">
               <label htmlFor="password" className="block text-gray-700 font-medium mb-2">Password</label>
               <div className="relative">
-                <Lock className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 ${passwordMismatch ? 'text-red-400' : 'text-gray-400'}`} />
-                <input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  placeholder="Create a password"
-                  className={`w-full pl-12 pr-12 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent transition ${
-                    passwordMismatch
-                      ? 'border-red-500 focus:ring-red-400 bg-red-50'
-                      : 'border-gray-300 focus:ring-[#003D7A]'
-                  }`}
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input id="password" type={showPassword ? 'text' : 'password'} name="password" value={formData.password} onChange={handleChange} placeholder="Create a password" className="w-full pl-12 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition" required />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
@@ -534,7 +543,7 @@ export function RegisterPage() {
             <div className="mb-6">
               <label htmlFor="confirmPassword" className="block text-gray-700 font-medium mb-2">Confirm Password</label>
               <div className="relative">
-                <Lock className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 ${passwordMismatch ? 'text-red-400' : 'text-gray-400'}`} />
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
                   id="confirmPassword"
                   type={showConfirmPassword ? 'text' : 'password'}
@@ -542,11 +551,7 @@ export function RegisterPage() {
                   value={formData.confirmPassword}
                   onChange={handleChange}
                   placeholder="Confirm your password"
-                  className={`w-full pl-12 pr-12 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent transition ${
-                    passwordMismatch
-                      ? 'border-red-500 focus:ring-red-400 bg-red-50'
-                      : 'border-gray-300 focus:ring-[#003D7A]'
-                  }`}
+                  className="w-full pl-12 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition"
                   required
                 />
                 <button
@@ -557,7 +562,6 @@ export function RegisterPage() {
                   {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
-              {passwordMismatch && <p className="mt-1 text-xs text-red-500">Passwords do not match</p>}
             </div>
 
             {/* Current Address */}
@@ -565,43 +569,51 @@ export function RegisterPage() {
               <label htmlFor="currentAddress" className="block text-gray-700 font-medium mb-2">Current Address</label>
               <div className="relative">
                 <MapPin className="absolute left-4 top-3 w-5 h-5 text-gray-400" />
-                <textarea
-                  id="currentAddress"
-                  name="currentAddress"
-                  value={formData.currentAddress}
-                  onChange={handleChange}
-                  rows={3}
-                  placeholder="Enter your current address"
-                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition resize-none"
-                  required
-                />
+                <textarea id="currentAddress" name="currentAddress" value={formData.currentAddress} onChange={handleChange} rows={3} placeholder="Enter your current address" className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition resize-none" required />
               </div>
             </div>
 
-            {/* Country/Location & Zipcode */}
+            {/* Country & Zipcode */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-              {/* Country/Location */}
               <div>
                 <label htmlFor="country" className="block text-gray-700 font-medium mb-2">Country/Location</label>
                 <div className="relative">
                   <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <select
-                    id="country"
-                    name="country"
-                    value={formData.country}
-                    onChange={handleChange}
-                    className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition"
-                    required
-                  >
+                  <select id="country" name="country" value={formData.country} onChange={handleChange} className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition" required>
                     <option value="">Select your country</option>
-                    {countries.map(country => (
-                      <option key={country} value={country}>{country}</option>
-                    ))}
+                    <option value="Philippines">Philippines</option>
+                    <option value="United States">United States</option>
+                    <option value="Canada">Canada</option>
+                    <option value="United Kingdom">United Kingdom</option>
+                    <option value="Australia">Australia</option>
+                    <option value="Japan">Japan</option>
+                    <option value="South Korea">South Korea</option>
+                    <option value="Singapore">Singapore</option>
+                    <option value="Malaysia">Malaysia</option>
+                    <option value="Thailand">Thailand</option>
+                    <option value="Vietnam">Vietnam</option>
+                    <option value="Indonesia">Indonesia</option>
+                    <option value="China">China</option>
+                    <option value="Hong Kong">Hong Kong</option>
+                    <option value="Taiwan">Taiwan</option>
+                    <option value="United Arab Emirates">United Arab Emirates</option>
+                    <option value="Saudi Arabia">Saudi Arabia</option>
+                    <option value="Qatar">Qatar</option>
+                    <option value="Kuwait">Kuwait</option>
+                    <option value="New Zealand">New Zealand</option>
+                    <option value="Germany">Germany</option>
+                    <option value="France">France</option>
+                    <option value="Italy">Italy</option>
+                    <option value="Spain">Spain</option>
+                    <option value="Netherlands">Netherlands</option>
+                    <option value="Switzerland">Switzerland</option>
+                    <option value="Norway">Norway</option>
+                    <option value="Sweden">Sweden</option>
+                    <option value="Other">Other</option>
                   </select>
                 </div>
               </div>
 
-              {/* Zipcode */}
               <div>
                 <label htmlFor="zipcode" className="block text-gray-700 font-medium mb-2">Zipcode</label>
                 <input
@@ -617,10 +629,9 @@ export function RegisterPage() {
               </div>
             </div>
 
-            {/* Philippine Location Fields - Only show when Philippines is selected */}
+            {/* Philippine Region / Province / City Fields */}
             {formData.country === 'Philippines' && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                {/* Region of Origin */}
                 <div>
                   <label htmlFor="region" className="block text-gray-700 font-medium mb-2">Region of Origin</label>
                   <select
@@ -644,6 +655,7 @@ export function RegisterPage() {
                     <option value="region-6">Region VI (Western Visayas)</option>
                     <option value="region-7">Region VII (Central Visayas)</option>
                     <option value="region-8">Region VIII (Eastern Visayas)</option>
+                    <option value="nir">NIR (Negros Island Region)</option>
                     <option value="region-9">Region IX (Zamboanga Peninsula)</option>
                     <option value="region-10">Region X (Northern Mindanao)</option>
                     <option value="region-12">Region XII (SOCCSKSARGEN)</option>
@@ -652,7 +664,7 @@ export function RegisterPage() {
                   </select>
                 </div>
 
-                {/* Province - Only show if region has provinces (not for NCR) */}
+                {/* Province — hidden for NCR which has no provinces */}
                 {formData.region !== 'ncr' && (
                   <div>
                     <label htmlFor="province" className="block text-gray-700 font-medium mb-2">Province</label>
@@ -665,18 +677,18 @@ export function RegisterPage() {
                       required
                     >
                       <option value="" disabled hidden>Select your province</option>
-                      {loadingProvinces ? (
-                        <option disabled>Loading provinces...</option>
-                      ) : (
-                        provinces.map(p => (
-                          <option key={p.code} value={p.name}>{p.name}</option>
+                      {formData.region && PHILIPPINES_REGIONS_DATA[formData.region as RegionKey]?.provinces.length > 0 ? (
+                        PHILIPPINES_REGIONS_DATA[formData.region as RegionKey].provinces.map((province: string) => (
+                          <option key={province} value={province}>{province}</option>
                         ))
+                      ) : (
+                        <option disabled>No provinces available for this region</option>
                       )}
                     </select>
                   </div>
                 )}
 
-                {/* Location of Town/City */}
+                {/* City */}
                 <div>
                   <label htmlFor="city" className="block text-gray-700 font-medium mb-2">Location of Town/City</label>
                   <select
@@ -687,66 +699,55 @@ export function RegisterPage() {
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition"
                     required
                   >
-                    <option value="" disabled hidden>Select your city/municipality</option>
-                    {loadingCities ? (
-                      <option disabled>Loading cities...</option>
-                    ) : (
-                      cities.map(city => (
+                    <option value="" disabled hidden>Select your city</option>
+                    {formData.region && PHILIPPINES_REGIONS_DATA[formData.region as RegionKey]?.cities.length > 0 ? (
+                      PHILIPPINES_REGIONS_DATA[formData.region as RegionKey].cities.map((city: string) => (
                         <option key={city} value={city}>{city}</option>
                       ))
+                    ) : (
+                      <option disabled>No cities available for this region</option>
                     )}
                   </select>
                 </div>
               </div>
             )}
 
-            {/* Phone Number & Telephone */}
+            {/* Phone */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-              {/* Phone Number */}
               <div>
                 <label htmlFor="phoneNumber" className="block text-gray-700 font-medium mb-2">Phone Number</label>
                 <div className="relative">
-                  <Phone className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 ${phoneError ? 'text-red-400' : 'text-gray-400'}`} />
+                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
                     id="phoneNumber"
                     type="tel"
                     name="phoneNumber"
                     value={formData.phoneNumber}
                     onChange={handleChange}
-                    placeholder="09XXXXXXXXX"
+                    placeholder="Enter your phone number"
+                    minLength={7}
                     maxLength={15}
-                    className={`w-full pl-12 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent transition ${
-                      phoneError
-                        ? 'border-red-500 focus:ring-red-400 bg-red-50'
-                        : 'border-gray-300 focus:ring-[#003D7A]'
-                    }`}
+                    className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition"
                     required
                   />
                 </div>
-                {phoneError && <p className="mt-1 text-xs text-red-500">{phoneError}</p>}
               </div>
-
-              {/* Telephone Number (Optional) */}
               <div>
-                <label htmlFor="telephoneNumber" className="block text-gray-700 font-medium mb-2">Telephone Number <span className="text-gray-400 font-normal text-sm">(Optional)</span></label>
+                <label htmlFor="telephoneNumber" className="block text-gray-700 font-medium mb-2">Telephone Number (Optional)</label>
                 <div className="relative">
-                  <Phone className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 ${telephoneError ? 'text-red-400' : 'text-gray-400'}`} />
+                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
                     id="telephoneNumber"
                     type="tel"
                     name="telephoneNumber"
                     value={formData.telephoneNumber}
                     onChange={handleChange}
-                    placeholder="09XXXXXXXXX"
+                    placeholder="Enter your telephone number"
+                    minLength={7}
                     maxLength={15}
-                    className={`w-full pl-12 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent transition ${
-                      telephoneError
-                        ? 'border-red-500 focus:ring-red-400 bg-red-50'
-                        : 'border-gray-300 focus:ring-[#003D7A]'
-                    }`}
+                    className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition"
                   />
                 </div>
-                {telephoneError && <p className="mt-1 text-xs text-red-500">{telephoneError}</p>}
               </div>
             </div>
 
@@ -755,15 +756,7 @@ export function RegisterPage() {
               <label htmlFor="birthDate" className="block text-gray-700 font-medium mb-2">Birth Date</label>
               <div className="relative">
                 <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  id="birthDate"
-                  type="date"
-                  name="birthDate"
-                  value={formData.birthDate}
-                  onChange={handleChange}
-                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition"
-                  required
-                />
+                <input id="birthDate" type="date" name="birthDate" value={formData.birthDate} onChange={handleChange} className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition" required />
               </div>
             </div>
 
@@ -771,40 +764,9 @@ export function RegisterPage() {
             <div className="mb-6">
               <label className="block text-gray-700 font-medium mb-2">Sex</label>
               <div className="flex gap-6">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="sex"
-                    value="male"
-                    checked={formData.sex === 'male'}
-                    onChange={handleChange}
-                    className="w-4 h-4 text-[#003D7A] focus:ring-2 focus:ring-[#003D7A]"
-                    required
-                  />
-                  <span className="text-gray-700">Male</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="sex"
-                    value="female"
-                    checked={formData.sex === 'female'}
-                    onChange={handleChange}
-                    className="w-4 h-4 text-[#003D7A] focus:ring-2 focus:ring-[#003D7A]"
-                  />
-                  <span className="text-gray-700">Female</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="sex"
-                    value="prefer_not_to_say"
-                    checked={formData.sex === 'prefer_not_to_say'}
-                    onChange={handleChange}
-                    className="w-4 h-4 text-[#003D7A] focus:ring-2 focus:ring-[#003D7A]"
-                  />
-                  <span className="text-gray-700">Prefer not to say</span>
-                </label>
+                <label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="sex" value="male" checked={formData.sex === 'male'} onChange={handleChange} className="w-4 h-4 text-[#003D7A]" required /><span className="text-gray-700">Male</span></label>
+                <label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="sex" value="female" checked={formData.sex === 'female'} onChange={handleChange} className="w-4 h-4 text-[#003D7A]" /><span className="text-gray-700">Female</span></label>
+                <label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="sex" value="prefer_not_to_say" checked={formData.sex === 'prefer_not_to_say'} onChange={handleChange} className="w-4 h-4 text-[#003D7A]" /><span className="text-gray-700">Prefer not to say</span></label>
               </div>
             </div>
 
@@ -829,18 +791,8 @@ export function RegisterPage() {
                 <option value="other">Other (please specify)</option>
                 <option value="prefer_not_to_say">Prefer not to say</option>
               </select>
-
-              {/* Conditional: Show text input if "Other" is selected */}
               {formData.religion === 'other' && (
-                <input
-                  type="text"
-                  name="religionOther"
-                  value={formData.religionOther}
-                  onChange={handleChange}
-                  placeholder="Please specify your religion"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition mt-3"
-                  required
-                />
+                <input type="text" name="religionOther" value={formData.religionOther} onChange={handleChange} placeholder="Please specify your religion" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition mt-3" required />
               )}
             </div>
 
@@ -866,86 +818,32 @@ export function RegisterPage() {
               </select>
             </div>
 
-            {/* Conditional: Marriage Date for Married/Separated/Annulled/Divorced/Widowed */}
             {['married', 'separated', 'annulled', 'divorced', 'widowed'].includes(formData.maritalStatus) && (
               <div className="mb-6">
                 <label htmlFor="marriageDate" className="block text-gray-700 font-medium mb-2">Month and Year of Marriage</label>
-                <input
-                  id="marriageDate"
-                  type="month"
-                  name="marriageDate"
-                  value={formData.marriageDate}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition"
-                  required
-                />
+                <input id="marriageDate" type="month" name="marriageDate" value={formData.marriageDate} onChange={handleChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition" required />
               </div>
             )}
 
-            {/* Conditional: Marriage Intentions for Single */}
             {formData.maritalStatus === 'single' && (
               <div className="mb-6 space-y-4">
                 <div>
                   <label className="block text-gray-700 font-medium mb-2">Do you intend to get married in the future?</label>
                   <div className="flex gap-6">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="intendToMarry"
-                        value="yes"
-                        checked={formData.intendToMarry === 'yes'}
-                        onChange={handleChange}
-                        className="w-4 h-4 text-[#003D7A] focus:ring-2 focus:ring-[#003D7A]"
-                        required
-                      />
-                      <span className="text-gray-700">Yes</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="intendToMarry"
-                        value="no"
-                        checked={formData.intendToMarry === 'no'}
-                        onChange={handleChange}
-                        className="w-4 h-4 text-[#003D7A] focus:ring-2 focus:ring-[#003D7A]"
-                      />
-                      <span className="text-gray-700">No</span>
-                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="intendToMarry" value="yes" checked={formData.intendToMarry === 'yes'} onChange={handleChange} className="w-4 h-4 text-[#003D7A]" required /><span className="text-gray-700">Yes</span></label>
+                    <label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="intendToMarry" value="no" checked={formData.intendToMarry === 'no'} onChange={handleChange} className="w-4 h-4 text-[#003D7A]" /><span className="text-gray-700">No</span></label>
                   </div>
                 </div>
-
-                {/* If Yes: Age */}
                 {formData.intendToMarry === 'yes' && (
                   <div>
                     <label htmlFor="intendedMarriageAge" className="block text-gray-700 font-medium mb-2">At what age?</label>
-                    <input
-                      id="intendedMarriageAge"
-                      type="number"
-                      name="intendedMarriageAge"
-                      value={formData.intendedMarriageAge}
-                      onChange={handleChange}
-                      placeholder="Enter age"
-                      min="18"
-                      max="100"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition"
-                      required
-                    />
+                    <input id="intendedMarriageAge" type="number" name="intendedMarriageAge" value={formData.intendedMarriageAge} onChange={handleChange} placeholder="Enter age" min="18" max="100" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition" required />
                   </div>
                 )}
-
-                {/* If No: Reason */}
                 {formData.intendToMarry === 'no' && (
                   <div>
                     <label htmlFor="noMarriageReason" className="block text-gray-700 font-medium mb-2">Reason (Optional)</label>
-                    <textarea
-                      id="noMarriageReason"
-                      name="noMarriageReason"
-                      value={formData.noMarriageReason}
-                      onChange={handleChange}
-                      rows={3}
-                      placeholder="Please share your reason (optional)"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition resize-none"
-                    />
+                    <textarea id="noMarriageReason" name="noMarriageReason" value={formData.noMarriageReason} onChange={handleChange} rows={3} placeholder="Please share your reason (optional)" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition resize-none" />
                   </div>
                 )}
               </div>
@@ -953,7 +851,6 @@ export function RegisterPage() {
 
             {/* Course & Batch Year */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-              {/* Course Graduated */}
               <div>
                 <label htmlFor="course" className="block text-gray-700 font-medium mb-2">Degree Program Completed:</label>
                 <input
@@ -973,8 +870,6 @@ export function RegisterPage() {
                   ))}
                 </datalist>
               </div>
-
-              {/* Batch Year */}
               <div>
                 <label htmlFor="batchYear" className="block text-gray-700 font-medium mb-2">Batch Year</label>
                 <select
@@ -993,51 +888,34 @@ export function RegisterPage() {
               </div>
             </div>
 
-            {/* Do you have your diploma/degree */}
+            {/* Diploma */}
             <div className="mb-6">
               <label htmlFor="hasDiploma" className="block text-gray-700 font-medium mb-2">Do you have your diploma/degree? (Optional)</label>
-              <select
-                id="hasDiploma"
-                name="hasDiploma"
-                value={formData.hasDiploma}
-                onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition"
-              >
+              <select id="hasDiploma" name="hasDiploma" value={formData.hasDiploma} onChange={handleChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003D7A] focus:border-transparent transition">
                 <option value="no">No</option>
                 <option value="yes">Yes</option>
               </select>
             </div>
 
-            {/* Upload Diploma/Degree (Conditional) */}
             {formData.hasDiploma === 'yes' && (
               <div className="mb-6">
                 <label className="block text-gray-700 font-medium mb-2">Upload Diploma/Degree</label>
                 <div className="border-2 border-dashed border-blue-300 rounded-lg p-8 text-center bg-blue-50 hover:bg-blue-100 transition cursor-pointer relative">
-                  <input
-                    type="file"
-                    id="diplomaFile"
-                    accept="image/png,image/jpeg,image/jpg"
-                    onChange={(e) => handleFileChange(e, 'diploma')}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                  />
+                  <input type="file" id="diplomaFile" accept="image/png,image/jpeg,image/jpg" onChange={(e) => handleFileChange(e, 'diploma')} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
                   <div className="pointer-events-none">
                     <Upload className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-                    <p className="text-gray-600 font-medium mb-1">
-                      {diplomaFile ? diplomaFile.name : 'Click to upload your Diploma/Degree'}
-                    </p>
+                    <p className="text-gray-600 font-medium mb-1">{diplomaFile ? diplomaFile.name : 'Click to upload your Diploma/Degree'}</p>
                     <p className="text-gray-500 text-sm">PNG, JPG up to 10MB</p>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Proof of Identity */}
+            {/* Valid ID */}
             <div className="mb-6">
-              <label className="block text-gray-700 font-medium mb-2">Proof of Identity (Valid ID) </label>
-              
-              {/* Select ID Type */}
+              <label className="block text-gray-700 font-medium mb-2">Proof of Identity (Valid ID)</label>
               <div className="mb-4">
-                <label htmlFor="idType" className="block text-gray-600 text-sm mb-2">Select ID Type </label>
+                <label htmlFor="idType" className="block text-gray-600 text-sm mb-2">Select ID Type</label>
                 <select
                   id="idType"
                   name="idType"
@@ -1058,43 +936,24 @@ export function RegisterPage() {
                   <option value="national-id">National ID (PhilSys)</option>
                 </select>
               </div>
-
-              {/* File Upload */}
               <div className="border-2 border-dashed border-blue-300 rounded-lg p-8 text-center bg-blue-50 hover:bg-blue-100 transition cursor-pointer relative">
-                <input
-                  type="file"
-                  id="validIdFile"
-                  accept="image/png,image/jpeg,image/jpg"
-                  onChange={(e) => handleFileChange(e, 'validId')}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                />
+                <input type="file" id="validIdFile" accept="image/png,image/jpeg,image/jpg" onChange={(e) => handleFileChange(e, 'validId')} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
                 <div className="pointer-events-none">
                   <Upload className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-                  <p className="text-gray-600 font-medium mb-1">
-                    {validIdFile ? validIdFile.name : 'Click to upload your Valid ID'}
-                  </p>
+                  <p className="text-gray-600 font-medium mb-1">{validIdFile ? validIdFile.name : 'Click to upload your Valid ID'}</p>
                   <p className="text-gray-500 text-sm">PNG, JPG up to 10MB</p>
                 </div>
               </div>
             </div>
 
-            {/* Register Button */}
-            <button
-              type="submit"
-              className="w-full bg-[#003D7A] text-white py-4 rounded-lg hover:bg-[#002855] transition font-semibold text-lg shadow-lg mb-6"
-            >
+            <button type="submit" className="w-full bg-[#003D7A] text-white py-4 rounded-lg hover:bg-[#002855] transition font-semibold text-lg shadow-lg mb-6">
               Register
             </button>
 
-            {/* Sign In Link */}
             <div className="text-center">
               <p className="text-gray-600">
                 Already have an account?{' '}
-                <button
-                  type="button"
-                  onClick={() => navigate('/login')}
-                  className="text-[#003D7A] hover:text-[#002855] font-bold transition"
-                >
+                <button type="button" onClick={() => navigate('/login')} className="text-[#003D7A] hover:text-[#002855] font-bold transition">
                   Sign in here
                 </button>
               </p>
@@ -1103,29 +962,21 @@ export function RegisterPage() {
         </div>
       </div>
 
-      {/* Registration Success Modal */}
+      {/* Success Modal */}
       {showSuccessModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 flex flex-col items-center text-center">
-            {/* Checkmark Icon */}
             <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-6">
               <svg className="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
               </svg>
             </div>
-
             <h2 className="text-2xl font-bold text-gray-900 mb-3">Registration Submitted Successfully!</h2>
-
             <p className="text-gray-600 leading-relaxed mb-8">
               Your registered account will be verified by an administrator within{' '}
-              <span className="font-semibold text-[#003087]">24 to 48 hours</span>. You will be able to
-              log in once your account has been approved.
+              <span className="font-semibold text-[#003087]">24 to 48 hours</span>. You will be able to log in once your account has been approved.
             </p>
-
-            <button
-              onClick={() => navigate('/login')}
-              className="w-full py-3 bg-[#003087] text-white rounded-xl font-semibold text-base hover:bg-[#002066] transition-colors shadow-md"
-            >
+            <button onClick={() => navigate('/login')} className="w-full py-3 bg-[#003087] text-white rounded-xl font-semibold text-base hover:bg-[#002066] transition-colors shadow-md">
               Go to Login
             </button>
           </div>

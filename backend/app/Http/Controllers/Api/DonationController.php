@@ -21,25 +21,83 @@ class DonationController extends Controller
     {
         $validated = $request->validate([
             'amount' => 'required|numeric|min:1',
-            'first_name' => 'required|string|max:255',
-            'last_name' => 'required|string|max:255',
-            'email' => 'required|email|max:255',
+            'first_name' => 'nullable|string|max:255',
+            'last_name' => 'nullable|string|max:255',
+            'email' => 'nullable|email|max:255',
+            'frequency' => 'nullable|string|max:255',
+            'designation' => 'nullable|string|max:255',
             'payment_method' => 'nullable|string|max:255',
+            'reference_number' => 'nullable|string|max:255',
+            'transaction_date' => 'nullable|date',
+            'gcash_number' => 'nullable|string|max:255',
+            'account_name' => 'nullable|string|max:255',
+            'bank_name' => 'nullable|string|max:255',
+            'card_number' => 'nullable|string|max:255',
+            'proof' => 'nullable|image|max:5120',
         ]);
 
+        $proofPath = null;
+        if ($request->hasFile('proof')) {
+            $storedPath = $request->file('proof')->store('donation-proofs', 'public');
+            $proofPath = '/storage/' . $storedPath;
+        }
+
         $donation = Donation::create([
-            'campaign_id' => null, // General donation
-            'first_name' => $validated['first_name'],
-            'last_name' => $validated['last_name'],
-            'email' => $validated['email'],
+            'campaign_id' => null,
+            'first_name' => $validated['first_name'] ?? 'Anonymous',
+            'last_name' => $validated['last_name'] ?? 'Donor',
+            'email' => $validated['email'] ?? 'anonymous@local.test',
             'amount' => $validated['amount'],
+            'frequency' => $validated['frequency'] ?? 'One-Time',
+            'designation' => $validated['designation'] ?? null,
             'payment_method' => $validated['payment_method'] ?? 'Credit Card',
+            'reference_number' => $validated['reference_number'] ?? null,
+            'transaction_date' => $validated['transaction_date'] ?? null,
+            'gcash_number' => $validated['gcash_number'] ?? null,
+            'account_name' => $validated['account_name'] ?? null,
+            'bank_name' => $validated['bank_name'] ?? null,
+            'card_number' => $validated['card_number'] ?? null,
+            'proof_path' => $proofPath,
+            'payment_status' => 'pending',
         ]);
         
         return response()->json([
             'message' => 'Donation recorded successfully',
+            'id' => $donation->id,
             'donation' => $donation,
         ], 201);
+    }
+
+    public function updatePaymentStatus(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'payment_status' => 'required|in:pending,verified,rejected',
+        ]);
+
+        $donation = Donation::findOrFail($id);
+        $previousStatus = $donation->payment_status;
+        $donation->payment_status = $validated['payment_status'];
+        $donation->save();
+
+        if ($donation->campaign) {
+            if ($previousStatus !== 'verified' && $donation->payment_status === 'verified') {
+                $donation->campaign->raised_amount = (float) $donation->campaign->raised_amount + (float) $donation->amount;
+                $donation->campaign->save();
+            }
+
+            if ($previousStatus === 'verified' && $donation->payment_status !== 'verified') {
+                $donation->campaign->raised_amount = max(
+                    0,
+                    (float) $donation->campaign->raised_amount - (float) $donation->amount
+                );
+                $donation->campaign->save();
+            }
+        }
+
+        return response()->json([
+            'message' => 'Donation payment status updated successfully',
+            'donation' => $donation,
+        ]);
     }
 
     public function getByEmail($email)
@@ -56,16 +114,12 @@ class DonationController extends Controller
     {
         $currentYear = date('Y');
         
-        // Total raised this year
         $totalRaisedThisYear = Donation::whereYear('created_at', $currentYear)->sum('amount');
         
-        // Active donors (unique donors this year)
         $activeDonors = Donation::whereYear('created_at', $currentYear)
             ->distinct('email')
             ->count('email');
         
-        // For scholarships, you can calculate or set a static value
-        // Here I'll use a placeholder - you can adjust this based on your needs
         $scholarshipsAwarded = 1200;
         
         return response()->json([
@@ -77,19 +131,16 @@ class DonationController extends Controller
 
     public function getAnalytics()
     {
-        // Get all donations with campaign info
         $allDonations = Donation::with('campaign')
             ->orderBy('created_at', 'desc')
             ->get();
 
-        // General donations (no campaign_id)
         $generalDonations = Donation::whereNull('campaign_id')
             ->orderBy('created_at', 'desc')
             ->get();
         
         $generalTotal = $generalDonations->sum('amount');
 
-        // Campaign donations grouped by campaign
         $campaignDonations = Donation::whereNotNull('campaign_id')
             ->with('campaign')
             ->get()
@@ -115,5 +166,14 @@ class DonationController extends Controller
             'overall_total' => $allDonations->sum('amount'),
             'overall_count' => $allDonations->count(),
         ]);
+    }
+
+    public function updateVisibility(Request $request, $id)
+    {
+        $donation = Donation::findOrFail($id);
+        $donation->is_hidden = $request->input('is_hidden');
+        $donation->save();
+
+        return response()->json(['message' => 'Visibility updated successfully']);
     }
 }
