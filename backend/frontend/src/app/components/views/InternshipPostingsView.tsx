@@ -184,7 +184,7 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] p-8">
+    <div className="addu-brand min-h-screen bg-[#F8FAFC] p-8">
       <div className="max-w-7xl mx-auto">
         
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
@@ -199,7 +199,7 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
           {viewState === 'list' && role === 'alumni' && (
             <button 
               onClick={() => { setSelectedRequest(null); setViewState('form'); }}
-              className="flex items-center justify-center gap-2 bg-[#003087] text-white px-8 py-4 rounded-2xl font-bold shadow-lg hover:bg-blue-800 transition-all active:scale-95"
+              className="flex items-center justify-center gap-2 bg-ateneo-blue-main text-white px-8 py-4 rounded-2xl font-bold shadow-lg hover:bg-ateneo-blue-dark transition-all active:scale-95"
             >
               <PlusCircle className="w-5 h-5" /> New Posting Request
             </button>
@@ -211,9 +211,9 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
             
             {viewState === 'success' && (
               <div className="bg-white border-2 border-green-500 rounded-[40px] p-16 text-center shadow-xl">
-                <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6"><PartyPopper className="w-10 h-10" /></div>
+                <div className="w-20 h-20 bg-ateneo-green/15 text-ateneo-green rounded-full flex items-center justify-center mx-auto mb-6"><PartyPopper className="w-10 h-10" /></div>
                 <h2 className="text-3xl font-bold text-gray-900 mb-2">{role === 'admin' ? "Update Successful!" : "Request Submitted!"}</h2>
-                <button onClick={() => setViewState('list')} className="font-bold text-[#003087] hover:underline flex items-center justify-center gap-2 mx-auto mt-4"><ArrowLeft className="w-4 h-4" /> Back to List</button>
+                <button onClick={() => setViewState('list')} className="font-bold text-ateneo-blue-main hover:underline flex items-center justify-center gap-2 mx-auto mt-4"><ArrowLeft className="w-4 h-4" /> Back to List</button>
               </div>
             )}
 
@@ -228,38 +228,38 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
                 <form onSubmit={handleFormSubmit} className="space-y-6">
                   <div className="space-y-2">
                     <label className="text-sm font-bold text-gray-700 ml-1">Company Name</label>
-                    <input name="company" defaultValue={selectedRequest?.company} required type="text" className="w-full p-4 bg-gray-50 border rounded-2xl outline-none focus:border-blue-500" />
+                    <input name="company" defaultValue={selectedRequest?.company} required type="text" className="w-full p-4 bg-gray-50 border rounded-2xl outline-none focus:border-ateneo-blue-main" />
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-bold text-gray-700 ml-1">Position Title</label>
-                    <input name="position" defaultValue={selectedRequest?.position} required type="text" className="w-full p-4 bg-gray-50 border rounded-2xl outline-none focus:border-blue-500" />
+                    <input name="position" defaultValue={selectedRequest?.position} required type="text" className="w-full p-4 bg-gray-50 border rounded-2xl outline-none focus:border-ateneo-blue-main" />
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-bold text-gray-700 ml-1">Type</label>
-                    <select name="type" defaultValue={selectedRequest?.type || "Internship"} required className="w-full p-4 bg-gray-50 border rounded-2xl outline-none focus:border-blue-500 font-medium">
+                    <select name="type" defaultValue={selectedRequest?.type || "Internship"} required className="w-full p-4 bg-gray-50 border rounded-2xl outline-none focus:border-ateneo-blue-main font-medium">
                       <option value="Internship">Internship</option>
                       <option value="Job">Job</option>
                     </select>
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-bold text-gray-700 ml-1">Contact Email</label>
-                    <input name="email" defaultValue={selectedRequest?.email} required type="email" className="w-full p-4 bg-gray-50 border rounded-2xl outline-none focus:border-blue-500" />
+                    <input name="email" defaultValue={selectedRequest?.email} required type="email" className="w-full p-4 bg-gray-50 border rounded-2xl outline-none focus:border-ateneo-blue-main" />
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <label className="text-sm font-bold text-gray-700 ml-1">Start Date</label>
-                      <input name="startDate" defaultValue={selectedRequest?.startDate || defaultStartDate} required type="date" className="w-full p-4 bg-gray-50 border rounded-2xl outline-none focus:border-blue-500" />
+                      <input name="startDate" defaultValue={selectedRequest?.startDate || defaultStartDate} required type="date" className="w-full p-4 bg-gray-50 border rounded-2xl outline-none focus:border-ateneo-blue-main" />
                     </div>
                     <div className="space-y-2">
                       <label className="text-sm font-bold text-gray-700 ml-1">End Date</label>
-                      <input name="endDate" defaultValue={selectedRequest?.endDate || defaultEndDate} required type="date" className="w-full p-4 bg-gray-50 border rounded-2xl outline-none focus:border-blue-500" />
+                      <input name="endDate" defaultValue={selectedRequest?.endDate || defaultEndDate} required type="date" className="w-full p-4 bg-gray-50 border rounded-2xl outline-none focus:border-ateneo-blue-main" />
                     </div>
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-bold text-gray-700 ml-1">Job Description</label>
-                    <textarea name="description" defaultValue={selectedRequest?.description} required rows={4} className="w-full p-4 bg-gray-50 border rounded-2xl outline-none focus:border-blue-500" />
+                    <textarea name="description" defaultValue={selectedRequest?.description} required rows={4} className="w-full p-4 bg-gray-50 border rounded-2xl outline-none focus:border-ateneo-blue-main" />
                   </div>
-                  <button type="submit" className="w-full py-5 bg-[#003087] text-white rounded-2xl font-bold text-xl hover:bg-blue-800 shadow-lg transition-all active:scale-95">
+                  <button type="submit" className="w-full py-5 bg-ateneo-blue-main text-white rounded-2xl font-bold text-xl hover:bg-ateneo-blue-dark shadow-lg transition-all active:scale-95">
                     {selectedRequest ? (role === 'admin' ? "Save Changes" : "Update & Resubmit") : "Submit for Approval"}
                   </button>
                 </form>
@@ -274,13 +274,13 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
                   <p className="text-gray-500 font-medium">{selectedRequest.company}</p>
                 </div>
                 <h3 className="font-bold text-gray-900 mb-6 flex items-center gap-2 text-xl">
-                  <Users className="text-[#003087]" /> List of Applications ({selectedRequest.applicantsCount})
+                  <Users className="text-ateneo-blue-main" /> List of Applications ({selectedRequest.applicantsCount})
                 </h3>
                 <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
                   {selectedRequest.applications.map(app => (
-                    <div key={app.id} className="p-5 bg-gray-50 rounded-2xl flex items-center justify-between border hover:border-blue-200 transition-all">
+                    <div key={app.id} className="p-5 bg-gray-50 rounded-2xl flex items-center justify-between border hover:border-ateneo-blue-main/30 transition-all">
                       <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-blue-600 shadow-sm"><User size={18} /></div>
+                        <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-ateneo-blue-main shadow-sm"><User size={18} /></div>
                         <div><p className="font-bold text-gray-900">{app.name}</p><p className="text-sm text-gray-500">{app.email}</p></div>
                       </div>
                       <p className="text-xs font-bold text-gray-400">{app.date}</p>
@@ -298,8 +298,8 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
                   <div>
                     <h2 className="text-3xl font-bold text-gray-900 mb-2">{selectedRequest.company}</h2>
                     <span className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest ${
-                      selectedRequest.status === 'Approved' ? 'bg-green-100 text-green-700' : 
-                      selectedRequest.status === 'Pending' ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700'
+                      selectedRequest.status === 'Approved' ? 'bg-ateneo-green/15 text-ateneo-green' : 
+                      selectedRequest.status === 'Pending' ? 'bg-ateneo-yellow-main/25 text-ateneo-blue-dark' : 'bg-ateneo-red/15 text-ateneo-red'
                     }`}>{selectedRequest.status}</span>
                   </div>
                   <div className="flex gap-3">
@@ -315,8 +315,8 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
                     )}
                     {role === 'admin' && selectedRequest.status === 'Pending' && !isDenying && (
                       <>
-                        <button onClick={() => updateStatus(selectedRequest.id, 'Approved')} className="bg-green-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-green-700">Approve</button>
-                        <button onClick={() => setIsDenying(true)} className="bg-red-50 text-red-600 px-6 py-3 rounded-xl font-bold hover:bg-red-100">Deny</button>
+                        <button onClick={() => updateStatus(selectedRequest.id, 'Approved')} className="bg-ateneo-green text-white px-6 py-3 rounded-xl font-bold hover:bg-emerald-700">Approve</button>
+                        <button onClick={() => setIsDenying(true)} className="bg-red-50 text-ateneo-red px-6 py-3 rounded-xl font-bold hover:bg-red-100">Deny</button>
                       </>
                     )}
                     {role === 'admin' && selectedRequest.status === 'Denied' && (
@@ -328,16 +328,16 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
                 </div>
 
                 {isDenying ? (
-                  <div className="bg-red-50 p-6 rounded-2xl border border-red-100">
-                    <h4 className="text-red-800 font-bold mb-3 flex items-center gap-2"><AlertCircle size={18}/> Reason for Denial</h4>
-                    <textarea 
-                      value={denyRemarks} 
-                      onChange={(e) => setDenyRemarks(e.target.value)} 
-                      placeholder="Please provide a reason so the alumni can correct it..." 
-                      className="w-full p-4 bg-white border border-red-200 rounded-xl mb-4 outline-none focus:border-red-500" 
+                  <div className="bg-red-50 p-6 rounded-2xl border border-ateneo-red/20">
+                    <h4 className="text-ateneo-red font-bold mb-3 flex items-center gap-2"><AlertCircle size={18}/> Reason for Denial</h4>
+                    <textarea
+                      value={denyRemarks}
+                      onChange={(e) => setDenyRemarks(e.target.value)}
+                      placeholder="Please provide a reason so the alumni can correct it..."
+                      className="w-full p-4 bg-white border border-ateneo-red/30 rounded-xl mb-4 outline-none focus:border-ateneo-red"
                     />
                     <div className="flex gap-3">
-                      <button onClick={() => updateStatus(selectedRequest.id, 'Denied')} className="bg-red-600 text-white px-6 py-2 rounded-lg font-bold">Confirm Denial</button>
+                      <button onClick={() => updateStatus(selectedRequest.id, 'Denied')} className="bg-ateneo-red text-white px-6 py-2 rounded-lg font-bold">Confirm Denial</button>
                       <button onClick={() => setIsDenying(false)} className="text-gray-500 font-bold px-4">Cancel</button>
                     </div>
                   </div>
@@ -348,9 +348,9 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
                       <p className="text-gray-700 leading-relaxed">{selectedRequest.description}</p>
                     </div>
                     {selectedRequest.status === 'Denied' && selectedRequest.remarks && (
-                      <div className="p-6 bg-red-50 rounded-2xl border border-red-100 shadow-inner">
-                        <h4 className="font-bold text-red-700 mb-1 flex items-center gap-2"><XCircle size={16}/> Rejection Remarks:</h4>
-                        <p className="text-red-600 italic font-medium">"{selectedRequest.remarks}"</p>
+                      <div className="p-6 bg-red-50 rounded-2xl border border-ateneo-red/20 shadow-inner">
+                        <h4 className="font-bold text-ateneo-red mb-1 flex items-center gap-2"><XCircle size={16}/> Rejection Remarks:</h4>
+                        <p className="text-ateneo-red italic font-medium">"{selectedRequest.remarks}"</p>
                       </div>
                     )}
                   </div>
@@ -364,9 +364,9 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
                   <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     {role === 'admin' && (
                       <div className="bg-white p-1.5 rounded-2xl border flex gap-1 shadow-sm">
-                        <button onClick={() => setFilterType('All')} className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all ${filterType === 'All' ? 'bg-[#003087] text-white' : 'text-gray-500 hover:bg-gray-50'}`}>All Opportunities</button>
-                        <button onClick={() => setFilterType('Job')} className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all ${filterType === 'Job' ? 'bg-[#003087] text-white' : 'text-gray-500 hover:bg-gray-50'}`}>Jobs only</button>
-                        <button onClick={() => setFilterType('Internship')} className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all ${filterType === 'Internship' ? 'bg-[#003087] text-white' : 'text-gray-500 hover:bg-gray-50'}`}>Internship only</button>
+                        <button onClick={() => setFilterType('All')} className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all ${filterType === 'All' ? 'bg-ateneo-blue-main text-white' : 'text-gray-500 hover:bg-gray-50'}`}>All Opportunities</button>
+                        <button onClick={() => setFilterType('Job')} className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all ${filterType === 'Job' ? 'bg-ateneo-blue-main text-white' : 'text-gray-500 hover:bg-gray-50'}`}>Jobs only</button>
+                        <button onClick={() => setFilterType('Internship')} className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all ${filterType === 'Internship' ? 'bg-ateneo-blue-main text-white' : 'text-gray-500 hover:bg-gray-50'}`}>Internship only</button>
                       </div>
                     )}
                     <div className="flex items-center gap-3 ml-auto">
@@ -382,15 +382,15 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
                       </div>
                       {role === 'admin' && (
                         <div className="flex bg-gray-100 p-1 rounded-xl gap-1">
-                          <button onClick={() => setDisplayMode('grid')} className={`p-2 rounded-lg ${displayMode === 'grid' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400'}`}><LayoutGrid size={18} /></button>
-                          <button onClick={() => setDisplayMode('table')} title="All Posts/Application List" className={`p-2 rounded-lg ${displayMode === 'table' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400'}`}><TableIcon size={18} /></button>
+                          <button onClick={() => setDisplayMode('grid')} className={`p-2 rounded-lg ${displayMode === 'grid' ? 'bg-white text-ateneo-blue-main shadow-sm' : 'text-gray-400'}`}><LayoutGrid size={18} /></button>
+                          <button onClick={() => setDisplayMode('table')} title="All Posts/Application List" className={`p-2 rounded-lg ${displayMode === 'table' ? 'bg-white text-ateneo-blue-main shadow-sm' : 'text-gray-400'}`}><TableIcon size={18} /></button>
                         </div>
                       )}
                     </div>
                   </div>
                   <div className="relative">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-                    <input type="text" placeholder="Search company or position..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-12 pr-4 py-4 bg-white border rounded-2xl outline-none focus:border-blue-500 shadow-sm" />
+                    <input type="text" placeholder="Search company or position..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-12 pr-4 py-4 bg-white border rounded-2xl outline-none focus:border-ateneo-blue-main shadow-sm" />
                   </div>
                 </div>
 
@@ -403,15 +403,15 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
                       </thead>
                       <tbody>
                         {filteredRequests.map(req => (
-                          <tr key={req.id} className="border-b last:border-0 hover:bg-blue-50/20 transition-colors">
+                          <tr key={req.id} className="border-b last:border-0 hover:bg-ateneo-blue-main/5 transition-colors">
                             <td className="p-5 font-bold flex items-center gap-2">
                               {req.company}
                               {req.hidden && <EyeOff size={14} className="text-gray-400" />}
                             </td>
                             <td className="p-5 font-medium text-gray-600">{req.position}</td>
                             <td className="p-5 text-xs font-bold text-gray-400">{req.type}</td>
-                            <td className="p-5"><span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase ${req.status === 'Approved' ? 'bg-green-100 text-green-700' : req.status === 'Pending' ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700'}`}>{req.status}</span></td>
-                            <td className="p-5 text-center">{req.status === 'Approved' ? <button onClick={() => { setSelectedRequest(req); setViewState('applicants'); }} className="text-[#003087] font-bold underline">{req.applicantsCount}</button> : "-"}</td>
+                            <td className="p-5"><span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase ${req.status === 'Approved' ? 'bg-ateneo-green/15 text-ateneo-green' : req.status === 'Pending' ? 'bg-ateneo-yellow-main/25 text-ateneo-blue-dark' : 'bg-ateneo-red/15 text-ateneo-red'}`}>{req.status}</span></td>
+                            <td className="p-5 text-center">{req.status === 'Approved' ? <button onClick={() => { setSelectedRequest(req); setViewState('applicants'); }} className="text-ateneo-blue-main font-bold underline">{req.applicantsCount}</button> : "-"}</td>
                             <td className="p-5 text-right">
                               <div className="flex justify-end gap-2">
                                 {req.status === 'Denied' && (
@@ -419,8 +419,8 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
                                     {req.hidden ? <RefreshCcw size={18} /> : <EyeOff size={18} />}
                                   </button>
                                 )}
-                                {req.status === 'Denied' && <button onClick={() => handleEdit(req)} className="p-2 text-gray-400 hover:text-blue-600"><Edit3 size={18} /></button>}
-                                <button onClick={() => { setSelectedRequest(req); setViewState('detail'); }} className="p-2 text-gray-400 hover:text-blue-600"><Eye size={18} /></button>
+                                {req.status === 'Denied' && <button onClick={() => handleEdit(req)} className="p-2 text-gray-400 hover:text-ateneo-blue-main"><Edit3 size={18} /></button>}
+                                <button onClick={() => { setSelectedRequest(req); setViewState('detail'); }} className="p-2 text-gray-400 hover:text-ateneo-blue-main"><Eye size={18} /></button>
                               </div>
                             </td>
                           </tr>
@@ -431,9 +431,9 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
                 ) : (
                   <div className="space-y-6">
                     {filteredRequests.map((req) => (
-                      <div key={req.id} className={`bg-white border border-gray-100 p-6 rounded-[24px] hover:border-blue-200 transition-all flex items-center justify-between group shadow-sm ${req.hidden ? 'opacity-60 bg-gray-50' : ''}`}>
+                      <div key={req.id} className={`bg-white border border-gray-100 p-6 rounded-[24px] hover:border-ateneo-blue-main/30 transition-all flex items-center justify-between group shadow-sm ${req.hidden ? 'opacity-60 bg-gray-50' : ''}`}>
                         <div className="flex items-center gap-5">
-                          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${req.status === 'Approved' ? 'bg-green-50 text-green-600' : req.status === 'Pending' ? 'bg-orange-50 text-orange-600' : 'bg-red-50 text-red-600'}`}>
+                          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${req.status === 'Approved' ? 'bg-ateneo-green/10 text-ateneo-green' : req.status === 'Pending' ? 'bg-ateneo-yellow-main/20 text-ateneo-blue-dark' : 'bg-ateneo-red/10 text-ateneo-red'}`}>
                             {req.status === 'Approved' ? <CheckCircle2 /> : req.status === 'Pending' ? <Clock /> : <XCircle />}
                           </div>
                           <div>
@@ -445,16 +445,16 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
                           </div>
                         </div>
                         <div className="flex items-center gap-3">
-                          {req.status === 'Approved' && <button onClick={() => { setSelectedRequest(req); setViewState('applicants'); }} className="flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-xl text-xs font-bold hover:bg-blue-100"><Users size={16} /> {req.applicantsCount} Applicants</button>}
+                          {req.status === 'Approved' && <button onClick={() => { setSelectedRequest(req); setViewState('applicants'); }} className="flex items-center gap-2 bg-ateneo-cyan/10 text-ateneo-cyan px-4 py-2 rounded-xl text-xs font-bold hover:bg-ateneo-cyan/20"><Users size={16} /> {req.applicantsCount} Applicants</button>}
                           {role === 'admin' && req.status === 'Denied' && (
                              <button onClick={() => handleToggleHide(req.id)} className="p-2 text-gray-400 hover:text-gray-600 transition-all" title={req.hidden ? "Restore Posting" : "Hide Posting"}>
                                {req.hidden ? <RefreshCcw size={20}/> : <EyeOff size={20}/>}
                              </button>
                           )}
                           {(role === 'alumni' && (req.status === 'Pending' || req.status === 'Denied')) || (role === 'admin' && req.status === 'Denied') ? (
-                            <button onClick={() => handleEdit(req)} className="p-2 text-gray-400 hover:text-blue-600 transition-all" title="Edit Posting"><Edit3 size={20}/></button>
+                            <button onClick={() => handleEdit(req)} className="p-2 text-gray-400 hover:text-ateneo-blue-main transition-all" title="Edit Posting"><Edit3 size={20}/></button>
                           ) : null}
-                          <button onClick={() => { setSelectedRequest(req); setViewState('detail'); }} className="p-2 bg-gray-50 text-gray-400 rounded-lg hover:bg-[#003087] hover:text-white transition-all"><Eye size={20} /></button>
+                          <button onClick={() => { setSelectedRequest(req); setViewState('detail'); }} className="p-2 bg-gray-50 text-gray-400 rounded-lg hover:bg-ateneo-blue-main hover:text-white transition-all"><Eye size={20} /></button>
                         </div>
                       </div>
                     ))}
@@ -470,7 +470,7 @@ export function InternshipPostingsView({ role }: InternshipPostingsProps) {
           </div>
 
           <div className="space-y-6">
-            <div className={`${role === 'admin' ? 'bg-red-900' : 'bg-[#003087]'} p-8 rounded-[32px] text-white shadow-xl`}>
+            <div className={`${role === 'admin' ? 'bg-ateneo-blue-dark' : 'bg-ateneo-blue-main'} p-8 rounded-[32px] text-white shadow-xl`}>
               <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><Info size={20} /> Guidelines</h3>
               <ul className="space-y-4 text-sm text-blue-100 font-medium opacity-90">
                 {role === 'admin' ? (

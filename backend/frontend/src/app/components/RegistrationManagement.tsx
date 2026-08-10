@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users, Search, Filter, Download, Eye, Trash2, Archive } from 'lucide-react';
+import { Users, Search, Filter, Download } from 'lucide-react';
 
 interface RegistrationManagementProps {
   userRole: 'alumni' | 'admin';

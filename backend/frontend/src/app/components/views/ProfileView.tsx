@@ -141,7 +141,7 @@ export function ProfileView({ userRole }: ProfileViewProps) {
       })
       .catch(() => {})
       .finally(() => setLoadingCities(false));
-  }, [formData.province, provinces]);
+  }, [formData.province, formData.region, provinces]);
 
   const fetchUserData = async () => {
     try {

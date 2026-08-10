@@ -3,7 +3,6 @@ import {
   Users, Globe, Heart, MapPin, Clock, Calendar,
   Briefcase, BookOpen, Award, UserCheck, Phone, Mail,
   Facebook, Twitter, Instagram, Linkedin, ArrowRight, ChevronDown,
-  LucideIcon,
 } from 'lucide-react';
 import ADDULogo from '../../assets/ADDULogo.jpg';
 import communityPhoto from '../../assets/_MG_1823.jpg';
@@ -291,6 +290,12 @@ export function LandingPage(): React.ReactElement {
           transition: color 0.2s;
           display: block;
           margin-bottom: 12px;
+          background: none;
+          border: none;
+          padding: 0;
+          text-align: left;
+          cursor: pointer;
+          font-family: inherit;
         }
         .footer-link:hover { color: ${C.gold}; }
 
@@ -781,7 +786,7 @@ export function LandingPage(): React.ReactElement {
                 Quick Links
               </div>
               {quickLinks.map((label) => (
-                <a key={label} href="#" className="footer-link">{label}</a>
+                <button key={label} type="button" className="footer-link">{label}</button>
               ))}
             </div>
 
@@ -796,7 +801,7 @@ export function LandingPage(): React.ReactElement {
                 Resources
               </div>
               {resources.map((label) => (
-                <a key={label} href="#" className="footer-link">{label}</a>
+                <button key={label} type="button" className="footer-link">{label}</button>
               ))}
             </div>
 

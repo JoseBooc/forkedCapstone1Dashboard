@@ -1,18 +1,3 @@
-import { 
-  Home, 
-  Newspaper, 
-  User, 
-  Users, 
-  Calendar, 
-  FileText, 
-  Briefcase, 
-  Heart, 
-  CreditCard,
-  Settings, 
-  LogOut,
-  ClipboardList,
-  UserCog
-} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import ADDULogo from '../../assets/ADDULogo.jpg';

@@ -1,5 +1,40 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;1,500;1,700&family=Inter:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;1,500;1,700&family=Inter:wght@300;400;500;600&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ── AdDU Brand Typography ────────────────────────────────────────────────
+   Trajan Pro and Maharlika are licensed/non-CDN fonts, so no @font-face/url()
+   is declared for them here (CRA's css-loader resolves url() at build time
+   against src/, not public/, so pointing at not-yet-existing files breaks
+   compilation). The font-family names below still work as-is: browsers
+   automatically use a matching *locally installed* font of that name, and
+   fall back to `serif` otherwise. To embed the real webfonts instead of
+   relying on local installs, drop the licensed .woff2 files under
+   src/assets/fonts/ and import them from a component with a relative
+   `url('../assets/fonts/...')` — that path webpack can resolve. Garamond is
+   rendered via the open-source EB Garamond webfont (imported above) so body
+   text matches the brand face without requiring a licensed file. */
+
+/* Scoped to the Engagement, Career Opportunities, and Hiring Requests views
+   (elements carrying the `.addu-brand` wrapper class) so the rest of the
+   app is unaffected. */
+.addu-brand {
+  font-family: 'EB Garamond', Garamond, Baskerville, serif;
+}
+
+.addu-brand h1,
+.addu-brand h2,
+.addu-brand h3,
+.addu-brand h4,
+.addu-brand .card-title,
+.addu-brand .tab-header {
+  font-family: 'Trajan Pro', serif;
+  font-weight: normal;
+}
+
+.addu-brand .font-maharlika {
+  font-family: 'Maharlika', serif;
+  font-weight: normal;
+}

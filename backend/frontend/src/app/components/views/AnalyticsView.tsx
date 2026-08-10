@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import {
-  BarChart, Bar, PieChart, Pie, Cell,
+  BarChart, Bar,
   LineChart, Line, XAxis, YAxis,
   CartesianGrid, Tooltip, Legend,
   ResponsiveContainer

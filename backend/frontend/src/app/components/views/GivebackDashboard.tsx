@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BarChart3, TrendingUp, Users, Gift, Target, Calendar, Award, PieChart, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
+import { BarChart3, TrendingUp, Users, Gift, Target, Calendar, Award, ArrowUpRight } from 'lucide-react';
 import { Footer } from '../Footer';
 
 interface DashboardStats {

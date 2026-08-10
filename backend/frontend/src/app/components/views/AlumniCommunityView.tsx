@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Calendar, Clock, MapPin, Users, CheckCircle, X, Plus, ChevronLeft, Mail, Phone, Trash2, Eye, EyeOff } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, CheckCircle, X, Plus, ChevronLeft, Trash2 } from 'lucide-react';
 import { Footer } from '../Footer';
 
 interface AlumniEvent {
@@ -21,18 +21,6 @@ interface AlumniEvent {
   time_remaining?: string;
 }
 
-interface EventRegistration {
-  id: number;
-  event_id: number;
-  first_name: string;
-  last_name: string;
-  email: string;
-  phone?: string;
-  status: 'confirmed' | 'pending' | 'cancelled';
-  registered_at: string;
-  attended?: boolean;
-}
-
 interface AlumniCommunityViewProps {
   userRole?: 'alumni' | 'admin';
   onNavigate?: (view: string) => void;
@@ -40,7 +28,7 @@ interface AlumniCommunityViewProps {
 
 export function AlumniCommunityView({ userRole = 'alumni', onNavigate }: AlumniCommunityViewProps) {
   const [showForm, setShowForm] = useState(false);
-  const [isCreating, setIsCreating] = useState(false);
+  const [, setIsCreating] = useState(false);
   const [events, setEvents] = useState<AlumniEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'upcoming' | 'past' | 'myEvents'>('upcoming');

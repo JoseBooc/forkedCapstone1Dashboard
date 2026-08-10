@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Eye, EyeOff, Target, TrendingUp, Users, Calendar, X, ChevronLeft, Lock, Heart, CheckCircle2 } from 'lucide-react';
+import { Plus, Trash2, Target, X, ChevronLeft, Heart } from 'lucide-react';
 import { Footer } from '../Footer';
 
 interface Project {
@@ -27,9 +27,7 @@ interface ProjectsViewProps {
 
 export function ProjectsView({ userRole = 'alumni', onNavigate }: ProjectsViewProps) {
   const [showForm, setShowForm] = useState(false);
-  const [isCreating, setIsCreating] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [, setIsCreating] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDonationModal, setShowDonationModal] = useState(false);

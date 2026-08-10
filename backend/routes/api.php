@@ -12,6 +12,8 @@ use App\Http\Controllers\Api\EngagementActivityController;
 use App\Http\Controllers\Api\EngagementRegistrationController;
 use App\Http\Controllers\Api\GivebackPostController;
 use App\Http\Controllers\Api\GivebackAnalyticsController;
+use App\Http\Controllers\Api\CareerOpportunityController;
+use App\Http\Controllers\Api\HiringRequestController;
 
 Route::get('/test', function () {
     return response()->json([
@@ -114,3 +116,14 @@ Route::patch('/giveback/registrations/{id}/visibility', [EngagementRegistrationC
 
 // Donations
 Route::patch('/donations/{id}/visibility', [DonationController::class, 'updateVisibility']);
+
+// Career Opportunities API
+Route::get('/career-opportunities', [CareerOpportunityController::class, 'index']);
+Route::get('/career-opportunities/{id}', [CareerOpportunityController::class, 'show']);
+Route::delete('/career-opportunities/{id}', [CareerOpportunityController::class, 'destroy']);
+
+// Hiring Requests API (employer submission queue)
+Route::get('/hiring-requests', [HiringRequestController::class, 'index']);
+Route::post('/hiring-requests', [HiringRequestController::class, 'store']);
+Route::patch('/hiring-requests/{id}/approve', [HiringRequestController::class, 'approve']);
+Route::patch('/hiring-requests/{id}/reject', [HiringRequestController::class, 'reject']);
