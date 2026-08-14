@@ -89,6 +89,9 @@ Route::delete('/giveback/activities/{id}', [EngagementActivityController::class,
 Route::patch('/giveback/activities/{id}/toggle-registration', [EngagementActivityController::class, 'toggleRegistration']);
 Route::patch('/giveback/activities/{id}/archive', [EngagementActivityController::class, 'archive']);
 Route::patch('/giveback/activities/{id}/restore', [EngagementActivityController::class, 'restore']);
+Route::patch('/giveback/activities/{id}/approve', [EngagementActivityController::class, 'approve']);
+Route::patch('/giveback/activities/{id}/reject', [EngagementActivityController::class, 'reject']);
+Route::patch('/giveback/activities/{id}/post', [EngagementActivityController::class, 'post']);
 
 // Community Engagement Registrations + Payments
 Route::get('/giveback/registrations', [EngagementRegistrationController::class, 'index']);

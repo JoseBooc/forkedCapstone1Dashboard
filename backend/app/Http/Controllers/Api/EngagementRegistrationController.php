@@ -19,6 +19,9 @@ class EngagementRegistrationController extends Controller
         if ($activityId) {
             $query->where('activity_id', $activityId);
         }
+        if ($request->filled('email')) {
+            $query->where('email', $request->query('email'));
+        }
 
         return response()->json($query->get());
     }
@@ -31,11 +34,26 @@ class EngagementRegistrationController extends Controller
             'last_name' => 'required|string|max:255',
             'email' => 'required|email|max:255',
             'guests_count' => 'nullable|integer|min:0',
+            'guests' => 'nullable|json',
             'amount_due' => 'required|numeric|min:0',
             'payment_method' => 'required|string|in:gcash,bank_transfer,cash',
             'reference_number' => 'nullable|string|max:255|unique:engagement_registrations,reference_number',
             'proof' => 'nullable|file|mimes:jpeg,png,jpg,gif,webp,pdf|max:4096',
         ]);
+
+        $guests = [];
+        if (!empty($validated['guests'])) {
+            $decoded = json_decode($validated['guests'], true);
+            if (is_array($decoded)) {
+                $guests = array_map(function ($guest) {
+                    return [
+                        'name' => (string) ($guest['name'] ?? ''),
+                        'relationship' => (string) ($guest['relationship'] ?? 'other'),
+                        'otherText' => (string) ($guest['otherText'] ?? ''),
+                    ];
+                }, $decoded);
+            }
+        }
 
         $activity = EngagementActivity::findOrFail($validated['activity_id']);
         if (!$activity->registration_open) {
@@ -64,6 +82,7 @@ class EngagementRegistrationController extends Controller
             'last_name' => $validated['last_name'],
             'email' => $validated['email'],
             'guests_count' => $validated['guests_count'] ?? 0,
+            'guests' => $guests,
             'amount_due' => $validated['amount_due'],
             'payment_method' => $validated['payment_method'],
             'reference_number' => $validated['reference_number'] ?? null,

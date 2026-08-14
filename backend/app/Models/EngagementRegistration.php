@@ -12,6 +12,7 @@ class EngagementRegistration extends Model
         'last_name',
         'email',
         'guests_count',
+        'guests',
         'amount_due',
         'payment_method',
         'reference_number',
@@ -23,6 +24,7 @@ class EngagementRegistration extends Model
 
     protected $casts = [
         'guests_count' => 'integer',
+        'guests' => 'array',
         'amount_due' => 'decimal:2',
         'is_hidden' => 'boolean',
     ];

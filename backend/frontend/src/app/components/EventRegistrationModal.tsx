@@ -19,6 +19,13 @@ interface EventRegistrationModalProps {
 }
 
 type PaymentMethod = 'gcash' | 'bank_transfer' | 'cash';
+type GuestRelationship = 'friend' | 'family' | 'other';
+
+interface GuestInfo {
+  name: string;
+  relationship: GuestRelationship;
+  otherText: string;
+}
 
 // ─────────────────────────────────────────────
 //  EventRegistrationModal
@@ -33,6 +40,7 @@ export function EventRegistrationModal({ event, onClose }: EventRegistrationModa
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [guestCount, setGuestCount] = useState(0);
+  const [guests, setGuests] = useState<GuestInfo[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('gcash');
   const [referenceNumber, setReferenceNumber] = useState('');
   const [proofFile, setProofFile] = useState<File | null>(null);
@@ -44,12 +52,37 @@ export function EventRegistrationModal({ event, onClose }: EventRegistrationModa
   const totalPrice = totalAttendees * event.feeAmount;
   const requiresProof = paymentMethod === 'gcash' || paymentMethod === 'bank_transfer';
 
+  const addGuest = () => {
+    setGuestCount(guestCount + 1);
+    setGuests((prev) => [...prev, { name: '', relationship: 'friend', otherText: '' }]);
+  };
+
+  const removeGuest = () => {
+    if (guestCount === 0) return;
+    setGuestCount(guestCount - 1);
+    setGuests((prev) => prev.slice(0, -1));
+  };
+
+  const updateGuest = (index: number, patch: Partial<GuestInfo>) => {
+    setGuests((prev) => prev.map((guest, i) => (i === index ? { ...guest, ...patch } : guest)));
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
     if (!firstName.trim() || !lastName.trim() || !email.trim()) {
       setErrorMessage('Please complete all required fields.');
       return;
+    }
+    for (const guest of guests) {
+      if (!guest.name.trim()) {
+        setErrorMessage('Please enter a name for every guest.');
+        return;
+      }
+      if (guest.relationship === 'other' && !guest.otherText.trim()) {
+        setErrorMessage('Please specify the relationship for every "Other" guest.');
+        return;
+      }
     }
     if (event.feeAmount > 0) {
       setStep('payment');
@@ -88,6 +121,7 @@ export function EventRegistrationModal({ event, onClose }: EventRegistrationModa
     formData.append('last_name', lastName.trim());
     formData.append('email', email.trim());
     formData.append('guests_count', String(guestCount));
+    formData.append('guests', JSON.stringify(guests));
     formData.append('amount_due', String(totalPrice));
     formData.append('payment_method', method);
     if (referenceNumber.trim()) formData.append('reference_number', referenceNumber.trim());
@@ -349,7 +383,7 @@ export function EventRegistrationModal({ event, onClose }: EventRegistrationModa
               <div className="flex items-center border border-gray-300 rounded-lg">
                 <button
                   type="button"
-                  onClick={() => guestCount > 0 && setGuestCount(guestCount - 1)}
+                  onClick={removeGuest}
                   className="px-4 py-2 text-gray-600 hover:bg-gray-100 transition-colors"
                 >
                   −
@@ -359,7 +393,7 @@ export function EventRegistrationModal({ event, onClose }: EventRegistrationModa
                 </span>
                 <button
                   type="button"
-                  onClick={() => setGuestCount(guestCount + 1)}
+                  onClick={addGuest}
                   className="px-4 py-2 text-gray-600 hover:bg-gray-100 transition-colors"
                 >
                   +
@@ -370,6 +404,48 @@ export function EventRegistrationModal({ event, onClose }: EventRegistrationModa
                 <span>₱{event.feeAmount.toLocaleString()} per person</span>
               </div>
             </div>
+          </div>
+
+          {guests.length > 0 && (
+            <div className="space-y-3">
+              {guests.map((guest, index) => (
+                <div key={index} className="p-4 bg-gray-50 border border-gray-200 rounded-lg space-y-3">
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Guest {index + 1}</p>
+                  <input
+                    type="text"
+                    required
+                    value={guest.name}
+                    onChange={(e) => updateGuest(index, { name: e.target.value })}
+                    placeholder="Guest's full name"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
+                  />
+                  <select
+                    value={guest.relationship}
+                    onChange={(e) => updateGuest(index, { relationship: e.target.value as GuestRelationship })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
+                  >
+                    <option value="friend">Friend</option>
+                    <option value="family">Family Member</option>
+                    <option value="other">Other</option>
+                  </select>
+                  {guest.relationship === 'other' && (
+                    <input
+                      type="text"
+                      required
+                      value={guest.otherText}
+                      onChange={(e) => updateGuest(index, { otherText: e.target.value })}
+                      placeholder="Please specify"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <span className="font-bold text-gray-900">Total:</span>
+            <span className="text-xl font-bold text-[#003087]">₱{totalPrice.toLocaleString()}</span>
           </div>
 
           {errorMessage && (
