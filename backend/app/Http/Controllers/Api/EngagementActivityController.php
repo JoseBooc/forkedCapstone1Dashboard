@@ -40,11 +40,24 @@ class EngagementActivityController extends Controller
             'status' => 'required|string|in:upcoming,ongoing,completed',
             'created_by_name' => 'nullable|string|max:255',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'event_type' => 'nullable|string|in:giveback,event',
+            'category' => 'nullable|string|max:100',
+            'registration_start_at' => 'nullable|date',
+            'registration_end_at' => 'nullable|date|after_or_equal:registration_start_at',
+            'submitted_by_email' => 'nullable|email|max:255',
         ]);
 
         if ($request->hasFile('image')) {
             $imagePath = $request->file('image')->store('engagement-activities', 'public');
             $validated['image_url'] = '/storage/' . $imagePath;
+        }
+
+        if ($request->boolean('is_proposal')) {
+            $validated['approval_status'] = 'pending';
+            $validated['posted_at'] = null;
+        } elseif (($validated['event_type'] ?? 'giveback') === 'event') {
+            $validated['approval_status'] = 'approved';
+            $validated['posted_at'] = now();
         }
 
         $activity = EngagementActivity::create($validated);
@@ -68,6 +81,11 @@ class EngagementActivityController extends Controller
             'status' => 'required|string|in:upcoming,ongoing,completed',
             'created_by_name' => 'nullable|string|max:255',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'event_type' => 'nullable|string|in:giveback,event',
+            'category' => 'nullable|string|max:100',
+            'registration_start_at' => 'nullable|date',
+            'registration_end_at' => 'nullable|date|after_or_equal:registration_start_at',
+            'submitted_by_email' => 'nullable|email|max:255',
         ]);
 
         if ($request->hasFile('image')) {
@@ -79,7 +97,50 @@ class EngagementActivityController extends Controller
             $validated['image_url'] = '/storage/' . $imagePath;
         }
 
+        if ($request->boolean('resubmit')) {
+            $validated['approval_status'] = 'pending';
+            $validated['rejection_reason'] = null;
+            $validated['posted_at'] = null;
+            $validated['is_archived'] = false;
+        }
+
         $activity->update($validated);
+
+        return response()->json($activity);
+    }
+
+    public function approve($id)
+    {
+        $activity = EngagementActivity::findOrFail($id);
+        $activity->update(['approval_status' => 'approved']);
+
+        return response()->json($activity);
+    }
+
+    public function reject(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'reason' => 'required|string|min:3',
+        ]);
+
+        $activity = EngagementActivity::findOrFail($id);
+        $activity->update([
+            'approval_status' => 'rejected',
+            'rejection_reason' => $validated['reason'],
+        ]);
+
+        return response()->json($activity);
+    }
+
+    public function post($id)
+    {
+        $activity = EngagementActivity::findOrFail($id);
+
+        if ($activity->approval_status !== 'approved') {
+            return response()->json(['message' => 'Only approved proposals can be posted.'], 422);
+        }
+
+        $activity->update(['posted_at' => now()]);
 
         return response()->json($activity);
     }

@@ -4,17 +4,7 @@ import { Footer } from '../Footer';
 import { EventRegistrationModal, MyRegistrations, type MyRegistration } from '../EventRegistrationModal';
 
 // Image imports
-import EngageWebDevBG from '../../../assets/EngageWebDevBG.jpg';
-import StocksBG from '../../../assets/StocksBG.jpg';
-import Swim101 from '../../../assets/Swim101.jpg';
-import DigitalMarket from '../../../assets/DigitalMarket.jpg';
-import DesignThinkBG from '../../../assets/DesignThinkBG.jpg';
-import LeadershipBG from '../../../assets/LeadershipBG.jpg';
-import ChristmasReunion from '../../../assets/ChristmasReunion.jpg';
-import DataSciBG from '../../../assets/DataSciBG.jpg';
 import CareerFairBG from '../../../assets/CareerFairBG.jpg';
-import GolfTournaBG from '../../../assets/GolfTournaBG.jpg';
-import LeaderSummitBG from '../../../assets/LeaderSummitBG.jpg';
 import GuestLectureBG from '../../../assets/GuestLectureBG.jpg';
 import WorkshopBG from '../../../assets/WorkshopBG.jpg';
 import MentorCapBG from '../../../assets/MentorCapBG.jpg';
@@ -48,12 +38,20 @@ interface Event {
   participants: number;
   description: string;
   image: string;
-  tab: 'Upcoming Events' | 'Past Events' | 'Teaching Opportunities' | 'Seminars & Workshops' | 'Alumni Proposals';
+  tab: 'Teaching Opportunities' | 'Seminars & Workshops';
   postedBy?: string;
   postedDate?: string;
   compensation?: string;
-  status?: 'Pending' | 'Approved' | 'Rejected';
-  submittedBy?: string;
+}
+
+interface EventDetailData {
+  title: string;
+  category: string;
+  date: string;
+  time: string;
+  location: string;
+  description: string;
+  image: string;
 }
 
 interface GivebackActivity {
@@ -70,20 +68,89 @@ interface GivebackActivity {
   image_url?: string | null;
   created_by_name?: string | null;
   is_archived: boolean;
+  event_type: 'giveback' | 'event';
+  category: string | null;
+  registration_start_at: string | null;
+  registration_end_at: string | null;
+  approval_status: 'pending' | 'approved' | 'rejected';
+  rejection_reason: string | null;
+  submitted_by_email: string | null;
+  posted_at: string | null;
+  updated_at: string;
+}
+
+// All event/registration times in this feature are venue wall-clock time
+// (there's one campus, one timezone — no instant-in-time conversion needed).
+// The backend stores them naively but serializes with a trailing "Z", which
+// would make `new Date(iso)` silently shift the displayed clock by the
+// viewer's UTC offset. These helpers read/write the literal digits instead,
+// so what an admin/alumni types is exactly what everyone sees, everywhere.
+function parseVenueDateTime(value: string | null | undefined): Date | null {
+  if (!value) return null;
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?/);
+  if (!match) return null;
+  const [, y, mo, d, h, mi, s] = match;
+  return new Date(Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi), s ? Number(s) : 0);
+}
+
+function toDateTimeLocalValue(date: Date | null): string {
+  if (!date) return '';
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function formatVenueDate(value: string | null | undefined): string {
+  return parseVenueDateTime(value)?.toLocaleDateString() ?? '';
+}
+
+function formatVenueTime(value: string | null | undefined): string {
+  return parseVenueDateTime(value)?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) ?? '';
+}
+
+interface EventDisplayState {
+  label: string;
+  badgeClass: string;
+  canRegister: boolean;
+  registerLabel: string;
+  countdownText: string;
+  bucket: 'proposal' | 'upcoming' | 'past';
+}
+
+function getEventDisplayState(activity: GivebackActivity, now: Date): EventDisplayState {
+  const scheduleStart = parseVenueDateTime(activity.schedule_start) ?? new Date(0);
+  const scheduleEnd = parseVenueDateTime(activity.schedule_end) ?? new Date(0);
+  const regStart = parseVenueDateTime(activity.registration_start_at);
+  const regEnd = parseVenueDateTime(activity.registration_end_at);
+  const daysBetween = (from: Date, to: Date) => Math.max(0, Math.ceil((to.getTime() - from.getTime()) / 86400000));
+
+  if (activity.approval_status === 'pending') {
+    return { label: 'Pending', badgeClass: 'bg-amber-500', canRegister: false, registerLabel: 'Pending Approval', countdownText: 'Registration ends in: ---', bucket: 'proposal' };
+  }
+  if (activity.approval_status === 'rejected') {
+    return { label: 'Proposal Rejected', badgeClass: 'bg-red-600', canRegister: false, registerLabel: 'Rejected', countdownText: 'Registration ends in: ---', bucket: 'proposal' };
+  }
+  if (!activity.posted_at) {
+    return { label: 'Event approved', badgeClass: 'bg-blue-600', canRegister: false, registerLabel: 'Post Event', countdownText: 'Registration ends in: ---', bucket: 'proposal' };
+  }
+  if (now > scheduleEnd) {
+    return { label: 'Event concluded', badgeClass: 'bg-gray-500', canRegister: false, registerLabel: 'Concluded', countdownText: '', bucket: 'past' };
+  }
+  if (now >= scheduleStart && now <= scheduleEnd) {
+    return { label: 'Ongoing', badgeClass: 'bg-orange-600', canRegister: false, registerLabel: 'Ongoing', countdownText: 'This event is ongoing', bucket: 'upcoming' };
+  }
+  if (regStart && now < regStart) {
+    const days = daysBetween(now, regStart);
+    return { label: 'Upcoming', badgeClass: 'bg-slate-500', canRegister: false, registerLabel: 'Registration Opens Soon', countdownText: `Registration opens in: ${days} day${days === 1 ? '' : 's'}`, bucket: 'upcoming' };
+  }
+  if (regEnd && now > regEnd) {
+    return { label: 'Upcoming', badgeClass: 'bg-amber-700', canRegister: false, registerLabel: 'Registration Closed', countdownText: 'Registration is closed', bucket: 'upcoming' };
+  }
+  const deadline = regEnd || scheduleStart;
+  const days = daysBetween(now, deadline);
+  return { label: 'Upcoming', badgeClass: 'bg-green-600', canRegister: true, registerLabel: 'Register', countdownText: `Registration ends in: ${days} day${days === 1 ? '' : 's'}`, bucket: 'upcoming' };
 }
 
 const INITIAL_EVENTS: Event[] = [
-  { id: '1', title: "Web Development For Beginners", category: "Computer Science", date: "January 26, 2026", time: "6:00 PM - 8:00 PM", location: "Online", participants: 245, description: "Learn the fundamentals of web development in this beginner-friendly workshop.", image: EngageWebDevBG, tab: 'Upcoming Events' },
-  { id: '2', title: "Stocks, Funds & Investment", category: "Finance", date: "January 20, 2026", time: "Tue, Thu & Fri, 6:00 PM - 7:00 PM", location: "Online", participants: 178, description: "10 sessions comprehensive course on stocks, funds, and investment strategies.", image: StocksBG, tab: 'Upcoming Events' },
-  { id: '3', title: "Swimming 101 for Adults", category: "Sports & Wellness", date: "January 20, 2026", time: "Tue & Thu 5:00 PM, Sat 1:30 PM", location: "ADDU Aquatic Center", participants: 89, description: "10 sessions comprehensive swimming program for adults. Learn basic techniques.", image: Swim101, tab: 'Upcoming Events' },
-  { id: '4', title: "Fundamentals of Digital Marketing", category: "Marketing", date: "January 21, 2026", time: "Mon, Wed & Fri, 6:00 PM - 8:00 PM", location: "Online", participants: 156, description: "4 sessions course covering the fundamentals of digital marketing.", image: DigitalMarket, tab: 'Upcoming Events' },
-  { id: '5', title: "Design Thinking Workshop", category: "Innovation & Design", date: "January 24, 2026", time: "Saturday, 9:00 AM - 11:00 AM", location: "Online", participants: 198, description: "8 sessions workshop on design thinking - human-centered innovation.", image: DesignThinkBG, tab: 'Upcoming Events' },
-  { id: '6', title: "Executive Leadership Training", category: "Leadership", date: "January 26, 2026", time: "Mon, Wed & Thu, 6:00 PM - 8:00 PM", location: "Online", participants: 132, description: "12 sessions comprehensive leadership training program.", image: LeadershipBG, tab: 'Upcoming Events' },
-  { id: '7', title: "Christmas Alumni Reunion 2025", category: "Social Event", date: "December 20, 2025", time: "6:00 PM - 10:00 PM", location: "ADDU Gymnasium", participants: 423, description: "A festive celebration bringing together alumni for fellowship, dinner, and holiday cheer.", image: ChristmasReunion, tab: 'Past Events' },
-  { id: '8', title: "Data Science & Analytics Workshop", category: "Professional Dev", date: "November 15, 2025", time: "1:00 PM - 6:00 PM", location: "ADDU Computer Lab", participants: 87, description: "Hands-on workshop covering Python, data visualization, and machine learning basics.", image: DataSciBG, tab: 'Past Events' },
-  { id: '9', title: "Alumni Career Fair 2025", category: "Career", date: "October 28, 2025", time: "9:00 AM - 5:00 PM", location: "ADDU Covered Court", participants: 542, description: "Major job fair featuring 50+ companies actively recruiting ADDU alumni across all levels.", image: CareerFairBG, tab: 'Past Events' },
-  { id: '10', title: "Alumni Golf Tournament", category: "Sports", date: "September 22, 2025", time: "6:00 AM - 2:00 PM", location: "Apo Golf & Country Club", participants: 76, description: "Annual charity golf tournament with proceeds supporting ADDU scholarship programs", image: GolfTournaBG, tab: 'Past Events' },
-  { id: '11', title: "Leadership Summit: Future of Work", category: "Professional Dev", date: "July 20, 2025", time: "2:00 PM - 7:00 PM", location: "Virtual Event", participants: 234, description: "Panel discussions on remote work, digital transformation, and emerging career trends.", image: LeaderSummitBG, tab: 'Past Events' },
   { id: '12', title: "Guest Lecturer - Digital Marketing", category: "Business", date: "1 Semester", time: "Tue & Thu preferred", location: "School of Business and Governance", participants: 8, compensation: "Honorarium provided", description: "Share your expertise in digital marketing with our business students.", image: GuestLectureBG, tab: 'Teaching Opportunities', postedBy: "Dr. Antonio Reyes", postedDate: "5 days ago" },
   { id: '13', title: "Workshop Facilitator - Python", category: "Computer Science", date: "2 Days", time: "March 8-9, 2026", location: "Department of Computer Science", participants: 15, compensation: "Php 15,000", description: "Conduct hands-on Python workshop for intermediate students.", image: WorkshopBG, tab: 'Teaching Opportunities', postedBy: "Prof. Maria Santos", postedDate: "2 weeks ago" },
   { id: '14', title: "Mentor - Engineering Capstone", category: "Engineering", date: "1 Academic Year", time: "4 hours/month", location: "College of Engineering", participants: 12, compensation: "Certificate + Recognition", description: "Guide senior engineering students through their capstone projects.", image: MentorCapBG, tab: 'Teaching Opportunities', postedBy: "Engr. Robert Tan", postedDate: "1 week ago" },
@@ -108,44 +175,17 @@ const INITIAL_EVENTS: Event[] = [
   { id: '33', title: "Pharmacy Trends 2026", category: "Healthcare", date: "September 15, 2026", time: "2:00 PM - 5:00 PM", location: "ADDU School of Nursing", participants: 55, description: "Updating clinical knowledge on emerging pharmaceuticals and patient care.", image: PharmaBG, tab: 'Seminars & Workshops' },
 ];
 
-function EventCard({ event, userRole, onApprove, onReject, onView, onRemove, onEdit, onRegister, activeTab }: any) {
-  const isPast = event.tab === 'Past Events';
+function EventCard({ event, onView, onRegister }: any) {
   const isTeaching = event.tab === 'Teaching Opportunities';
-  const isProposalTab = event.tab === 'Alumni Proposals';
-  const isMySubmissions = activeTab === 'My Submissions';
-  const isAdmin = userRole === 'admin';
 
   return (
     <div className="bg-white rounded-[24px] overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col h-full text-left">
       <div className="relative h-56 overflow-hidden">
         <img src={event.image} alt={event.title} className="w-full h-full object-cover" />
         <div className="absolute top-4 right-4 flex flex-col gap-2 items-end">
-          {isAdmin && (
-            <>
-              <button
-                onClick={() => onEdit(event)}
-                className="p-2 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-transform active:scale-95"
-              >
-                <Edit className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => onRemove(event.id)}
-                className="p-2 bg-red-600 text-white rounded-full shadow-lg hover:bg-red-700 transition-transform active:scale-95"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </>
-          )}
           <span className="px-4 py-1.5 bg-[#003087] text-white text-[10px] rounded-full font-bold uppercase tracking-wider shadow-lg">
             {event.category}
           </span>
-          {event.status && (
-            <span className={`px-4 py-1.5 text-white text-[10px] rounded-full font-bold uppercase tracking-wider shadow-lg ${
-              event.status === 'Pending' ? 'bg-amber-500' : event.status === 'Approved' ? 'bg-green-600' : 'bg-red-600'
-            }`}>
-              {event.status}
-            </span>
-          )}
         </div>
       </div>
 
@@ -159,7 +199,7 @@ function EventCard({ event, userRole, onApprove, onReject, onView, onRemove, onE
           <div className="flex items-start gap-2 text-gray-500 text-[13px]">
             <Clock className="w-4 h-4 text-gray-400 mt-0.5" /> {event.time || 'TBD'}
           </div>
-          {!isTeaching && !isProposalTab && (
+          {!isTeaching && (
             <div className="flex items-start gap-2 text-gray-500 text-[13px]">
               <MapPin className="w-4 h-4 text-gray-400 mt-0.5" /> {event.location}
             </div>
@@ -171,7 +211,7 @@ function EventCard({ event, userRole, onApprove, onReject, onView, onRemove, onE
           )}
           <div className="flex items-start gap-2 text-[#003087] text-[13px] font-semibold">
             <Users className="w-4 h-4 mt-0.5" />
-            {event.participants} {isPast ? 'attended' : isTeaching ? 'applications' : 'participants'}
+            {event.participants} {isTeaching ? 'applications' : 'participants'}
           </div>
         </div>
 
@@ -179,7 +219,7 @@ function EventCard({ event, userRole, onApprove, onReject, onView, onRemove, onE
           {event.description}
         </p>
 
-        {(isTeaching || isProposalTab || isMySubmissions) && event.postedBy && (
+        {isTeaching && event.postedBy && (
           <div className="pt-4 border-t border-gray-100 mb-6 flex items-center gap-2 text-gray-400 text-[11px]">
             <User className="w-3 h-3" />
             <span>Posted by <span className="text-gray-600 font-medium">{event.postedBy}</span> • {event.postedDate}</span>
@@ -187,16 +227,7 @@ function EventCard({ event, userRole, onApprove, onReject, onView, onRemove, onE
         )}
 
         <div className="flex gap-2 mt-auto">
-          {isProposalTab && isAdmin && event.status === 'Pending' ? (
-            <>
-              <button onClick={() => onApprove(event.id)} className="flex-1 py-2.5 bg-green-600 text-white rounded-lg font-bold text-sm hover:bg-green-700 transition-colors flex items-center justify-center gap-2">
-                <CheckCircle className="w-4 h-4" /> Approve
-              </button>
-              <button onClick={() => onReject(event.id)} className="flex-1 py-2.5 bg-red-50 text-red-600 rounded-lg font-bold text-sm hover:bg-red-100 transition-colors flex items-center justify-center gap-2">
-                <XCircle className="w-4 h-4" /> Reject
-              </button>
-            </>
-          ) : (event.tab === 'Upcoming Events' || event.tab === 'Seminars & Workshops') ? (
+          {event.tab === 'Seminars & Workshops' ? (
             <>
               <button
                 onClick={() => onView(event)}
@@ -214,11 +245,9 @@ function EventCard({ event, userRole, onApprove, onReject, onView, onRemove, onE
           ) : (
             <button
               onClick={() => onView(event)}
-              className={`flex-1 py-2.5 rounded-lg font-bold text-sm transition-colors ${
-                isPast ? 'bg-gray-100 text-gray-700 hover:bg-gray-200' : isTeaching ? 'bg-[#003087] text-white hover:bg-[#002566]' : 'bg-[#003087] text-white hover:bg-[#002566]'
-              }`}
+              className="flex-1 py-2.5 rounded-lg font-bold text-sm transition-colors bg-[#003087] text-white hover:bg-[#002566]"
             >
-              {isPast ? 'View Gallery' : isTeaching ? 'Apply Now' : 'View Details'}
+              Apply Now
             </button>
           )}
           <button onClick={() => onView(event)} className="px-3 py-2.5 border border-gray-200 rounded-lg text-gray-400 hover:bg-gray-50 transition-colors">
@@ -232,7 +261,7 @@ function EventCard({ event, userRole, onApprove, onReject, onView, onRemove, onE
 
 function ActivityCard({ activity, userRole, onEdit, onRemove, onToggleRegistration, onRegister }: any) {
   const isAdmin = userRole === 'admin';
-  const schedule = `${new Date(activity.schedule_start).toLocaleDateString()} • ${new Date(activity.schedule_start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${new Date(activity.schedule_end).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+  const schedule = `${formatVenueDate(activity.schedule_start)} • ${formatVenueTime(activity.schedule_start)} - ${formatVenueTime(activity.schedule_end)}`;
 
   return (
     <div className="bg-white rounded-[24px] overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col h-full text-left">
@@ -314,10 +343,154 @@ function ActivityCard({ activity, userRole, onEdit, onRemove, onToggleRegistrati
   );
 }
 
-export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: string; userName?: string }) {
+// EventActivityCard — real, DB-backed cards for Upcoming Events / Past Events /
+// Alumni Proposals / My Submissions. `context` controls which action row renders.
+function EventActivityCard({
+  activity,
+  userRole,
+  context,
+  displayState,
+  isNew,
+  onApprove,
+  onReject,
+  onPost,
+  onEdit,
+  onRemoveMine,
+  onAdminRemove,
+  onView,
+  onRegister,
+  onDismissNew,
+}: any) {
+  const isAdmin = userRole === 'admin';
+  const schedule = `${formatVenueDate(activity.schedule_start)} • ${formatVenueTime(activity.schedule_start)} - ${formatVenueTime(activity.schedule_end)}`;
+
+  const handleCardClick = () => {
+    if (onDismissNew) onDismissNew(activity.id);
+  };
+
+  return (
+    <div
+      onClick={handleCardClick}
+      className={`bg-white rounded-[24px] overflow-hidden border shadow-sm hover:shadow-md transition-all flex flex-col h-full text-left ${isNew ? 'event-glow border-[#C5A96A]' : 'border-gray-100'}`}
+    >
+      <div className="relative h-56 overflow-hidden">
+        <img src={activity.image_url || CareerFairBG} alt={activity.title} className="w-full h-full object-cover" />
+        <div className="absolute top-4 right-4 flex flex-col gap-2 items-end">
+          {isAdmin && context !== 'submissions' && (
+            <>
+              <button onClick={(e) => { e.stopPropagation(); onEdit(activity); }} className="p-2 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-transform active:scale-95">
+                <Edit className="w-4 h-4" />
+              </button>
+              <button onClick={(e) => { e.stopPropagation(); onAdminRemove(activity.id); }} className="p-2 bg-red-600 text-white rounded-full shadow-lg hover:bg-red-700 transition-transform active:scale-95">
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </>
+          )}
+          {!isAdmin && context === 'submissions' && activity.approval_status === 'rejected' && (
+            <>
+              <button onClick={(e) => { e.stopPropagation(); onEdit(activity); }} className="p-2 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-transform active:scale-95">
+                <Edit className="w-4 h-4" />
+              </button>
+              <button onClick={(e) => { e.stopPropagation(); onRemoveMine(activity.id); }} className="p-2 bg-red-600 text-white rounded-full shadow-lg hover:bg-red-700 transition-transform active:scale-95">
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </>
+          )}
+          {activity.category && (
+            <span className="px-4 py-1.5 bg-[#003087] text-white text-[10px] rounded-full font-bold uppercase tracking-wider shadow-lg">
+              {activity.category}
+            </span>
+          )}
+          <span className={`px-4 py-1.5 text-white text-[10px] rounded-full font-bold uppercase tracking-wider shadow-lg ${displayState.badgeClass}`}>
+            {displayState.label}
+          </span>
+        </div>
+      </div>
+
+      <div className="p-6 flex flex-col flex-1">
+        <h3 className="text-lg font-bold text-gray-900 mb-1 line-clamp-1">{activity.title}</h3>
+
+        <div className="space-y-2 mb-4">
+          <div className="flex items-start gap-2 text-gray-500 text-[13px]">
+            <Calendar className="w-4 h-4 text-gray-400 mt-0.5" /> {schedule}
+          </div>
+          <div className="flex items-start gap-2 text-gray-500 text-[13px]">
+            <MapPin className="w-4 h-4 text-gray-400 mt-0.5" /> {activity.venue}
+          </div>
+          <div className="flex items-start gap-2 text-emerald-600 text-[13px] font-semibold">
+            <Award className="w-4 h-4 mt-0.5" />
+            {activity.fee_amount > 0 ? `₱${Number(activity.fee_amount).toLocaleString()} per person` : 'Free'}
+          </div>
+          {displayState.countdownText && (
+            <div className="flex items-start gap-2 text-[#003087] text-[13px] font-semibold">
+              <Clock className="w-4 h-4 mt-0.5" /> {displayState.countdownText}
+            </div>
+          )}
+        </div>
+
+        <p className="text-gray-500 text-[13px] leading-relaxed line-clamp-3 mb-4 flex-1">
+          {activity.description}
+        </p>
+
+        {context === 'submissions' && activity.approval_status === 'rejected' && activity.rejection_reason && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-100 rounded-lg text-red-700 text-[12px]">
+            <span className="font-bold">Admin feedback: </span>{activity.rejection_reason}
+          </div>
+        )}
+
+        {(context === 'submissions' || context === 'proposals') && activity.created_by_name && (
+          <div className="pt-4 border-t border-gray-100 mb-4 flex items-center gap-2 text-gray-400 text-[11px]">
+            <User className="w-3 h-3" />
+            <span>Submitted by <span className="text-gray-600 font-medium">{activity.created_by_name}</span></span>
+          </div>
+        )}
+
+        <div className="flex gap-2 mt-auto" onClick={(e) => e.stopPropagation()}>
+          {context === 'proposals' && isAdmin && activity.approval_status === 'pending' ? (
+            <>
+              <button onClick={() => onApprove(activity.id)} className="flex-1 py-2.5 bg-green-600 text-white rounded-lg font-bold text-sm hover:bg-green-700 transition-colors flex items-center justify-center gap-2">
+                <CheckCircle className="w-4 h-4" /> Approve
+              </button>
+              <button onClick={() => onReject(activity)} className="flex-1 py-2.5 bg-red-50 text-red-600 rounded-lg font-bold text-sm hover:bg-red-100 transition-colors flex items-center justify-center gap-2">
+                <XCircle className="w-4 h-4" /> Reject
+              </button>
+            </>
+          ) : context === 'submissions' && activity.approval_status === 'approved' && !activity.posted_at ? (
+            <button onClick={() => onPost(activity.id)} className="flex-1 py-2.5 bg-[#003087] text-white rounded-lg font-bold text-sm hover:bg-[#002566] transition-colors">
+              Post Event
+            </button>
+          ) : context === 'past' ? (
+            <button onClick={() => onView(activity)} className="flex-1 py-2.5 rounded-lg font-bold text-sm transition-colors bg-gray-100 text-gray-700 hover:bg-gray-200">
+              View Details
+            </button>
+          ) : context === 'upcoming' ? (
+            <>
+              <button onClick={() => onView(activity)} className="flex-1 py-2.5 rounded-lg font-bold text-sm transition-colors bg-gray-100 text-gray-700 hover:bg-gray-200">
+                View Details
+              </button>
+              <button
+                onClick={() => onRegister(activity)}
+                disabled={!displayState.canRegister}
+                className="flex-1 py-2.5 rounded-lg font-bold text-sm transition-colors bg-[#003087] text-white hover:bg-[#002566] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {displayState.registerLabel}
+              </button>
+            </>
+          ) : (
+            <button onClick={() => onView(activity)} className="flex-1 py-2.5 rounded-lg font-bold text-sm transition-colors bg-gray-100 text-gray-700 hover:bg-gray-200">
+              View Details
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function EventsView({ userRole, userName = 'Alumni User', userEmail = '' }: { userRole: string; userName?: string; userEmail?: string }) {
   const [activeTab, setActiveTab] = useState('Upcoming Events');
   const [showSuccessToast, setShowSuccessToast] = useState(false);
-  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<EventDetailData | null>(null);
   const [registrationEvent, setRegistrationEvent] = useState<{
     id: number;
     title: string;
@@ -327,7 +500,6 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
     image: string;
     feeAmount: number;
   } | null>(null);
-  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
 
   const [activities, setActivities] = useState<GivebackActivity[]>([]);
   const [loadingActivities, setLoadingActivities] = useState(true);
@@ -338,9 +510,8 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
     title: '',
     description: '',
     venue: '',
-    date: '',
-    startTime: '',
-    endTime: '',
+    scheduleStart: '',
+    scheduleEnd: '',
     participantLimit: '',
     feeAmount: '',
     status: 'upcoming',
@@ -351,44 +522,76 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
   const [myRegistrations, setMyRegistrations] = useState<MyRegistration[]>([]);
   const [loadingRegistrations, setLoadingRegistrations] = useState(false);
 
-  const [events, setEvents] = useState<Event[]>(() => {
+  const [events] = useState<Event[]>(() => {
     const saved = localStorage.getItem('addu_events');
     return saved ? JSON.parse(saved) : INITIAL_EVENTS;
   });
 
-  const [newEvent, setNewEvent] = useState({
+  // ── Upcoming Events / Alumni Proposals state (DB-backed) ─
+  const [newEventForm, setNewEventForm] = useState({
     title: '',
-    category: '',
-    date: '',
-    startTime: '',
-    endTime: '',
-    location: '',
     description: '',
+    location: '',
+    category: '',
+    scheduleStart: '',
+    scheduleEnd: '',
+    registrationStart: '',
+    registrationEnd: '',
     capacity: '',
-    image: ''
+    feeAmount: '0',
   });
+  const [eventImage, setEventImage] = useState<File | null>(null);
+  const [eventImagePreview, setEventImagePreview] = useState<string | null>(null);
+  const [editingEventActivity, setEditingEventActivity] = useState<GivebackActivity | null>(null);
+  const [resubmitOnSave, setResubmitOnSave] = useState(false);
 
-  const [editEvent, setEditEvent] = useState({
-    title: '',
-    category: '',
-    date: '',
-    startTime: '',
-    endTime: '',
-    location: '',
-    description: '',
-    capacity: '',
-    image: ''
+  const [rejectingActivity, setRejectingActivity] = useState<GivebackActivity | null>(null);
+  const [rejectReasonText, setRejectReasonText] = useState('');
+
+  const [dismissedNewEventIds, setDismissedNewEventIds] = useState<number[]>(() => {
+    if (!userEmail) return [];
+    const saved = localStorage.getItem(`dismissedNewEventIds:${userEmail}`);
+    return saved ? JSON.parse(saved) : [];
   });
+  const [dismissedConcludedEventIds, setDismissedConcludedEventIds] = useState<number[]>(() => {
+    if (!userEmail) return [];
+    const saved = localStorage.getItem(`dismissedConcludedEventIds:${userEmail}`);
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [lastSeenMySubmissionsAt, setLastSeenMySubmissionsAt] = useState<number>(() => {
+    if (!userEmail) return 0;
+    const saved = localStorage.getItem(`lastSeenMySubmissionsAt:${userEmail}`);
+    return saved ? Number(saved) : 0;
+  });
+  // Ticks every minute so events cross from Upcoming into Past on their own,
+  // without needing a click/refetch to force a re-render.
+  const [nowTick, setNowTick] = useState(() => new Date());
 
   useEffect(() => {
-    localStorage.setItem('addu_events', JSON.stringify(events));
-  }, [events]);
+    const interval = setInterval(() => setNowTick(new Date()), 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     fetchActivities();
     if (userRole !== 'admin') fetchMyRegistrations();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userRole]);
+
+  // ── Mark "My Submissions" as seen once the alumni actually
+  //    views it, using the server's own updated_at as the cutoff
+  //    so approve/reject notifications clear reliably. ────────
+  useEffect(() => {
+    if (activeTab !== 'My Submissions' || userRole === 'admin' || !userEmail) return;
+    const mine = activities.filter((a) => a.event_type === 'event' && a.submitted_by_email === userEmail);
+    if (mine.length === 0) return;
+    const latest = Math.max(...mine.map((a) => new Date(a.updated_at).getTime()));
+    if (latest > lastSeenMySubmissionsAt) {
+      setLastSeenMySubmissionsAt(latest);
+      localStorage.setItem(`lastSeenMySubmissionsAt:${userEmail}`, String(latest));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, activities, userRole, userEmail]);
 
   useEffect(() => {
     const handleRegisterEvent = (event: any) => {
@@ -415,8 +618,7 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
   const fetchActivities = async () => {
     setLoadingActivities(true);
     try {
-      const includeArchived = userRole === 'admin' ? '?include_archived=true' : '';
-      const response = await fetch(`http://localhost:8000/api/giveback/activities${includeArchived}`);
+      const response = await fetch('http://localhost:8000/api/giveback/activities?include_archived=true');
       if (response.ok) {
         const data = await response.json();
         setActivities(data);
@@ -433,7 +635,7 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
     setLoadingRegistrations(true);
     try {
       const response = await fetch(
-        `http://localhost:8000/api/giveback/registrations?email=${encodeURIComponent(userName)}`
+        `http://localhost:8000/api/giveback/registrations?email=${encodeURIComponent(userEmail)}`
       );
       if (response.ok) {
         const data = await response.json();
@@ -442,8 +644,8 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
             id: r.id,
             eventId: r.activity_id,
             title: r.activity?.title ?? 'Event',
-            date: new Date(r.activity?.schedule_start).toLocaleDateString(),
-            time: `${new Date(r.activity?.schedule_start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${new Date(r.activity?.schedule_end).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+            date: formatVenueDate(r.activity?.schedule_start),
+            time: `${formatVenueTime(r.activity?.schedule_start)} - ${formatVenueTime(r.activity?.schedule_end)}`,
             location: r.activity?.venue ?? '',
             image: r.activity?.image_url || CareerFairBG,
             feeAmount: Number(r.activity?.fee_amount ?? 0),
@@ -467,9 +669,8 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
       title: '',
       description: '',
       venue: '',
-      date: '',
-      startTime: '',
-      endTime: '',
+      scheduleStart: '',
+      scheduleEnd: '',
       participantLimit: '',
       feeAmount: '',
       status: 'upcoming',
@@ -481,7 +682,7 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
   };
 
   const handleCreateActivity = async () => {
-    if (!activityForm.title || !activityForm.description || !activityForm.venue || !activityForm.date || !activityForm.startTime || !activityForm.endTime) {
+    if (!activityForm.title || !activityForm.description || !activityForm.venue || !activityForm.scheduleStart || !activityForm.scheduleEnd) {
       alert('Please fill in all required fields');
       return;
     }
@@ -490,12 +691,12 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
     formData.append('title', activityForm.title);
     formData.append('description', activityForm.description);
     formData.append('venue', activityForm.venue);
-    formData.append('schedule_start', `${activityForm.date}T${activityForm.startTime}`);
-    formData.append('schedule_end', `${activityForm.date}T${activityForm.endTime}`);
+    formData.append('schedule_start', activityForm.scheduleStart);
+    formData.append('schedule_end', activityForm.scheduleEnd);
     formData.append('participant_limit', activityForm.participantLimit || '');
     formData.append('fee_amount', activityForm.feeAmount || '0');
     formData.append('status', activityForm.status);
-    formData.append('registration_open', String(activityForm.registrationOpen));
+    formData.append('registration_open', activityForm.registrationOpen ? '1' : '0');
     formData.append('created_by_name', userRole === 'admin' ? 'Admin' : userName);
     if (activityImage) formData.append('image', activityImage);
 
@@ -521,15 +722,12 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
 
   const handleEditActivity = (activity: GivebackActivity) => {
     setEditingActivity(activity);
-    const start = new Date(activity.schedule_start);
-    const end = new Date(activity.schedule_end);
     setActivityForm({
       title: activity.title,
       description: activity.description,
       venue: activity.venue,
-      date: start.toISOString().split('T')[0],
-      startTime: start.toTimeString().slice(0, 5),
-      endTime: end.toTimeString().slice(0, 5),
+      scheduleStart: toDateTimeLocalValue(parseVenueDateTime(activity.schedule_start)),
+      scheduleEnd: toDateTimeLocalValue(parseVenueDateTime(activity.schedule_end)),
       participantLimit: activity.participant_limit ? String(activity.participant_limit) : '',
       feeAmount: String(activity.fee_amount || 0),
       status: activity.status,
@@ -541,7 +739,7 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
 
   const handleUpdateActivity = async () => {
     if (!editingActivity) return;
-    if (!activityForm.title || !activityForm.description || !activityForm.venue || !activityForm.date || !activityForm.startTime || !activityForm.endTime) {
+    if (!activityForm.title || !activityForm.description || !activityForm.venue || !activityForm.scheduleStart || !activityForm.scheduleEnd) {
       alert('Please fill in all required fields');
       return;
     }
@@ -550,18 +748,20 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
     formData.append('title', activityForm.title);
     formData.append('description', activityForm.description);
     formData.append('venue', activityForm.venue);
-    formData.append('schedule_start', `${activityForm.date}T${activityForm.startTime}`);
-    formData.append('schedule_end', `${activityForm.date}T${activityForm.endTime}`);
+    formData.append('schedule_start', activityForm.scheduleStart);
+    formData.append('schedule_end', activityForm.scheduleEnd);
     formData.append('participant_limit', activityForm.participantLimit || '');
     formData.append('fee_amount', activityForm.feeAmount || '0');
     formData.append('status', activityForm.status);
-    formData.append('registration_open', String(activityForm.registrationOpen));
+    formData.append('registration_open', activityForm.registrationOpen ? '1' : '0');
     formData.append('created_by_name', editingActivity.created_by_name || userName);
     if (activityImage) formData.append('image', activityImage);
+    // PHP never parses multipart bodies on a literal PUT verb — spoof it via POST.
+    formData.append('_method', 'PUT');
 
     try {
       const response = await fetch(`http://localhost:8000/api/giveback/activities/${editingActivity.id}`, {
-        method: 'PUT',
+        method: 'POST',
         body: formData
       });
       if (response.ok) {
@@ -610,33 +810,12 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
     }
   };
 
-  const handleApprove = (id: string) => {
-    setEvents(prev => prev.map(ev =>
-      ev.id === id ? { ...ev, status: 'Approved' as const, tab: 'Upcoming Events' as const } : ev
-    ));
-    triggerToast();
-  };
-
-  const handleReject = (id: string) => {
-    setEvents(prev => prev.map(ev =>
-      ev.id === id ? { ...ev, status: 'Rejected' as const } : ev
-    ));
-    triggerToast();
-  };
-
-  const handleRemove = (id: string) => {
-    if (window.confirm("Are you sure you want to permanently remove this event?")) {
-      setEvents(prev => prev.filter(ev => ev.id !== id));
-      triggerToast();
-    }
-  };
-
   const openRegistrationModalFromActivity = (activity: GivebackActivity, fallbackImage?: string) => {
     setRegistrationEvent({
       id: activity.id,
       title: activity.title,
-      date: new Date(activity.schedule_start).toLocaleDateString(),
-      time: `${new Date(activity.schedule_start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${new Date(activity.schedule_end).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+      date: formatVenueDate(activity.schedule_start),
+      time: `${formatVenueTime(activity.schedule_start)} - ${formatVenueTime(activity.schedule_end)}`,
       location: activity.venue,
       image: activity.image_url || fallbackImage || CareerFairBG,
       feeAmount: Number(activity.fee_amount || 0)
@@ -699,104 +878,304 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
     }
   };
 
-  const handleEdit = (event: Event) => {
-    setEditingEvent(event);
-    const timeParts = event.time.split(' - ');
-    setEditEvent({
-      title: event.title,
-      category: event.category,
-      date: event.date,
-      startTime: timeParts[0] || '',
-      endTime: timeParts[1] || '',
-      location: event.location,
-      description: event.description,
-      capacity: event.participants.toString(),
-      image: event.image
+  // ── Upcoming Events / Alumni Proposals handlers (real API) ─
+  const resetEventForm = () => {
+    setNewEventForm({
+      title: '', description: '', location: '', category: '',
+      scheduleStart: '', scheduleEnd: '',
+      registrationStart: '', registrationEnd: '',
+      capacity: '', feeAmount: '0',
     });
-    setActiveTab('Edit Event');
+    setEventImage(null);
+    setEventImagePreview(null);
+    setEditingEventActivity(null);
+    setResubmitOnSave(false);
   };
 
-  const handleUpdateEvent = () => {
-    if (!editEvent.title || !editEvent.category || !editEvent.date || !editEvent.startTime || !editEvent.endTime || !editEvent.location || !editEvent.description) {
+  const buildEventFormData = () => {
+    const formData = new FormData();
+    formData.append('title', newEventForm.title);
+    formData.append('description', newEventForm.description);
+    formData.append('venue', newEventForm.location);
+    formData.append('schedule_start', newEventForm.scheduleStart);
+    formData.append('schedule_end', newEventForm.scheduleEnd);
+    formData.append('registration_open', '1');
+    formData.append('participant_limit', newEventForm.capacity || '');
+    formData.append('fee_amount', newEventForm.feeAmount || '0');
+    formData.append('status', 'upcoming');
+    formData.append('event_type', 'event');
+    formData.append('category', newEventForm.category);
+    if (newEventForm.registrationStart) {
+      formData.append('registration_start_at', newEventForm.registrationStart);
+    }
+    if (newEventForm.registrationEnd) {
+      formData.append('registration_end_at', newEventForm.registrationEnd);
+    }
+    formData.append('created_by_name', userName);
+    if (eventImage) formData.append('image', eventImage);
+    return formData;
+  };
+
+  const handleCreateEventActivity = async () => {
+    if (!newEventForm.title || !newEventForm.description || !newEventForm.location || !newEventForm.category || !newEventForm.scheduleStart || !newEventForm.scheduleEnd) {
       alert('Please fill in all required fields');
       return;
     }
-    if (!editingEvent) return;
-
-    const updatedEvent: Event = {
-      ...editingEvent,
-      title: editEvent.title,
-      category: editEvent.category,
-      date: editEvent.date,
-      time: `${editEvent.startTime} - ${editEvent.endTime}`,
-      location: editEvent.location,
-      participants: parseInt(editEvent.capacity) || editingEvent.participants,
-      description: editEvent.description,
-      image: editEvent.image || editingEvent.image,
-    };
-
-    setEvents(prev => prev.map(ev => ev.id === editingEvent.id ? updatedEvent : ev));
-    setEditingEvent(null);
-    setEditEvent({ title: '', category: '', date: '', startTime: '', endTime: '', location: '', description: '', capacity: '', image: '' });
-    setActiveTab('Upcoming Events');
-    triggerToast();
+    const formData = buildEventFormData();
+    if (userRole !== 'admin') {
+      formData.append('is_proposal', 'true');
+      formData.append('submitted_by_email', userEmail);
+    }
+    try {
+      const response = await fetch('http://localhost:8000/api/giveback/activities', { method: 'POST', body: formData });
+      if (response.ok) {
+        await fetchActivities();
+        resetEventForm();
+        setActiveTab(userRole === 'admin' ? 'Upcoming Events' : 'My Submissions');
+        if (userRole !== 'admin') alert('Event proposal submitted successfully! The admin will review it before it can go live.');
+        triggerToast();
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        alert(errorData.message || 'Failed to submit event');
+      }
+    } catch (error) {
+      console.error('Error creating event:', error);
+      alert('Failed to submit event');
+    }
   };
 
-  const handleCancelEdit = () => {
-    setEditingEvent(null);
-    setEditEvent({ title: '', category: '', date: '', startTime: '', endTime: '', location: '', description: '', capacity: '', image: '' });
-    setActiveTab('Upcoming Events');
+  const handleEditEventActivity = (activity: GivebackActivity) => {
+    setEditingEventActivity(activity);
+    setNewEventForm({
+      title: activity.title,
+      description: activity.description,
+      location: activity.venue,
+      category: activity.category || '',
+      scheduleStart: toDateTimeLocalValue(parseVenueDateTime(activity.schedule_start)),
+      scheduleEnd: toDateTimeLocalValue(parseVenueDateTime(activity.schedule_end)),
+      registrationStart: toDateTimeLocalValue(parseVenueDateTime(activity.registration_start_at)),
+      registrationEnd: toDateTimeLocalValue(parseVenueDateTime(activity.registration_end_at)),
+      capacity: activity.participant_limit ? String(activity.participant_limit) : '',
+      feeAmount: String(activity.fee_amount || 0),
+    });
+    setEventImagePreview(activity.image_url || null);
+    const isRejectedOwnProposal = userRole !== 'admin' && activity.approval_status === 'rejected';
+    setResubmitOnSave(isRejectedOwnProposal);
+    setActiveTab(isRejectedOwnProposal ? 'Edit Proposal' : 'Edit Event');
   };
 
-  const handleCreateEvent = () => {
-    if (!newEvent.title || !newEvent.category || !newEvent.date || !newEvent.startTime || !newEvent.endTime || !newEvent.location || !newEvent.description) {
+  const handleUpdateEventActivity = async () => {
+    if (!editingEventActivity) return;
+    if (!newEventForm.title || !newEventForm.description || !newEventForm.location || !newEventForm.category || !newEventForm.scheduleStart || !newEventForm.scheduleEnd) {
       alert('Please fill in all required fields');
       return;
     }
-
-    const createdEvent: Event = {
-      id: Date.now().toString(),
-      title: newEvent.title,
-      category: newEvent.category,
-      date: newEvent.date,
-      time: `${newEvent.startTime} - ${newEvent.endTime}`,
-      location: newEvent.location,
-      participants: parseInt(newEvent.capacity) || 0,
-      description: newEvent.description,
-      image: newEvent.image || CareerFairBG,
-      tab: 'Upcoming Events',
-    };
-
-    setEvents(prev => [createdEvent, ...prev]);
-    setNewEvent({ title: '', category: '', date: '', startTime: '', endTime: '', location: '', description: '', capacity: '', image: '' });
-    setActiveTab('Upcoming Events');
-    triggerToast();
+    const formData = buildEventFormData();
+    formData.append('submitted_by_email', editingEventActivity.submitted_by_email || (userRole !== 'admin' ? userEmail : ''));
+    if (resubmitOnSave) formData.append('resubmit', 'true');
+    // PHP never parses multipart bodies on a literal PUT verb — spoof it via POST.
+    formData.append('_method', 'PUT');
+    try {
+      const response = await fetch(`http://localhost:8000/api/giveback/activities/${editingEventActivity.id}`, { method: 'POST', body: formData });
+      if (response.ok) {
+        await fetchActivities();
+        resetEventForm();
+        setActiveTab(userRole === 'admin' ? 'Upcoming Events' : 'My Submissions');
+        triggerToast();
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        alert(errorData.message || 'Failed to update event');
+      }
+    } catch (error) {
+      console.error('Error updating event:', error);
+      alert('Failed to update event');
+    }
   };
+
+  const handleCancelEventForm = () => {
+    resetEventForm();
+    setActiveTab(userRole === 'admin' ? 'Upcoming Events' : 'My Submissions');
+  };
+
+  const handleApproveProposal = async (id: number) => {
+    try {
+      const response = await fetch(`http://localhost:8000/api/giveback/activities/${id}/approve`, { method: 'PATCH' });
+      if (response.ok) {
+        await fetchActivities();
+        triggerToast();
+      } else {
+        alert('Failed to approve proposal');
+      }
+    } catch (error) {
+      console.error('Error approving proposal:', error);
+      alert('Failed to approve proposal');
+    }
+  };
+
+  const handleOpenRejectModal = (activity: GivebackActivity) => {
+    setRejectingActivity(activity);
+    setRejectReasonText('');
+  };
+
+  const handleConfirmReject = async () => {
+    if (!rejectingActivity) return;
+    if (!rejectReasonText.trim()) {
+      alert('Please provide a reason for rejecting this proposal.');
+      return;
+    }
+    try {
+      const response = await fetch(`http://localhost:8000/api/giveback/activities/${rejectingActivity.id}/reject`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({ reason: rejectReasonText.trim() }),
+      });
+      if (response.ok) {
+        await fetchActivities();
+        setRejectingActivity(null);
+        setRejectReasonText('');
+        triggerToast();
+      } else {
+        alert('Failed to reject proposal');
+      }
+    } catch (error) {
+      console.error('Error rejecting proposal:', error);
+      alert('Failed to reject proposal');
+    }
+  };
+
+  const handlePostEvent = async (id: number) => {
+    try {
+      const response = await fetch(`http://localhost:8000/api/giveback/activities/${id}/post`, { method: 'PATCH' });
+      if (response.ok) {
+        await fetchActivities();
+        triggerToast();
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        alert(errorData.message || 'Failed to post event');
+      }
+    } catch (error) {
+      console.error('Error posting event:', error);
+      alert('Failed to post event');
+    }
+  };
+
+  // Admin-side removal never hard-deletes an alumni-owned row — it archives
+  // it out of the admin's own view so the alumni's copy (My Submissions,
+  // with their own Edit/Remove options) is never affected.
+  const handleArchiveEventActivity = async (id: number) => {
+    if (!window.confirm('Remove this from your view? The alumni submitter will still see their own copy.')) return;
+    try {
+      const response = await fetch(`http://localhost:8000/api/giveback/activities/${id}/archive`, { method: 'PATCH' });
+      if (response.ok) {
+        await fetchActivities();
+        triggerToast();
+      } else {
+        alert('Failed to remove event');
+      }
+    } catch (error) {
+      console.error('Error archiving event:', error);
+      alert('Failed to remove event');
+    }
+  };
+
+  const handleRemoveMyProposal = async (id: number) => {
+    if (!window.confirm('Permanently remove this proposal? This cannot be undone.')) return;
+    try {
+      const response = await fetch(`http://localhost:8000/api/giveback/activities/${id}`, { method: 'DELETE' });
+      if (response.ok) {
+        await fetchActivities();
+        triggerToast();
+      } else {
+        alert('Failed to remove proposal');
+      }
+    } catch (error) {
+      console.error('Error removing proposal:', error);
+      alert('Failed to remove proposal');
+    }
+  };
+
+  const handleDismissNewEvent = (id: number) => {
+    setDismissedNewEventIds((prev) => {
+      if (prev.includes(id)) return prev;
+      const updated = [...prev, id];
+      if (userEmail) localStorage.setItem(`dismissedNewEventIds:${userEmail}`, JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const handleDismissConcludedEvent = (id: number) => {
+    setDismissedConcludedEventIds((prev) => {
+      if (prev.includes(id)) return prev;
+      const updated = [...prev, id];
+      if (userEmail) localStorage.setItem(`dismissedConcludedEventIds:${userEmail}`, JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const openActivityDetails = (activity: GivebackActivity) => {
+    setSelectedEvent({
+      title: activity.title,
+      category: activity.category || 'Event',
+      date: formatVenueDate(activity.schedule_start),
+      time: `${formatVenueTime(activity.schedule_start)} - ${formatVenueTime(activity.schedule_end)}`,
+      location: activity.venue,
+      description: activity.description,
+      image: activity.image_url || CareerFairBG,
+    });
+  };
+
+  const now = nowTick;
+
+  const upcomingEventActivities = activities
+    .filter((a) =>
+      a.event_type === 'event' && a.approval_status === 'approved' && a.posted_at && !a.is_archived &&
+      (parseVenueDateTime(a.schedule_end) ?? new Date(0)) >= now
+    )
+    .sort((a, b) => new Date(b.posted_at as string).getTime() - new Date(a.posted_at as string).getTime());
+
+  const pastEventActivities = activities
+    .filter((a) =>
+      a.event_type === 'event' && a.approval_status === 'approved' && a.posted_at && !a.is_archived &&
+      (parseVenueDateTime(a.schedule_end) ?? new Date(0)) < now
+    )
+    .sort((a, b) => (parseVenueDateTime(b.schedule_end)?.getTime() ?? 0) - (parseVenueDateTime(a.schedule_end)?.getTime() ?? 0));
+
+  const alumniProposalActivities = activities.filter((a) =>
+    a.event_type === 'event' && a.submitted_by_email && a.approval_status !== 'approved' && !a.is_archived
+  );
+
+  const mySubmissionActivities = activities.filter((a) =>
+    a.event_type === 'event' && a.submitted_by_email === userEmail && !a.posted_at
+  );
+
+  const pendingProposalCount = alumniProposalActivities.filter((a) => a.approval_status === 'pending').length;
+
+  const hasUnseenMySubmissions = mySubmissionActivities.some(
+    (a) => new Date(a.updated_at).getTime() > lastSeenMySubmissionsAt
+  );
+
+  const hasNewUpcomingEvent = upcomingEventActivities.some((a) => !dismissedNewEventIds.includes(a.id));
+  const hasNewPastEvent = pastEventActivities.some((a) => !dismissedConcludedEventIds.includes(a.id));
 
   const baseTabs = ['GiveBack Activities', 'Upcoming Events', 'Past Events', 'Teaching Opportunities', 'Seminars & Workshops'];
   let tabs = userRole === 'admin'
     ? [...baseTabs, 'Alumni Proposals', 'Create Event', 'Create GiveBack Activity']
     : [...baseTabs, 'My Submissions', 'My Registrations']; // ← My Registrations added here
 
-  if (editingEvent && activeTab === 'Edit Event') tabs = [...tabs, 'Edit Event'];
+  if (editingEventActivity && (activeTab === 'Edit Event' || activeTab === 'Edit Proposal')) tabs = [...tabs, activeTab];
   if (editingActivity && activeTab === 'Edit GiveBack Activity') tabs = [...tabs, 'Edit GiveBack Activity'];
 
-  const filteredEvents = events.filter(event => {
-    if (activeTab === 'My Submissions') return event.status !== undefined && event.submittedBy === userName;
-    if (
-      activeTab === 'Create Event' ||
-      activeTab === 'Submit Proposal' ||
-      activeTab === 'Edit Event' ||
-      activeTab === 'GiveBack Activities' ||
-      activeTab === 'Create GiveBack Activity' ||
-      activeTab === 'Edit GiveBack Activity' ||
-      activeTab === 'My Registrations'
-    ) return false;
-    return event.tab === activeTab;
-  });
+  const filteredEvents = events.filter(event => event.tab === activeTab);
 
   return (
     <div className="flex flex-col min-h-screen bg-[#F8FAFC]">
+      <style>{`
+        @keyframes eventGlow {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(197,169,106,0.6), 0 0 20px 2px rgba(197,169,106,0.4); }
+          50% { box-shadow: 0 0 0 4px rgba(197,169,106,0.35), 0 0 32px 6px rgba(197,169,106,0.55); }
+        }
+        .event-glow { animation: eventGlow 1.8s ease-in-out infinite; }
+      `}</style>
       {showSuccessToast && (
         <div className="fixed top-8 left-1/2 -translate-x-1/2 z-[100] bg-green-600 text-white px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-3 animate-bounce">
           <CheckCircle className="w-5 h-5" />
@@ -839,7 +1218,23 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
                 activeTab === tab ? 'text-[#003087]' : 'text-gray-400'
               }`}
             >
-              {tab}
+              <span className="inline-flex items-center gap-1.5">
+                {tab}
+                {tab === 'Alumni Proposals' && pendingProposalCount > 0 && (
+                  <span className="inline-flex items-center justify-center min-w-[16px] h-4 px-1 bg-red-600 text-white text-[10px] rounded-full font-bold">
+                    {pendingProposalCount}
+                  </span>
+                )}
+                {tab === 'My Submissions' && hasUnseenMySubmissions && (
+                  <span className="w-2 h-2 bg-red-600 rounded-full" />
+                )}
+                {tab === 'Upcoming Events' && hasNewUpcomingEvent && (
+                  <span className="w-2 h-2 bg-red-600 rounded-full" />
+                )}
+                {tab === 'Past Events' && hasNewPastEvent && (
+                  <span className="w-2 h-2 bg-red-600 rounded-full" />
+                )}
+              </span>
               {activeTab === tab && (
                 <div className="absolute bottom-0 left-0 w-full h-[2px] bg-[#003087]" />
               )}
@@ -898,8 +1293,8 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
                       setRegistrationEvent({
                         id: selected.id,
                         title: selected.title,
-                        date: new Date(selected.schedule_start).toLocaleDateString(),
-                        time: `${new Date(selected.schedule_start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${new Date(selected.schedule_end).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+                        date: formatVenueDate(selected.schedule_start),
+                        time: `${formatVenueTime(selected.schedule_start)} - ${formatVenueTime(selected.schedule_end)}`,
                         location: selected.venue,
                         image: selected.image_url || CareerFairBG,
                         feeAmount: Number(selected.fee_amount || 0)
@@ -920,27 +1315,131 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
           />
         )}
 
-        {/* All other event grids */}
-        {activeTab !== 'Create Event' &&
-          activeTab !== 'Submit Proposal' &&
-          activeTab !== 'Edit Event' &&
-          activeTab !== 'GiveBack Activities' &&
-          activeTab !== 'Create GiveBack Activity' &&
-          activeTab !== 'Edit GiveBack Activity' &&
-          activeTab !== 'My Registrations' && (
+        {/* Upcoming Events grid (real, DB-backed) */}
+        {activeTab === 'Upcoming Events' && (
+          <div>
+            {loadingActivities ? (
+              <div className="text-center py-10 text-gray-500">Loading events...</div>
+            ) : upcomingEventActivities.length === 0 ? (
+              <div className="text-center py-10 text-gray-500">No upcoming events yet.</div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {upcomingEventActivities.map((activity) => (
+                  <EventActivityCard
+                    key={activity.id}
+                    activity={activity}
+                    userRole={userRole}
+                    context="upcoming"
+                    displayState={getEventDisplayState(activity, now)}
+                    isNew={!dismissedNewEventIds.includes(activity.id)}
+                    onEdit={handleEditEventActivity}
+                    onAdminRemove={handleArchiveEventActivity}
+                    onView={openActivityDetails}
+                    onRegister={openRegistrationModalFromActivity}
+                    onDismissNew={handleDismissNewEvent}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Past Events grid (real, DB-backed) */}
+        {activeTab === 'Past Events' && (
+          <div>
+            {loadingActivities ? (
+              <div className="text-center py-10 text-gray-500">Loading events...</div>
+            ) : pastEventActivities.length === 0 ? (
+              <div className="text-center py-10 text-gray-500">No past events yet.</div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {pastEventActivities.map((activity) => (
+                  <EventActivityCard
+                    key={activity.id}
+                    activity={activity}
+                    userRole={userRole}
+                    context="past"
+                    displayState={getEventDisplayState(activity, now)}
+                    isNew={false}
+                    onEdit={handleEditEventActivity}
+                    onAdminRemove={handleArchiveEventActivity}
+                    onView={openActivityDetails}
+                    onDismissNew={handleDismissConcludedEvent}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Alumni Proposals grid (admin review queue) */}
+        {activeTab === 'Alumni Proposals' && userRole === 'admin' && (
+          <div>
+            {loadingActivities ? (
+              <div className="text-center py-10 text-gray-500">Loading proposals...</div>
+            ) : alumniProposalActivities.length === 0 ? (
+              <div className="text-center py-10 text-gray-500">No alumni proposals right now.</div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {alumniProposalActivities.map((activity) => (
+                  <EventActivityCard
+                    key={activity.id}
+                    activity={activity}
+                    userRole={userRole}
+                    context="proposals"
+                    displayState={getEventDisplayState(activity, now)}
+                    isNew={false}
+                    onApprove={handleApproveProposal}
+                    onReject={handleOpenRejectModal}
+                    onEdit={handleEditEventActivity}
+                    onAdminRemove={handleArchiveEventActivity}
+                    onView={openActivityDetails}
+                    onDismissNew={handleDismissNewEvent}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* My Submissions grid (alumni's own proposals) */}
+        {activeTab === 'My Submissions' && userRole !== 'admin' && (
+          <div>
+            {loadingActivities ? (
+              <div className="text-center py-10 text-gray-500">Loading your submissions...</div>
+            ) : mySubmissionActivities.length === 0 ? (
+              <div className="text-center py-10 text-gray-500">You haven't submitted any event proposals yet.</div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {mySubmissionActivities.map((activity) => (
+                  <EventActivityCard
+                    key={activity.id}
+                    activity={activity}
+                    userRole={userRole}
+                    context="submissions"
+                    displayState={getEventDisplayState(activity, now)}
+                    isNew={false}
+                    onPost={handlePostEvent}
+                    onEdit={handleEditEventActivity}
+                    onRemoveMine={handleRemoveMyProposal}
+                    onView={openActivityDetails}
+                    onDismissNew={handleDismissNewEvent}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Teaching Opportunities / Seminars & Workshops — static demo content, unchanged */}
+        {(activeTab === 'Teaching Opportunities' || activeTab === 'Seminars & Workshops') && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredEvents.map((event) => (
               <EventCard
                 key={event.id}
                 event={event}
-                userRole={userRole}
-                onApprove={handleApprove}
-                onReject={handleReject}
                 onView={setSelectedEvent}
-                onRemove={handleRemove}
-                onEdit={handleEdit}
                 onRegister={handleLegacyEventRegister}
-                activeTab={activeTab}
               />
             ))}
           </div>
@@ -957,8 +1456,18 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Date *</label>
-                  <input type="date" value={activityForm.date} onChange={(e) => setActivityForm({ ...activityForm, date: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Starts *</label>
+                  <input type="datetime-local" value={activityForm.scheduleStart} onChange={(e) => setActivityForm({ ...activityForm, scheduleStart: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Ends *</label>
+                  <input type="datetime-local" value={activityForm.scheduleEnd} onChange={(e) => setActivityForm({ ...activityForm, scheduleEnd: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Venue *</label>
+                  <input type="text" placeholder="Enter venue or location" value={activityForm.venue} onChange={(e) => setActivityForm({ ...activityForm, venue: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Status *</label>
@@ -968,20 +1477,6 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
                     <option value="completed">Completed</option>
                   </select>
                 </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Start Time *</label>
-                  <input type="time" value={activityForm.startTime} onChange={(e) => setActivityForm({ ...activityForm, startTime: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">End Time *</label>
-                  <input type="time" value={activityForm.endTime} onChange={(e) => setActivityForm({ ...activityForm, endTime: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Venue *</label>
-                <input type="text" placeholder="Enter venue or location" value={activityForm.venue} onChange={(e) => setActivityForm({ ...activityForm, venue: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Description *</label>
@@ -1026,8 +1521,18 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Date *</label>
-                  <input type="date" value={activityForm.date} onChange={(e) => setActivityForm({ ...activityForm, date: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Starts *</label>
+                  <input type="datetime-local" value={activityForm.scheduleStart} onChange={(e) => setActivityForm({ ...activityForm, scheduleStart: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Ends *</label>
+                  <input type="datetime-local" value={activityForm.scheduleEnd} onChange={(e) => setActivityForm({ ...activityForm, scheduleEnd: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Venue *</label>
+                  <input type="text" placeholder="Enter venue or location" value={activityForm.venue} onChange={(e) => setActivityForm({ ...activityForm, venue: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Status *</label>
@@ -1037,20 +1542,6 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
                     <option value="completed">Completed</option>
                   </select>
                 </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Start Time *</label>
-                  <input type="time" value={activityForm.startTime} onChange={(e) => setActivityForm({ ...activityForm, startTime: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">End Time *</label>
-                  <input type="time" value={activityForm.endTime} onChange={(e) => setActivityForm({ ...activityForm, endTime: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Venue *</label>
-                <input type="text" placeholder="Enter venue or location" value={activityForm.venue} onChange={(e) => setActivityForm({ ...activityForm, venue: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Description *</label>
@@ -1083,23 +1574,27 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
           </div>
         )}
 
-        {/* Create Event form */}
-        {activeTab === 'Create Event' && userRole === 'admin' && (
+        {/* Create Event / Edit Event / Submit Proposal / Edit Proposal — one shared form */}
+        {(activeTab === 'Create Event' || activeTab === 'Edit Event' || activeTab === 'Submit Proposal' || activeTab === 'Edit Proposal') && (
           <div className="bg-white rounded-xl border-2 border-[#003087]/20 p-8 shadow-sm">
-            <h3 className="text-2xl font-bold text-gray-900 mb-6">Create New Event</h3>
+            <h3 className="text-2xl font-bold text-gray-900 mb-6">
+              {editingEventActivity ? (userRole === 'admin' ? 'Edit Event' : 'Edit Proposal') : (userRole === 'admin' ? 'Create New Event' : 'Submit Event Proposal')}
+            </h3>
+            {userRole !== 'admin' && !editingEventActivity && (
+              <p className="text-gray-600 text-sm mb-6">Submit your event proposal for admin review. Once approved, you'll be able to post it live to the Upcoming Events section.</p>
+            )}
+            {userRole !== 'admin' && editingEventActivity && (
+              <p className="text-gray-600 text-sm mb-6">Update your proposal and resubmit it for admin review.</p>
+            )}
             <div className="space-y-6">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Event Title *</label>
-                <input type="text" placeholder="Enter event title" value={newEvent.title} onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
+                <input type="text" placeholder="Enter event title" value={newEventForm.title} onChange={(e) => setNewEventForm({ ...newEventForm, title: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Event Date *</label>
-                  <input type="date" value={newEvent.date} onChange={(e) => setNewEvent({ ...newEvent, date: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
-                </div>
-                <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Category *</label>
-                  <select value={newEvent.category} onChange={(e) => setNewEvent({ ...newEvent, category: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent">
+                  <select value={newEventForm.category} onChange={(e) => setNewEventForm({ ...newEventForm, category: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent">
                     <option value="">Select category</option>
                     <option value="Networking">Networking</option>
                     <option value="Professional Dev">Professional Development</option>
@@ -1111,200 +1606,106 @@ export function EventsView({ userRole, userName = 'Alumni User' }: { userRole: s
                     <option value="Leadership">Leadership</option>
                   </select>
                 </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Start Time *</label>
-                  <input type="time" value={newEvent.startTime} onChange={(e) => setNewEvent({ ...newEvent, startTime: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">End Time *</label>
-                  <input type="time" value={newEvent.endTime} onChange={(e) => setNewEvent({ ...newEvent, endTime: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Location *</label>
+                  <input type="text" placeholder="e.g., ADDU Campus or Virtual Event" value={newEventForm.location} onChange={(e) => setNewEventForm({ ...newEventForm, location: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
                 </div>
               </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Location *</label>
-                <input type="text" placeholder="e.g., ADDU Campus or Virtual Event" value={newEvent.location} onChange={(e) => setNewEvent({ ...newEvent, location: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
+              <div className="pt-2 border-t border-gray-100">
+                <p className="text-sm font-semibold text-gray-700 mb-3">Event Schedule</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 mb-2">Starts *</label>
+                    <input type="datetime-local" value={newEventForm.scheduleStart} onChange={(e) => setNewEventForm({ ...newEventForm, scheduleStart: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 mb-2">Ends *</label>
+                    <input type="datetime-local" value={newEventForm.scheduleEnd} onChange={(e) => setNewEventForm({ ...newEventForm, scheduleEnd: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
+                  </div>
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Event Description *</label>
-                <textarea rows={6} placeholder="Describe the event details..." value={newEvent.description} onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent resize-none"></textarea>
+                <textarea rows={6} placeholder="Describe the event details..." value={newEventForm.description} onChange={(e) => setNewEventForm({ ...newEventForm, description: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent resize-none"></textarea>
               </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Event Capacity</label>
-                <input type="number" placeholder="Maximum number of attendees" value={newEvent.capacity} onChange={(e) => setNewEvent({ ...newEvent, capacity: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Event Capacity</label>
+                  <input type="number" placeholder="Maximum number of attendees" value={newEventForm.capacity} onChange={(e) => setNewEventForm({ ...newEventForm, capacity: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Price per Person (₱)</label>
+                  <input type="number" min="0" placeholder="0 for free" value={newEventForm.feeAmount} onChange={(e) => setNewEventForm({ ...newEventForm, feeAmount: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
+                </div>
+              </div>
+              <div className="pt-2 border-t border-gray-100">
+                <p className="text-sm font-semibold text-gray-700 mb-3">Registration Window</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 mb-2">Registration Starts</label>
+                    <input type="datetime-local" value={newEventForm.registrationStart} onChange={(e) => setNewEventForm({ ...newEventForm, registrationStart: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 mb-2">Registration Ends</label>
+                    <input type="datetime-local" value={newEventForm.registrationEnd} onChange={(e) => setNewEventForm({ ...newEventForm, registrationEnd: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
+                  </div>
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Event Banner Image</label>
-                <input type="file" accept="image/*" onChange={(e) => { const file = e.target.files?.[0]; if (file) { const imageUrl = URL.createObjectURL(file); setNewEvent({ ...newEvent, image: imageUrl }); } }} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
-              </div>
-              <div className="flex gap-3 pt-6 border-t border-gray-200">
-                <button onClick={handleCreateEvent} className="px-6 py-3 bg-[#003087] text-white rounded-lg hover:bg-[#002066] transition-colors font-semibold">Create Event</button>
-                <button onClick={() => { setNewEvent({ title: '', category: '', date: '', startTime: '', endTime: '', location: '', description: '', capacity: '', image: '' }); setActiveTab('Upcoming Events'); }} className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-semibold">Cancel</button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Edit Event form */}
-        {activeTab === 'Edit Event' && userRole === 'admin' && editingEvent && (
-          <div className="bg-white rounded-xl border-2 border-blue-200 p-8 shadow-sm">
-            <h3 className="text-2xl font-bold text-gray-900 mb-6">Edit Event</h3>
-            <p className="text-gray-600 text-sm mb-6">Update the event details below. Changes will be saved immediately.</p>
-            <div className="space-y-6">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Event Title *</label>
-                <input type="text" placeholder="Enter event title" value={editEvent.title} onChange={(e) => setEditEvent({ ...editEvent, title: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Event Date *</label>
-                  <input type="date" value={editEvent.date} onChange={(e) => setEditEvent({ ...editEvent, date: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Category *</label>
-                  <select value={editEvent.category} onChange={(e) => setEditEvent({ ...editEvent, category: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent">
-                    <option value="">Select category</option>
-                    <option value="Networking">Networking</option>
-                    <option value="Professional Dev">Professional Development</option>
-                    <option value="Social Event">Social Event</option>
-                    <option value="Academic">Academic</option>
-                    <option value="Career">Career</option>
-                    <option value="Sports">Sports</option>
-                    <option value="Technology">Technology</option>
-                    <option value="Leadership">Leadership</option>
-                  </select>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Start Time *</label>
-                  <input type="time" value={editEvent.startTime} onChange={(e) => setEditEvent({ ...editEvent, startTime: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">End Time *</label>
-                  <input type="time" value={editEvent.endTime} onChange={(e) => setEditEvent({ ...editEvent, endTime: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Location *</label>
-                <input type="text" placeholder="e.g., ADDU Campus or Virtual Event" value={editEvent.location} onChange={(e) => setEditEvent({ ...editEvent, location: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Event Description *</label>
-                <textarea rows={6} placeholder="Describe the event details..." value={editEvent.description} onChange={(e) => setEditEvent({ ...editEvent, description: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent resize-none"></textarea>
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Event Capacity</label>
-                <input type="number" placeholder="Maximum number of attendees" value={editEvent.capacity} onChange={(e) => setEditEvent({ ...editEvent, capacity: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Event Banner Image</label>
-                <input type="file" accept="image/*" onChange={(e) => { const file = e.target.files?.[0]; if (file) { const imageUrl = URL.createObjectURL(file); setEditEvent({ ...editEvent, image: imageUrl }); } }} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
-              </div>
-              <div className="flex gap-3 pt-6 border-t border-gray-200">
-                <button onClick={handleUpdateEvent} className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold">Update Event</button>
-                <button onClick={handleCancelEdit} className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-semibold">Cancel</button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Submit Proposal form */}
-        {activeTab === 'Submit Proposal' && userRole !== 'admin' && (
-          <div className="bg-white rounded-xl border-2 border-[#003087]/20 p-8 shadow-sm">
-            <h3 className="text-2xl font-bold text-gray-900 mb-6">Submit Event Proposal</h3>
-            <p className="text-gray-600 text-sm mb-6">Submit your event proposal for admin review. Once approved, your event will be published to the Upcoming Events section.</p>
-            <div className="space-y-6">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Event Title *</label>
-                <input type="text" placeholder="Enter event title" value={newEvent.title} onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Event Date *</label>
-                  <input type="date" value={newEvent.date} onChange={(e) => setNewEvent({ ...newEvent, date: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Category *</label>
-                  <select value={newEvent.category} onChange={(e) => setNewEvent({ ...newEvent, category: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent">
-                    <option value="">Select category</option>
-                    <option value="Networking">Networking</option>
-                    <option value="Professional Dev">Professional Development</option>
-                    <option value="Social Event">Social Event</option>
-                    <option value="Academic">Academic</option>
-                    <option value="Career">Career</option>
-                    <option value="Sports">Sports</option>
-                    <option value="Technology">Technology</option>
-                    <option value="Leadership">Leadership</option>
-                  </select>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Start Time *</label>
-                  <input type="time" value={newEvent.startTime} onChange={(e) => setNewEvent({ ...newEvent, startTime: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">End Time *</label>
-                  <input type="time" value={newEvent.endTime} onChange={(e) => setNewEvent({ ...newEvent, endTime: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Location *</label>
-                <input type="text" placeholder="e.g., ADDU Campus or Virtual Event" value={newEvent.location} onChange={(e) => setNewEvent({ ...newEvent, location: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Event Description *</label>
-                <textarea rows={6} placeholder="Describe the event details..." value={newEvent.description} onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent resize-none"></textarea>
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Event Capacity</label>
-                <input type="number" placeholder="Maximum number of attendees" value={newEvent.capacity} onChange={(e) => setNewEvent({ ...newEvent, capacity: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Event Banner Image</label>
-                <input type="file" accept="image/*" onChange={(e) => { const file = e.target.files?.[0]; if (file) { const imageUrl = URL.createObjectURL(file); setNewEvent({ ...newEvent, image: imageUrl }); } }} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
+                <input type="file" accept="image/*" onChange={(e) => { const file = e.target.files?.[0]; if (file) { setEventImage(file); setEventImagePreview(URL.createObjectURL(file)); } }} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
+                {eventImagePreview && <img src={eventImagePreview} alt="Preview" className="mt-3 h-32 rounded-lg object-cover" />}
               </div>
               <div className="flex gap-3 pt-6 border-t border-gray-200">
                 <button
-                  onClick={() => {
-                    if (!newEvent.title || !newEvent.category || !newEvent.date || !newEvent.startTime || !newEvent.endTime || !newEvent.location || !newEvent.description) {
-                      alert('Please fill in all required fields');
-                      return;
-                    }
-                    const proposedEvent: Event = {
-                      id: Date.now().toString(),
-                      title: newEvent.title,
-                      category: newEvent.category,
-                      date: newEvent.date,
-                      time: `${newEvent.startTime} - ${newEvent.endTime}`,
-                      location: newEvent.location,
-                      participants: parseInt(newEvent.capacity) || 0,
-                      description: newEvent.description,
-                      image: newEvent.image || CareerFairBG,
-                      tab: 'Alumni Proposals',
-                      status: 'Pending',
-                      postedBy: userName,
-                      postedDate: 'Just now',
-                      submittedBy: userName
-                    };
-                    setEvents(prev => [proposedEvent, ...prev]);
-                    setNewEvent({ title: '', category: '', date: '', startTime: '', endTime: '', location: '', description: '', capacity: '', image: '' });
-                    setActiveTab('My Submissions');
-                    alert('Event proposal submitted successfully! The admin will review and approve your event before it goes live.');
-                    triggerToast();
-                  }}
+                  onClick={editingEventActivity ? handleUpdateEventActivity : handleCreateEventActivity}
                   className="px-6 py-3 bg-[#003087] text-white rounded-lg hover:bg-[#002066] transition-colors font-semibold"
                 >
-                  Submit Proposal
+                  {editingEventActivity ? (userRole === 'admin' ? 'Update Event' : 'Resubmit Proposal') : (userRole === 'admin' ? 'Create Event' : 'Submit Proposal')}
                 </button>
-                <button onClick={() => { setNewEvent({ title: '', category: '', date: '', startTime: '', endTime: '', location: '', description: '', capacity: '', image: '' }); setActiveTab('Upcoming Events'); }} className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-semibold">Cancel</button>
+                <button onClick={handleCancelEventForm} className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-semibold">Cancel</button>
               </div>
             </div>
           </div>
         )}
       </main>
+
+      {/* Reject Proposal Modal */}
+      {rejectingActivity && (
+        <div className="fixed inset-0 z-[95] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-[24px] w-full max-w-md overflow-hidden shadow-2xl">
+            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+              <h3 className="text-xl font-bold text-gray-900">Reject Proposal</h3>
+              <button onClick={() => { setRejectingActivity(null); setRejectReasonText(''); }} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-sm text-gray-600">
+                Let the submitter of <span className="font-semibold">{rejectingActivity.title}</span> know why this proposal can't push through.
+              </p>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Reason for Rejection *</label>
+                <textarea
+                  rows={4}
+                  value={rejectReasonText}
+                  onChange={(e) => setRejectReasonText(e.target.value)}
+                  placeholder="Explain why this event proposal is being rejected..."
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent resize-none"
+                />
+              </div>
+            </div>
+            <div className="px-6 pb-6 flex gap-3">
+              <button onClick={() => { setRejectingActivity(null); setRejectReasonText(''); }} className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
+                Cancel
+              </button>
+              <button onClick={handleConfirmReject} className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors">
+                Confirm Rejection
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Detail View Modal */}
       {selectedEvent && (

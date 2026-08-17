@@ -31,12 +31,20 @@ return new class extends Migration
             $table->string('valid_id_file_path')->nullable()->change();
         });
 
-        // Postgres can't combine a type-change + check-constraint + drop-not-null
-        // in one ALTER like Laravel's enum()->change() generates. Just drop NOT NULL
-        // directly for these enum-backed columns instead.
-        DB::statement('ALTER TABLE users ALTER COLUMN sex DROP NOT NULL');
-        DB::statement('ALTER TABLE users ALTER COLUMN religion DROP NOT NULL');
-        DB::statement('ALTER TABLE users ALTER COLUMN marital_status DROP NOT NULL');
+        if (DB::getDriverName() === 'pgsql') {
+            // Postgres can't combine a type-change + check-constraint + drop-not-null
+            // in one ALTER like Laravel's enum()->change() generates. Just drop NOT NULL
+            // directly for these enum-backed columns instead.
+            DB::statement('ALTER TABLE users ALTER COLUMN sex DROP NOT NULL');
+            DB::statement('ALTER TABLE users ALTER COLUMN religion DROP NOT NULL');
+            DB::statement('ALTER TABLE users ALTER COLUMN marital_status DROP NOT NULL');
+        } else {
+            Schema::table('users', function (Blueprint $table) {
+                $table->enum('sex', ['male', 'female', 'prefer_not_to_say'])->nullable()->change();
+                $table->enum('religion', ['roman_catholic', 'protestant', 'iglesia_ni_cristo', 'islam', 'born_again_christian', 'buddhist', 'other', 'prefer_not_to_say'])->nullable()->change();
+                $table->enum('marital_status', ['single', 'married', 'living_in', 'separated', 'annulled', 'divorced', 'widowed'])->nullable()->change();
+            });
+        }
     }
 
     /**

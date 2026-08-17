@@ -19,6 +19,14 @@ class EngagementActivity extends Model
         'image_url',
         'created_by_name',
         'is_archived',
+        'event_type',
+        'category',
+        'registration_start_at',
+        'registration_end_at',
+        'approval_status',
+        'rejection_reason',
+        'submitted_by_email',
+        'posted_at',
     ];
 
     protected $casts = [
@@ -28,6 +36,9 @@ class EngagementActivity extends Model
         'participant_limit' => 'integer',
         'fee_amount' => 'decimal:2',
         'is_archived' => 'boolean',
+        'registration_start_at' => 'datetime',
+        'registration_end_at' => 'datetime',
+        'posted_at' => 'datetime',
     ];
 
     public function registrations()

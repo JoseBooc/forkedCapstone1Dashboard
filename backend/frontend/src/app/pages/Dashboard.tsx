@@ -24,6 +24,8 @@ export function Dashboard() {
   >('home');
   
   const userRole = (localStorage.getItem('userRole') as 'alumni' | 'admin') || 'alumni';
+  const userName = localStorage.getItem('userName') || 'Alumni User';
+  const userEmail = localStorage.getItem('userEmail') || '';
 
   const renderView = () => {
     switch (activeView) {
@@ -33,8 +35,8 @@ export function Dashboard() {
         return <ProfileView userRole={userRole} />;
       case 'directory': 
         return <DirectoryView userRole={userRole} />;
-      case 'events': 
-        return <EventsView userRole={userRole} />;
+      case 'events':
+        return <EventsView userRole={userRole} userName={userName} userEmail={userEmail} />;
       case 'surveys': 
         return <SurveysView userRole={userRole} />;
       case 'careers': 
