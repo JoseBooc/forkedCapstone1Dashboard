@@ -19,12 +19,9 @@ interface EventRegistrationModalProps {
 }
 
 type PaymentMethod = 'gcash' | 'bank_transfer' | 'cash';
-type GuestRelationship = 'friend' | 'family' | 'other';
 
-interface GuestInfo {
-  name: string;
-  relationship: GuestRelationship;
-  otherText: string;
+function formatPrice(amount: number): string {
+  return amount > 0 ? `₱${amount.toLocaleString()}` : 'Free';
 }
 
 // ─────────────────────────────────────────────
@@ -39,8 +36,8 @@ export function EventRegistrationModal({ event, onClose }: EventRegistrationModa
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
-  const [guestCount, setGuestCount] = useState(0);
-  const [guests, setGuests] = useState<GuestInfo[]>([]);
+  const [guest1Name, setGuest1Name] = useState('');
+  const [guest2Name, setGuest2Name] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('gcash');
   const [referenceNumber, setReferenceNumber] = useState('');
   const [proofFile, setProofFile] = useState<File | null>(null);
@@ -48,23 +45,14 @@ export function EventRegistrationModal({ event, onClose }: EventRegistrationModa
   const [errorMessage, setErrorMessage] = useState('');
   const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
 
-  const totalAttendees = 1 + guestCount;
+  const guestNames = [guest1Name, guest2Name].map((name) => name.trim()).filter(Boolean);
+  const totalAttendees = 1 + guestNames.length;
   const totalPrice = totalAttendees * event.feeAmount;
   const requiresProof = paymentMethod === 'gcash' || paymentMethod === 'bank_transfer';
 
-  const addGuest = () => {
-    setGuestCount(guestCount + 1);
-    setGuests((prev) => [...prev, { name: '', relationship: 'friend', otherText: '' }]);
-  };
-
-  const removeGuest = () => {
-    if (guestCount === 0) return;
-    setGuestCount(guestCount - 1);
-    setGuests((prev) => prev.slice(0, -1));
-  };
-
-  const updateGuest = (index: number, patch: Partial<GuestInfo>) => {
-    setGuests((prev) => prev.map((guest, i) => (i === index ? { ...guest, ...patch } : guest)));
+  const handleGuest1NameChange = (value: string) => {
+    setGuest1Name(value);
+    if (!value.trim()) setGuest2Name('');
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -73,16 +61,6 @@ export function EventRegistrationModal({ event, onClose }: EventRegistrationModa
     if (!firstName.trim() || !lastName.trim() || !email.trim()) {
       setErrorMessage('Please complete all required fields.');
       return;
-    }
-    for (const guest of guests) {
-      if (!guest.name.trim()) {
-        setErrorMessage('Please enter a name for every guest.');
-        return;
-      }
-      if (guest.relationship === 'other' && !guest.otherText.trim()) {
-        setErrorMessage('Please specify the relationship for every "Other" guest.');
-        return;
-      }
     }
     if (event.feeAmount > 0) {
       setStep('payment');
@@ -120,8 +98,8 @@ export function EventRegistrationModal({ event, onClose }: EventRegistrationModa
     formData.append('first_name', firstName.trim());
     formData.append('last_name', lastName.trim());
     formData.append('email', email.trim());
-    formData.append('guests_count', String(guestCount));
-    formData.append('guests', JSON.stringify(guests));
+    formData.append('guests_count', String(guestNames.length));
+    formData.append('guests', JSON.stringify(guestNames.map((name) => ({ name }))));
     formData.append('amount_due', String(totalPrice));
     formData.append('payment_method', method);
     if (referenceNumber.trim()) formData.append('reference_number', referenceNumber.trim());
@@ -376,76 +354,42 @@ export function EventRegistrationModal({ event, onClose }: EventRegistrationModa
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Number of Additional Guests
-            </label>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center border border-gray-300 rounded-lg">
-                <button
-                  type="button"
-                  onClick={removeGuest}
-                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 transition-colors"
-                >
-                  −
-                </button>
-                <span className="px-6 py-2 font-semibold text-gray-900 text-center min-w-[60px]">
-                  {guestCount}
-                </span>
-                <button
-                  type="button"
-                  onClick={addGuest}
-                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 transition-colors"
-                >
-                  +
-                </button>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-gray-600">
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-sm font-semibold text-gray-700">Additional Guests</label>
+              <div className="flex items-center gap-1.5 text-sm text-gray-600">
                 <Users className="w-4 h-4" />
-                <span>₱{event.feeAmount.toLocaleString()} per person</span>
+                <span>{formatPrice(event.feeAmount)}{event.feeAmount > 0 ? ' per person' : ''}</span>
               </div>
             </div>
-          </div>
+            <p className="text-xs text-gray-500 mb-3">Maximum 2 guests per participant</p>
 
-          {guests.length > 0 && (
             <div className="space-y-3">
-              {guests.map((guest, index) => (
-                <div key={index} className="p-4 bg-gray-50 border border-gray-200 rounded-lg space-y-3">
-                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Guest {index + 1}</p>
-                  <input
-                    type="text"
-                    required
-                    value={guest.name}
-                    onChange={(e) => updateGuest(index, { name: e.target.value })}
-                    placeholder="Guest's full name"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
-                  />
-                  <select
-                    value={guest.relationship}
-                    onChange={(e) => updateGuest(index, { relationship: e.target.value as GuestRelationship })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
-                  >
-                    <option value="friend">Friend</option>
-                    <option value="family">Family Member</option>
-                    <option value="other">Other</option>
-                  </select>
-                  {guest.relationship === 'other' && (
-                    <input
-                      type="text"
-                      required
-                      value={guest.otherText}
-                      onChange={(e) => updateGuest(index, { otherText: e.target.value })}
-                      placeholder="Please specify"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
-                    />
-                  )}
-                </div>
-              ))}
+              <input
+                type="text"
+                value={guest1Name}
+                onChange={(e) => handleGuest1NameChange(e.target.value)}
+                placeholder="Name of Guest 1 (optional)"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
+              />
+              {guest1Name.trim() && (
+                <input
+                  type="text"
+                  value={guest2Name}
+                  onChange={(e) => setGuest2Name(e.target.value)}
+                  placeholder="Name of Guest 2 (optional)"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
+                />
+              )}
             </div>
-          )}
+
+            <p className="text-xs text-gray-500 mt-3">
+              Bringing more than 2 guests? Please consult and inquire with the Alumni Office in-person.
+            </p>
+          </div>
 
           <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg border border-blue-200">
             <span className="font-bold text-gray-900">Total:</span>
-            <span className="text-xl font-bold text-[#003087]">₱{totalPrice.toLocaleString()}</span>
+            <span className="text-xl font-bold text-[#003087]">{formatPrice(totalPrice)}</span>
           </div>
 
           {errorMessage && (

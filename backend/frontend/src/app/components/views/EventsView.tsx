@@ -160,6 +160,20 @@ function getEventDisplayState(activity: GivebackActivity, now: Date): EventDispl
   return { label: 'Upcoming', badgeClass: 'bg-green-600', canRegister: true, registerLabel: 'Register', countdownText: `Registration ends in: ${days} day${days === 1 ? '' : 's'}`, bucket: 'upcoming' };
 }
 
+// Canonical categories for Upcoming/Past Events, matching the Create Event
+// form's options so the filter dropdown lists all choices an admin can pick,
+// not just the ones currently in use.
+const EVENT_CATEGORY_OPTIONS: { value: string; label: string }[] = [
+  { value: 'Networking', label: 'Networking' },
+  { value: 'Professional Dev', label: 'Professional Development' },
+  { value: 'Social Event', label: 'Social Event' },
+  { value: 'Academic', label: 'Academic' },
+  { value: 'Career', label: 'Career' },
+  { value: 'Sports', label: 'Sports' },
+  { value: 'Technology', label: 'Technology' },
+  { value: 'Leadership', label: 'Leadership' },
+];
+
 const INITIAL_EVENTS: Event[] = [
   { id: '12', title: "Guest Lecturer - Digital Marketing", category: "Business", date: "1 Semester", time: "Tue & Thu preferred", location: "School of Business and Governance", participants: 8, compensation: "Honorarium provided", description: "Share your expertise in digital marketing with our business students.", image: GuestLectureBG, tab: 'Teaching Opportunities', postedBy: "Dr. Antonio Reyes", postedDate: "5 days ago" },
   { id: '13', title: "Workshop Facilitator - Python", category: "Computer Science", date: "2 Days", time: "March 8-9, 2026", location: "Department of Computer Science", participants: 15, compensation: "Php 15,000", description: "Conduct hands-on Python workshop for intermediate students.", image: WorkshopBG, tab: 'Teaching Opportunities', postedBy: "Prof. Maria Santos", postedDate: "2 weeks ago" },
@@ -551,7 +565,7 @@ export function EventsView({ userRole, userName = 'Alumni User', userEmail = '' 
     scheduleStart: '',
     scheduleEnd: '',
     registrationEnd: '',
-    capacity: '',
+    capacity: '1',
     feeAmount: '0',
   });
   const [eventImage, setEventImage] = useState<File | null>(null);
@@ -918,7 +932,7 @@ export function EventsView({ userRole, userName = 'Alumni User', userEmail = '' 
       title: '', description: '', location: '', category: '',
       scheduleStart: '', scheduleEnd: '',
       registrationEnd: '',
-      capacity: '', feeAmount: '0',
+      capacity: '1', feeAmount: '0',
     });
     setEventImage(null);
     setEventImagePreview(null);
@@ -948,8 +962,24 @@ export function EventsView({ userRole, userName = 'Alumni User', userEmail = '' 
   };
 
   const handleCreateEventActivity = async () => {
-    if (!newEventForm.title || !newEventForm.description || !newEventForm.location || !newEventForm.category || !newEventForm.scheduleStart || !newEventForm.scheduleEnd) {
+    if (!newEventForm.title || !newEventForm.description || !newEventForm.location || !newEventForm.category || !newEventForm.scheduleStart || !newEventForm.scheduleEnd || !newEventForm.capacity || newEventForm.feeAmount === '' || !newEventForm.registrationEnd) {
       alert('Please fill in all required fields');
+      return;
+    }
+    if (newEventForm.scheduleStart < toDateTimeLocalValue(new Date())) {
+      alert('Event Start date/time cannot be in the past.');
+      return;
+    }
+    if (newEventForm.scheduleEnd <= newEventForm.scheduleStart) {
+      alert('Event End date/time must be after the Event Start date/time.');
+      return;
+    }
+    if (newEventForm.registrationEnd < toDateTimeLocalValue(new Date())) {
+      alert('Registration Window cannot be set to a past date/time.');
+      return;
+    }
+    if (newEventForm.registrationEnd >= newEventForm.scheduleEnd) {
+      alert('Registration Window must end before the Event End date/time.');
       return;
     }
     const formData = buildEventFormData();
@@ -985,7 +1015,7 @@ export function EventsView({ userRole, userName = 'Alumni User', userEmail = '' 
       scheduleStart: toDateTimeLocalValue(parseVenueDateTime(activity.schedule_start)),
       scheduleEnd: toDateTimeLocalValue(parseVenueDateTime(activity.schedule_end)),
       registrationEnd: toDateTimeLocalValue(parseVenueDateTime(activity.registration_end_at)),
-      capacity: activity.participant_limit ? String(activity.participant_limit) : '',
+      capacity: activity.participant_limit ? String(activity.participant_limit) : '1',
       feeAmount: String(activity.fee_amount || 0),
     });
     setEventImagePreview(resolveImageUrl(activity.image_url));
@@ -996,8 +1026,29 @@ export function EventsView({ userRole, userName = 'Alumni User', userEmail = '' 
 
   const handleUpdateEventActivity = async () => {
     if (!editingEventActivity) return;
-    if (!newEventForm.title || !newEventForm.description || !newEventForm.location || !newEventForm.category || !newEventForm.scheduleStart || !newEventForm.scheduleEnd) {
+    if (!newEventForm.title || !newEventForm.description || !newEventForm.location || !newEventForm.category || !newEventForm.scheduleStart || !newEventForm.scheduleEnd || !newEventForm.capacity || newEventForm.feeAmount === '' || !newEventForm.registrationEnd) {
       alert('Please fill in all required fields');
+      return;
+    }
+    // Only block a past Start/Registration End if it's actually being changed
+    // — editing an already-past/archived event without touching its dates
+    // shouldn't fail.
+    const originalScheduleStart = toDateTimeLocalValue(parseVenueDateTime(editingEventActivity.schedule_start));
+    if (newEventForm.scheduleStart !== originalScheduleStart && newEventForm.scheduleStart < toDateTimeLocalValue(new Date())) {
+      alert('Event Start date/time cannot be in the past.');
+      return;
+    }
+    if (newEventForm.scheduleEnd <= newEventForm.scheduleStart) {
+      alert('Event End date/time must be after the Event Start date/time.');
+      return;
+    }
+    const originalRegistrationEnd = toDateTimeLocalValue(parseVenueDateTime(editingEventActivity.registration_end_at));
+    if (newEventForm.registrationEnd !== originalRegistrationEnd && newEventForm.registrationEnd < toDateTimeLocalValue(new Date())) {
+      alert('Registration Window cannot be set to a past date/time.');
+      return;
+    }
+    if (newEventForm.registrationEnd >= newEventForm.scheduleEnd) {
+      alert('Registration Window must end before the Event End date/time.');
       return;
     }
     const formData = buildEventFormData();
@@ -1219,16 +1270,17 @@ export function EventsView({ userRole, userName = 'Alumni User', userEmail = '' 
   const FILTERABLE_TABS = ['Upcoming Events', 'Past Events', 'Teaching Opportunities', 'Seminars & Workshops'];
   const showFilterBar = FILTERABLE_TABS.includes(activeTab);
 
-  // Category options are drawn from whichever tab is active, since each
-  // tab's data has its own vocabulary (event categories vs. teaching
-  // subjects vs. seminar topics).
-  const activeTabBaseItems: { category?: string | null }[] =
-    activeTab === 'Upcoming Events' ? upcomingEventActivities
-    : activeTab === 'Past Events' ? pastEventActivities
-    : filteredEvents;
-  const categoryOptions = Array.from(
-    new Set(activeTabBaseItems.map((item) => item.category).filter((c): c is string => !!c))
-  ).sort();
+  // Upcoming/Past Events use the fixed category list from the Create Event
+  // form, so the filter always offers every choice an admin can pick, not
+  // just whichever categories happen to be posted. Teaching Opportunities
+  // and Seminars & Workshops have their own vocabulary (subjects/topics),
+  // so their options are still drawn from whatever data is present.
+  const isEventActivityTab = activeTab === 'Upcoming Events' || activeTab === 'Past Events';
+  const categoryOptions: { value: string; label: string }[] = isEventActivityTab
+    ? EVENT_CATEGORY_OPTIONS
+    : Array.from(
+        new Set(filteredEvents.map((item) => item.category).filter((c): c is string => !!c))
+      ).sort().map((c) => ({ value: c, label: c }));
 
   const matchesAppliedFilters = (
     title: string,
@@ -1372,8 +1424,8 @@ export function EventsView({ userRole, userName = 'Alumni User', userEmail = '' 
                   className="w-full px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-sm outline-none focus:bg-white focus:ring-2 focus:ring-[#003087]/20 transition-all appearance-none"
                 >
                   <option value="All">All Categories</option>
-                  {categoryOptions.map((cat) => (
-                    <option key={cat} value={cat}>{cat}</option>
+                  {categoryOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
                   ))}
                 </select>
               </div>
@@ -1815,11 +1867,46 @@ export function EventsView({ userRole, userName = 'Alumni User', userEmail = '' 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-semibold text-gray-500 mb-2">Starts *</label>
-                    <input type="datetime-local" value={newEventForm.scheduleStart} onChange={(e) => setNewEventForm({ ...newEventForm, scheduleStart: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
+                    <input
+                      type="datetime-local"
+                      value={newEventForm.scheduleStart}
+                      onChange={(e) => {
+                        const scheduleStart = e.target.value;
+                        const endIsNowInvalid = newEventForm.scheduleEnd && newEventForm.scheduleEnd <= scheduleStart;
+                        const scheduleEnd = endIsNowInvalid ? '' : newEventForm.scheduleEnd;
+                        const registrationEndIsNowInvalid = newEventForm.registrationEnd && (!scheduleEnd || newEventForm.registrationEnd >= scheduleEnd);
+                        setNewEventForm({
+                          ...newEventForm,
+                          scheduleStart,
+                          scheduleEnd,
+                          registrationEnd: registrationEndIsNowInvalid ? '' : newEventForm.registrationEnd,
+                        });
+                      }}
+                      min={toDateTimeLocalValue(new Date())}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
+                    />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-gray-500 mb-2">Ends *</label>
-                    <input type="datetime-local" value={newEventForm.scheduleEnd} onChange={(e) => setNewEventForm({ ...newEventForm, scheduleEnd: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
+                    <input
+                      type="datetime-local"
+                      value={newEventForm.scheduleEnd}
+                      onChange={(e) => {
+                        const scheduleEnd = e.target.value;
+                        const registrationEndIsNowInvalid = newEventForm.registrationEnd && newEventForm.registrationEnd >= scheduleEnd;
+                        setNewEventForm({
+                          ...newEventForm,
+                          scheduleEnd,
+                          registrationEnd: registrationEndIsNowInvalid ? '' : newEventForm.registrationEnd,
+                        });
+                      }}
+                      disabled={!newEventForm.scheduleStart}
+                      min={newEventForm.scheduleStart || undefined}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    />
+                    {!newEventForm.scheduleStart && (
+                      <p className="text-xs text-gray-500 mt-1">Set the start date/time first.</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1829,19 +1916,34 @@ export function EventsView({ userRole, userName = 'Alumni User', userEmail = '' 
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Event Capacity</label>
-                  <input type="number" placeholder="Maximum number of attendees" value={newEventForm.capacity} onChange={(e) => setNewEventForm({ ...newEventForm, capacity: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Event Capacity *</label>
+                  <input type="number" required min="1" placeholder="Maximum number of attendees" value={newEventForm.capacity} onChange={(e) => setNewEventForm({ ...newEventForm, capacity: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Price per Person (₱)</label>
-                  <input type="number" min="0" placeholder="0 for free" value={newEventForm.feeAmount} onChange={(e) => setNewEventForm({ ...newEventForm, feeAmount: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Price per Person (₱) *</label>
+                  <input type="number" required min="0" placeholder="0 for free" value={newEventForm.feeAmount} onChange={(e) => setNewEventForm({ ...newEventForm, feeAmount: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
+                  {Number(newEventForm.feeAmount) === 0 && (
+                    <p className="text-xs text-gray-500 mt-1">This will be listed as a Free event.</p>
+                  )}
                 </div>
               </div>
               <div className="pt-2 border-t border-gray-100">
                 <p className="text-sm font-semibold text-gray-700 mb-3">Registration Window</p>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-500 mb-2">Registration Ends</label>
-                  <input type="datetime-local" value={newEventForm.registrationEnd} onChange={(e) => setNewEventForm({ ...newEventForm, registrationEnd: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
+                  <label className="block text-xs font-semibold text-gray-500 mb-2">Registration Ends *</label>
+                  <input
+                    type="datetime-local"
+                    required
+                    value={newEventForm.registrationEnd}
+                    onChange={(e) => setNewEventForm({ ...newEventForm, registrationEnd: e.target.value })}
+                    disabled={!newEventForm.scheduleEnd}
+                    min={toDateTimeLocalValue(new Date())}
+                    max={newEventForm.scheduleEnd || undefined}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  />
+                  {!newEventForm.scheduleEnd && (
+                    <p className="text-xs text-gray-500 mt-1">Set the event end date/time first.</p>
+                  )}
                 </div>
               </div>
               <div>
