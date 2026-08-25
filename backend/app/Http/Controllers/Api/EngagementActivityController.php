@@ -33,7 +33,7 @@ class EngagementActivityController extends Controller
             'description' => 'required|string',
             'venue' => 'required|string|max:255',
             'schedule_start' => 'required|date',
-            'schedule_end' => 'required|date|after_or_equal:schedule_start',
+            'schedule_end' => 'required|date|after:schedule_start',
             'registration_open' => 'required|boolean',
             'participant_limit' => 'nullable|integer|min:1',
             'fee_amount' => 'nullable|numeric|min:0',
@@ -43,7 +43,7 @@ class EngagementActivityController extends Controller
             'event_type' => 'nullable|string|in:giveback,event',
             'category' => 'nullable|string|max:100',
             'registration_start_at' => 'nullable|date',
-            'registration_end_at' => 'nullable|date|after_or_equal:registration_start_at',
+            'registration_end_at' => 'nullable|date',
             'submitted_by_email' => 'nullable|email|max:255',
         ]);
 
@@ -74,7 +74,7 @@ class EngagementActivityController extends Controller
             'description' => 'required|string',
             'venue' => 'required|string|max:255',
             'schedule_start' => 'required|date',
-            'schedule_end' => 'required|date|after_or_equal:schedule_start',
+            'schedule_end' => 'required|date|after:schedule_start',
             'registration_open' => 'required|boolean',
             'participant_limit' => 'nullable|integer|min:1',
             'fee_amount' => 'nullable|numeric|min:0',
@@ -84,7 +84,7 @@ class EngagementActivityController extends Controller
             'event_type' => 'nullable|string|in:giveback,event',
             'category' => 'nullable|string|max:100',
             'registration_start_at' => 'nullable|date',
-            'registration_end_at' => 'nullable|date|after_or_equal:registration_start_at',
+            'registration_end_at' => 'nullable|date',
             'submitted_by_email' => 'nullable|email|max:255',
         ]);
 

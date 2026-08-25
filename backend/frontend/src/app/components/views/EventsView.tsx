@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Calendar, Clock, MapPin, Users, Eye, Award, User, FileText, Plus, X, CheckCircle, XCircle, Trash2, Edit } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, Award, User, FileText, Plus, X, CheckCircle, XCircle, Trash2, Edit, RotateCcw, Search, RefreshCcw } from 'lucide-react';
 import { Footer } from '../Footer';
 import { EventRegistrationModal, MyRegistrations, type MyRegistration } from '../EventRegistrationModal';
 
@@ -107,6 +107,16 @@ function formatVenueTime(value: string | null | undefined): string {
   return parseVenueDateTime(value)?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) ?? '';
 }
 
+// The API returns image_url as a path relative to the backend origin
+// (e.g. "/storage/engagement-activities/x.jpg"). Used bare in an <img src>,
+// the browser resolves it against the current page's origin instead —
+// localhost:3000 in dev — which is wrong and fails silently since CRA's
+// dev server 200s its SPA fallback for unmatched paths rather than 404ing.
+function resolveImageUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  return url.startsWith('http') ? url : `http://localhost:8000${url}`;
+}
+
 interface EventDisplayState {
   label: string;
   badgeClass: string;
@@ -127,7 +137,7 @@ function getEventDisplayState(activity: GivebackActivity, now: Date): EventDispl
     return { label: 'Pending', badgeClass: 'bg-amber-500', canRegister: false, registerLabel: 'Pending Approval', countdownText: 'Registration ends in: ---', bucket: 'proposal' };
   }
   if (activity.approval_status === 'rejected') {
-    return { label: 'Proposal Rejected', badgeClass: 'bg-red-600', canRegister: false, registerLabel: 'Rejected', countdownText: 'Registration ends in: ---', bucket: 'proposal' };
+    return { label: 'Proposal Declined', badgeClass: 'bg-red-600', canRegister: false, registerLabel: 'Declined', countdownText: 'Registration ends in: ---', bucket: 'proposal' };
   }
   if (!activity.posted_at) {
     return { label: 'Event approved', badgeClass: 'bg-blue-600', canRegister: false, registerLabel: 'Post Event', countdownText: 'Registration ends in: ---', bucket: 'proposal' };
@@ -149,6 +159,20 @@ function getEventDisplayState(activity: GivebackActivity, now: Date): EventDispl
   const days = daysBetween(now, deadline);
   return { label: 'Upcoming', badgeClass: 'bg-green-600', canRegister: true, registerLabel: 'Register', countdownText: `Registration ends in: ${days} day${days === 1 ? '' : 's'}`, bucket: 'upcoming' };
 }
+
+// Canonical categories for Upcoming/Past Events, matching the Create Event
+// form's options so the filter dropdown lists all choices an admin can pick,
+// not just the ones currently in use.
+const EVENT_CATEGORY_OPTIONS: { value: string; label: string }[] = [
+  { value: 'Networking', label: 'Networking' },
+  { value: 'Professional Dev', label: 'Professional Development' },
+  { value: 'Social Event', label: 'Social Event' },
+  { value: 'Academic', label: 'Academic' },
+  { value: 'Career', label: 'Career' },
+  { value: 'Sports', label: 'Sports' },
+  { value: 'Technology', label: 'Technology' },
+  { value: 'Leadership', label: 'Leadership' },
+];
 
 const INITIAL_EVENTS: Event[] = [
   { id: '12', title: "Guest Lecturer - Digital Marketing", category: "Business", date: "1 Semester", time: "Tue & Thu preferred", location: "School of Business and Governance", participants: 8, compensation: "Honorarium provided", description: "Share your expertise in digital marketing with our business students.", image: GuestLectureBG, tab: 'Teaching Opportunities', postedBy: "Dr. Antonio Reyes", postedDate: "5 days ago" },
@@ -181,7 +205,12 @@ function EventCard({ event, onView, onRegister }: any) {
   return (
     <div className="bg-white rounded-[24px] overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col h-full text-left">
       <div className="relative h-56 overflow-hidden">
-        <img src={event.image} alt={event.title} className="w-full h-full object-cover" />
+        <img
+          src={event.image}
+          alt={event.title}
+          onClick={() => onView(event)}
+          className="w-full h-full object-cover cursor-pointer"
+        />
         <div className="absolute top-4 right-4 flex flex-col gap-2 items-end">
           <span className="px-4 py-1.5 bg-[#003087] text-white text-[10px] rounded-full font-bold uppercase tracking-wider shadow-lg">
             {event.category}
@@ -190,7 +219,12 @@ function EventCard({ event, onView, onRegister }: any) {
       </div>
 
       <div className="p-6 flex flex-col flex-1">
-        <h3 className="text-lg font-bold text-gray-900 mb-1 line-clamp-1">{event.title}</h3>
+        <h3
+          onClick={() => onView(event)}
+          className="text-lg font-bold text-gray-900 mb-1 line-clamp-1 cursor-pointer hover:text-[#003087] transition-colors"
+        >
+          {event.title}
+        </h3>
 
         <div className="space-y-2 mb-4">
           <div className="flex items-start gap-2 text-gray-500 text-[13px]">
@@ -228,31 +262,20 @@ function EventCard({ event, onView, onRegister }: any) {
 
         <div className="flex gap-2 mt-auto">
           {event.tab === 'Seminars & Workshops' ? (
-            <>
-              <button
-                onClick={() => onView(event)}
-                className="flex-1 py-2.5 rounded-lg font-bold text-sm transition-colors bg-gray-100 text-gray-700 hover:bg-gray-200"
-              >
-                View Details
-              </button>
-              <button
-                onClick={() => onRegister(event)}
-                className="flex-1 py-2.5 rounded-lg font-bold text-sm transition-colors bg-[#003087] text-white hover:bg-[#002566]"
-              >
-                Register
-              </button>
-            </>
+            <button
+              onClick={() => onRegister(event)}
+              className="w-full py-2.5 rounded-lg font-bold text-sm transition-colors bg-[#003087] text-white hover:bg-[#002566]"
+            >
+              Register
+            </button>
           ) : (
             <button
               onClick={() => onView(event)}
-              className="flex-1 py-2.5 rounded-lg font-bold text-sm transition-colors bg-[#003087] text-white hover:bg-[#002566]"
+              className="w-full py-2.5 rounded-lg font-bold text-sm transition-colors bg-[#003087] text-white hover:bg-[#002566]"
             >
               Apply Now
             </button>
           )}
-          <button onClick={() => onView(event)} className="px-3 py-2.5 border border-gray-200 rounded-lg text-gray-400 hover:bg-gray-50 transition-colors">
-            <Eye className="w-5 h-5" />
-          </button>
         </div>
       </div>
     </div>
@@ -266,7 +289,12 @@ function ActivityCard({ activity, userRole, onEdit, onRemove, onToggleRegistrati
   return (
     <div className="bg-white rounded-[24px] overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col h-full text-left">
       <div className="relative h-56 overflow-hidden">
-        <img src={activity.image_url || CareerFairBG} alt={activity.title} className="w-full h-full object-cover" />
+        <img
+          src={resolveImageUrl(activity.image_url) || CareerFairBG}
+          alt={activity.title}
+          onClick={() => onRegister(activity)}
+          className="w-full h-full object-cover cursor-pointer"
+        />
         <div className="absolute top-4 right-4 flex flex-col gap-2 items-end">
           {isAdmin && (
             <>
@@ -291,7 +319,12 @@ function ActivityCard({ activity, userRole, onEdit, onRemove, onToggleRegistrati
       </div>
 
       <div className="p-6 flex flex-col flex-1">
-        <h3 className="text-lg font-bold text-gray-900 mb-1 line-clamp-1">{activity.title}</h3>
+        <h3
+          onClick={() => onRegister(activity)}
+          className="text-lg font-bold text-gray-900 mb-1 line-clamp-1 cursor-pointer hover:underline"
+        >
+          {activity.title}
+        </h3>
 
         <div className="space-y-2 mb-4">
           <div className="flex items-start gap-2 text-gray-500 text-[13px]">
@@ -318,7 +351,7 @@ function ActivityCard({ activity, userRole, onEdit, onRemove, onToggleRegistrati
           {isAdmin ? (
             <button
               onClick={() => onToggleRegistration(activity.id)}
-              className="flex-1 py-2.5 rounded-lg font-bold text-sm transition-colors bg-gray-100 text-gray-700 hover:bg-gray-200"
+              className="w-full py-2.5 rounded-lg font-bold text-sm transition-colors bg-gray-100 text-gray-700 hover:bg-gray-200"
             >
               {activity.registration_open ? 'Close Registration' : 'Open Registration'}
             </button>
@@ -326,17 +359,11 @@ function ActivityCard({ activity, userRole, onEdit, onRemove, onToggleRegistrati
             <button
               onClick={() => onRegister(activity)}
               disabled={!activity.registration_open}
-              className="flex-1 py-2.5 rounded-lg font-bold text-sm transition-colors bg-[#003087] text-white hover:bg-[#002566] disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-2.5 rounded-lg font-bold text-sm transition-colors bg-[#003087] text-white hover:bg-[#002566] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {activity.registration_open ? 'Register' : 'Registration Closed'}
             </button>
           )}
-          <button
-            onClick={() => onRegister(activity)}
-            className="px-3 py-2.5 border border-gray-200 rounded-lg text-gray-400 hover:bg-gray-50 transition-colors"
-          >
-            <Eye className="w-5 h-5" />
-          </button>
         </div>
       </div>
     </div>
@@ -357,6 +384,7 @@ function EventActivityCard({
   onEdit,
   onRemoveMine,
   onAdminRemove,
+  onRestore,
   onView,
   onRegister,
   onDismissNew,
@@ -374,9 +402,14 @@ function EventActivityCard({
       className={`bg-white rounded-[24px] overflow-hidden border shadow-sm hover:shadow-md transition-all flex flex-col h-full text-left ${isNew ? 'event-glow border-[#C5A96A]' : 'border-gray-100'}`}
     >
       <div className="relative h-56 overflow-hidden">
-        <img src={activity.image_url || CareerFairBG} alt={activity.title} className="w-full h-full object-cover" />
+        <img
+          src={resolveImageUrl(activity.image_url) || CareerFairBG}
+          alt={activity.title}
+          onClick={(e) => { e.stopPropagation(); onView(activity); }}
+          className="w-full h-full object-cover cursor-pointer"
+        />
         <div className="absolute top-4 right-4 flex flex-col gap-2 items-end">
-          {isAdmin && context !== 'submissions' && (
+          {isAdmin && context !== 'submissions' && context !== 'archived' && (
             <>
               <button onClick={(e) => { e.stopPropagation(); onEdit(activity); }} className="p-2 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-transform active:scale-95">
                 <Edit className="w-4 h-4" />
@@ -401,14 +434,19 @@ function EventActivityCard({
               {activity.category}
             </span>
           )}
-          <span className={`px-4 py-1.5 text-white text-[10px] rounded-full font-bold uppercase tracking-wider shadow-lg ${displayState.badgeClass}`}>
-            {displayState.label}
+          <span className={`px-4 py-1.5 text-white text-[10px] rounded-full font-bold uppercase tracking-wider shadow-lg ${context === 'archived' ? 'bg-gray-500' : displayState.badgeClass}`}>
+            {context === 'archived' ? 'Archived' : displayState.label}
           </span>
         </div>
       </div>
 
       <div className="p-6 flex flex-col flex-1">
-        <h3 className="text-lg font-bold text-gray-900 mb-1 line-clamp-1">{activity.title}</h3>
+        <h3
+          onClick={(e) => { e.stopPropagation(); onView(activity); }}
+          className="text-lg font-bold text-gray-900 mb-1 line-clamp-1 cursor-pointer hover:underline"
+        >
+          {activity.title}
+        </h3>
 
         <div className="space-y-2 mb-4">
           <div className="flex items-start gap-2 text-gray-500 text-[13px]">
@@ -421,7 +459,7 @@ function EventActivityCard({
             <Award className="w-4 h-4 mt-0.5" />
             {activity.fee_amount > 0 ? `₱${Number(activity.fee_amount).toLocaleString()} per person` : 'Free'}
           </div>
-          {displayState.countdownText && (
+          {context !== 'archived' && displayState.countdownText && (
             <div className="flex items-start gap-2 text-[#003087] text-[13px] font-semibold">
               <Clock className="w-4 h-4 mt-0.5" /> {displayState.countdownText}
             </div>
@@ -446,41 +484,32 @@ function EventActivityCard({
         )}
 
         <div className="flex gap-2 mt-auto" onClick={(e) => e.stopPropagation()}>
-          {context === 'proposals' && isAdmin && activity.approval_status === 'pending' ? (
+          {context === 'archived' ? (
+            <button onClick={() => onRestore(activity.id)} className="flex-1 py-2.5 bg-[#003087] text-white rounded-lg font-bold text-sm hover:bg-[#002566] transition-colors flex items-center justify-center gap-2">
+              <RotateCcw className="w-4 h-4" /> Restore
+            </button>
+          ) : context === 'proposals' && isAdmin && activity.approval_status === 'pending' ? (
             <>
               <button onClick={() => onApprove(activity.id)} className="flex-1 py-2.5 bg-green-600 text-white rounded-lg font-bold text-sm hover:bg-green-700 transition-colors flex items-center justify-center gap-2">
                 <CheckCircle className="w-4 h-4" /> Approve
               </button>
               <button onClick={() => onReject(activity)} className="flex-1 py-2.5 bg-red-50 text-red-600 rounded-lg font-bold text-sm hover:bg-red-100 transition-colors flex items-center justify-center gap-2">
-                <XCircle className="w-4 h-4" /> Reject
+                <XCircle className="w-4 h-4" /> Decline
               </button>
             </>
           ) : context === 'submissions' && activity.approval_status === 'approved' && !activity.posted_at ? (
             <button onClick={() => onPost(activity.id)} className="flex-1 py-2.5 bg-[#003087] text-white rounded-lg font-bold text-sm hover:bg-[#002566] transition-colors">
               Post Event
             </button>
-          ) : context === 'past' ? (
-            <button onClick={() => onView(activity)} className="flex-1 py-2.5 rounded-lg font-bold text-sm transition-colors bg-gray-100 text-gray-700 hover:bg-gray-200">
-              View Details
+          ) : context === 'past' ? null : context === 'upcoming' ? (
+            <button
+              onClick={() => onRegister(activity)}
+              disabled={!displayState.canRegister}
+              className="w-full py-2.5 rounded-lg font-bold text-sm transition-colors bg-[#003087] text-white hover:bg-[#002566] disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {displayState.registerLabel}
             </button>
-          ) : context === 'upcoming' ? (
-            <>
-              <button onClick={() => onView(activity)} className="flex-1 py-2.5 rounded-lg font-bold text-sm transition-colors bg-gray-100 text-gray-700 hover:bg-gray-200">
-                View Details
-              </button>
-              <button
-                onClick={() => onRegister(activity)}
-                disabled={!displayState.canRegister}
-                className="flex-1 py-2.5 rounded-lg font-bold text-sm transition-colors bg-[#003087] text-white hover:bg-[#002566] disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {displayState.registerLabel}
-              </button>
-            </>
-          ) : (
-            <button onClick={() => onView(activity)} className="flex-1 py-2.5 rounded-lg font-bold text-sm transition-colors bg-gray-100 text-gray-700 hover:bg-gray-200">
-              View Details
-            </button>
-          )}
+          ) : null}
         </div>
       </div>
     </div>
@@ -535,9 +564,8 @@ export function EventsView({ userRole, userName = 'Alumni User', userEmail = '' 
     category: '',
     scheduleStart: '',
     scheduleEnd: '',
-    registrationStart: '',
     registrationEnd: '',
-    capacity: '',
+    capacity: '1',
     feeAmount: '0',
   });
   const [eventImage, setEventImage] = useState<File | null>(null);
@@ -563,6 +591,26 @@ export function EventsView({ userRole, userName = 'Alumni User', userEmail = '' 
     const saved = localStorage.getItem(`lastSeenMySubmissionsAt:${userEmail}`);
     return saved ? Number(saved) : 0;
   });
+  // ── Search / filter bar (Upcoming Events, Past Events, Teaching
+  //    Opportunities, Seminars & Workshops). Inputs are separate from
+  //    `appliedFilters` on purpose — typing/selecting doesn't filter
+  //    anything until "Apply Filters" is clicked. ────────────────
+  const [searchKeyword, setSearchKeyword] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [startDate, setStartDate] = useState('');
+  const [appliedFilters, setAppliedFilters] = useState({ keyword: '', category: 'All', startDate: '' });
+
+  const handleApplyFilters = () => {
+    setAppliedFilters({ keyword: searchKeyword, category: selectedCategory, startDate });
+  };
+
+  const handleClearFilters = () => {
+    setSearchKeyword('');
+    setSelectedCategory('All');
+    setStartDate('');
+    setAppliedFilters({ keyword: '', category: 'All', startDate: '' });
+  };
+
   // Ticks every minute so events cross from Upcoming into Past on their own,
   // without needing a click/refetch to force a re-render.
   const [nowTick, setNowTick] = useState(() => new Date());
@@ -733,7 +781,7 @@ export function EventsView({ userRole, userName = 'Alumni User', userEmail = '' 
       status: activity.status,
       registrationOpen: activity.registration_open
     });
-    setActivityImagePreview(activity.image_url || null);
+    setActivityImagePreview(resolveImageUrl(activity.image_url));
     setActiveTab('Edit GiveBack Activity');
   };
 
@@ -817,7 +865,7 @@ export function EventsView({ userRole, userName = 'Alumni User', userEmail = '' 
       date: formatVenueDate(activity.schedule_start),
       time: `${formatVenueTime(activity.schedule_start)} - ${formatVenueTime(activity.schedule_end)}`,
       location: activity.venue,
-      image: activity.image_url || fallbackImage || CareerFairBG,
+      image: resolveImageUrl(activity.image_url) || fallbackImage || CareerFairBG,
       feeAmount: Number(activity.fee_amount || 0)
     });
   };
@@ -883,8 +931,8 @@ export function EventsView({ userRole, userName = 'Alumni User', userEmail = '' 
     setNewEventForm({
       title: '', description: '', location: '', category: '',
       scheduleStart: '', scheduleEnd: '',
-      registrationStart: '', registrationEnd: '',
-      capacity: '', feeAmount: '0',
+      registrationEnd: '',
+      capacity: '1', feeAmount: '0',
     });
     setEventImage(null);
     setEventImagePreview(null);
@@ -905,9 +953,6 @@ export function EventsView({ userRole, userName = 'Alumni User', userEmail = '' 
     formData.append('status', 'upcoming');
     formData.append('event_type', 'event');
     formData.append('category', newEventForm.category);
-    if (newEventForm.registrationStart) {
-      formData.append('registration_start_at', newEventForm.registrationStart);
-    }
     if (newEventForm.registrationEnd) {
       formData.append('registration_end_at', newEventForm.registrationEnd);
     }
@@ -917,8 +962,24 @@ export function EventsView({ userRole, userName = 'Alumni User', userEmail = '' 
   };
 
   const handleCreateEventActivity = async () => {
-    if (!newEventForm.title || !newEventForm.description || !newEventForm.location || !newEventForm.category || !newEventForm.scheduleStart || !newEventForm.scheduleEnd) {
+    if (!newEventForm.title || !newEventForm.description || !newEventForm.location || !newEventForm.category || !newEventForm.scheduleStart || !newEventForm.scheduleEnd || !newEventForm.capacity || newEventForm.feeAmount === '' || !newEventForm.registrationEnd) {
       alert('Please fill in all required fields');
+      return;
+    }
+    if (newEventForm.scheduleStart < toDateTimeLocalValue(new Date())) {
+      alert('Event Start date/time cannot be in the past.');
+      return;
+    }
+    if (newEventForm.scheduleEnd <= newEventForm.scheduleStart) {
+      alert('Event End date/time must be after the Event Start date/time.');
+      return;
+    }
+    if (newEventForm.registrationEnd < toDateTimeLocalValue(new Date())) {
+      alert('Registration Window cannot be set to a past date/time.');
+      return;
+    }
+    if (newEventForm.registrationEnd >= newEventForm.scheduleEnd) {
+      alert('Registration Window must end before the Event End date/time.');
       return;
     }
     const formData = buildEventFormData();
@@ -953,12 +1014,11 @@ export function EventsView({ userRole, userName = 'Alumni User', userEmail = '' 
       category: activity.category || '',
       scheduleStart: toDateTimeLocalValue(parseVenueDateTime(activity.schedule_start)),
       scheduleEnd: toDateTimeLocalValue(parseVenueDateTime(activity.schedule_end)),
-      registrationStart: toDateTimeLocalValue(parseVenueDateTime(activity.registration_start_at)),
       registrationEnd: toDateTimeLocalValue(parseVenueDateTime(activity.registration_end_at)),
-      capacity: activity.participant_limit ? String(activity.participant_limit) : '',
+      capacity: activity.participant_limit ? String(activity.participant_limit) : '1',
       feeAmount: String(activity.fee_amount || 0),
     });
-    setEventImagePreview(activity.image_url || null);
+    setEventImagePreview(resolveImageUrl(activity.image_url));
     const isRejectedOwnProposal = userRole !== 'admin' && activity.approval_status === 'rejected';
     setResubmitOnSave(isRejectedOwnProposal);
     setActiveTab(isRejectedOwnProposal ? 'Edit Proposal' : 'Edit Event');
@@ -966,8 +1026,29 @@ export function EventsView({ userRole, userName = 'Alumni User', userEmail = '' 
 
   const handleUpdateEventActivity = async () => {
     if (!editingEventActivity) return;
-    if (!newEventForm.title || !newEventForm.description || !newEventForm.location || !newEventForm.category || !newEventForm.scheduleStart || !newEventForm.scheduleEnd) {
+    if (!newEventForm.title || !newEventForm.description || !newEventForm.location || !newEventForm.category || !newEventForm.scheduleStart || !newEventForm.scheduleEnd || !newEventForm.capacity || newEventForm.feeAmount === '' || !newEventForm.registrationEnd) {
       alert('Please fill in all required fields');
+      return;
+    }
+    // Only block a past Start/Registration End if it's actually being changed
+    // — editing an already-past/archived event without touching its dates
+    // shouldn't fail.
+    const originalScheduleStart = toDateTimeLocalValue(parseVenueDateTime(editingEventActivity.schedule_start));
+    if (newEventForm.scheduleStart !== originalScheduleStart && newEventForm.scheduleStart < toDateTimeLocalValue(new Date())) {
+      alert('Event Start date/time cannot be in the past.');
+      return;
+    }
+    if (newEventForm.scheduleEnd <= newEventForm.scheduleStart) {
+      alert('Event End date/time must be after the Event Start date/time.');
+      return;
+    }
+    const originalRegistrationEnd = toDateTimeLocalValue(parseVenueDateTime(editingEventActivity.registration_end_at));
+    if (newEventForm.registrationEnd !== originalRegistrationEnd && newEventForm.registrationEnd < toDateTimeLocalValue(new Date())) {
+      alert('Registration Window cannot be set to a past date/time.');
+      return;
+    }
+    if (newEventForm.registrationEnd >= newEventForm.scheduleEnd) {
+      alert('Registration Window must end before the Event End date/time.');
       return;
     }
     const formData = buildEventFormData();
@@ -1020,7 +1101,7 @@ export function EventsView({ userRole, userName = 'Alumni User', userEmail = '' 
   const handleConfirmReject = async () => {
     if (!rejectingActivity) return;
     if (!rejectReasonText.trim()) {
-      alert('Please provide a reason for rejecting this proposal.');
+      alert('Please provide a reason for declining this proposal.');
       return;
     }
     try {
@@ -1035,11 +1116,11 @@ export function EventsView({ userRole, userName = 'Alumni User', userEmail = '' 
         setRejectReasonText('');
         triggerToast();
       } else {
-        alert('Failed to reject proposal');
+        alert('Failed to decline proposal');
       }
     } catch (error) {
-      console.error('Error rejecting proposal:', error);
-      alert('Failed to reject proposal');
+      console.error('Error declining proposal:', error);
+      alert('Failed to decline proposal');
     }
   };
 
@@ -1063,7 +1144,7 @@ export function EventsView({ userRole, userName = 'Alumni User', userEmail = '' 
   // it out of the admin's own view so the alumni's copy (My Submissions,
   // with their own Edit/Remove options) is never affected.
   const handleArchiveEventActivity = async (id: number) => {
-    if (!window.confirm('Remove this from your view? The alumni submitter will still see their own copy.')) return;
+    if (!window.confirm('Remove this from your view? The alumni submitter will still see their own copy. You can restore it later from the Archived tab.')) return;
     try {
       const response = await fetch(`http://localhost:8000/api/giveback/activities/${id}/archive`, { method: 'PATCH' });
       if (response.ok) {
@@ -1075,6 +1156,21 @@ export function EventsView({ userRole, userName = 'Alumni User', userEmail = '' 
     } catch (error) {
       console.error('Error archiving event:', error);
       alert('Failed to remove event');
+    }
+  };
+
+  const handleRestoreEventActivity = async (id: number) => {
+    try {
+      const response = await fetch(`http://localhost:8000/api/giveback/activities/${id}/restore`, { method: 'PATCH' });
+      if (response.ok) {
+        await fetchActivities();
+        triggerToast();
+      } else {
+        alert('Failed to restore event');
+      }
+    } catch (error) {
+      console.error('Error restoring event:', error);
+      alert('Failed to restore event');
     }
   };
 
@@ -1120,7 +1216,7 @@ export function EventsView({ userRole, userName = 'Alumni User', userEmail = '' 
       time: `${formatVenueTime(activity.schedule_start)} - ${formatVenueTime(activity.schedule_end)}`,
       location: activity.venue,
       description: activity.description,
-      image: activity.image_url || CareerFairBG,
+      image: resolveImageUrl(activity.image_url) || CareerFairBG,
     });
   };
 
@@ -1148,6 +1244,10 @@ export function EventsView({ userRole, userName = 'Alumni User', userEmail = '' 
     a.event_type === 'event' && a.submitted_by_email === userEmail && !a.posted_at
   );
 
+  const archivedEventActivities = activities
+    .filter((a) => a.event_type === 'event' && a.is_archived)
+    .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+
   const pendingProposalCount = alumniProposalActivities.filter((a) => a.approval_status === 'pending').length;
 
   const hasUnseenMySubmissions = mySubmissionActivities.some(
@@ -1159,13 +1259,62 @@ export function EventsView({ userRole, userName = 'Alumni User', userEmail = '' 
 
   const baseTabs = ['GiveBack Activities', 'Upcoming Events', 'Past Events', 'Teaching Opportunities', 'Seminars & Workshops'];
   let tabs = userRole === 'admin'
-    ? [...baseTabs, 'Alumni Proposals', 'Create Event', 'Create GiveBack Activity']
+    ? [...baseTabs, 'Alumni Proposals', 'Archived', 'Create Event', 'Create GiveBack Activity']
     : [...baseTabs, 'My Submissions', 'My Registrations']; // ← My Registrations added here
 
   if (editingEventActivity && (activeTab === 'Edit Event' || activeTab === 'Edit Proposal')) tabs = [...tabs, activeTab];
   if (editingActivity && activeTab === 'Edit GiveBack Activity') tabs = [...tabs, 'Edit GiveBack Activity'];
 
   const filteredEvents = events.filter(event => event.tab === activeTab);
+
+  const FILTERABLE_TABS = ['Upcoming Events', 'Past Events', 'Teaching Opportunities', 'Seminars & Workshops'];
+  const showFilterBar = FILTERABLE_TABS.includes(activeTab);
+
+  // Upcoming/Past Events use the fixed category list from the Create Event
+  // form, so the filter always offers every choice an admin can pick, not
+  // just whichever categories happen to be posted. Teaching Opportunities
+  // and Seminars & Workshops have their own vocabulary (subjects/topics),
+  // so their options are still drawn from whatever data is present.
+  const isEventActivityTab = activeTab === 'Upcoming Events' || activeTab === 'Past Events';
+  const categoryOptions: { value: string; label: string }[] = isEventActivityTab
+    ? EVENT_CATEGORY_OPTIONS
+    : Array.from(
+        new Set(filteredEvents.map((item) => item.category).filter((c): c is string => !!c))
+      ).sort().map((c) => ({ value: c, label: c }));
+
+  const matchesAppliedFilters = (
+    title: string,
+    description: string | undefined,
+    category: string | null | undefined,
+    dateValue: Date | string | null | undefined
+  ) => {
+    const keyword = appliedFilters.keyword.trim().toLowerCase();
+    if (keyword) {
+      const haystack = `${title} ${description || ''}`.toLowerCase();
+      if (!haystack.includes(keyword)) return false;
+    }
+    if (appliedFilters.category !== 'All' && (category || '') !== appliedFilters.category) return false;
+    if (appliedFilters.startDate) {
+      const filterDate = parseVenueDateTime(`${appliedFilters.startDate}T00:00`);
+      const itemDate = dateValue instanceof Date ? dateValue : new Date(dateValue as string);
+      // Dates we can't parse (e.g. "1 Semester") are left in rather than
+      // hidden — the filter just doesn't apply to them.
+      if (filterDate && !isNaN(itemDate.getTime()) && itemDate < filterDate) return false;
+    }
+    return true;
+  };
+
+  const visibleUpcomingEventActivities = upcomingEventActivities.filter((a) =>
+    matchesAppliedFilters(a.title, a.description, a.category, parseVenueDateTime(a.schedule_start))
+  );
+  const visiblePastEventActivities = pastEventActivities.filter((a) =>
+    matchesAppliedFilters(a.title, a.description, a.category, parseVenueDateTime(a.schedule_start))
+  );
+  const visibleFilteredEvents = filteredEvents.filter((event) =>
+    matchesAppliedFilters(event.title, event.description, event.category, event.date)
+  );
+
+  const hasActiveFilters = !!appliedFilters.keyword || appliedFilters.category !== 'All' || !!appliedFilters.startDate;
 
   return (
     <div className="flex flex-col min-h-screen bg-[#F8FAFC]">
@@ -1225,6 +1374,11 @@ export function EventsView({ userRole, userName = 'Alumni User', userEmail = '' 
                     {pendingProposalCount}
                   </span>
                 )}
+                {tab === 'Archived' && archivedEventActivities.length > 0 && (
+                  <span className="inline-flex items-center justify-center min-w-[16px] h-4 px-1 bg-gray-400 text-white text-[10px] rounded-full font-bold">
+                    {archivedEventActivities.length}
+                  </span>
+                )}
                 {tab === 'My Submissions' && hasUnseenMySubmissions && (
                   <span className="w-2 h-2 bg-red-600 rounded-full" />
                 )}
@@ -1241,6 +1395,68 @@ export function EventsView({ userRole, userName = 'Alumni User', userEmail = '' 
             </button>
           ))}
         </div>
+
+        {/* Search & Filter Bar — Upcoming Events, Past Events, Teaching
+            Opportunities, Seminars & Workshops */}
+        {showFilterBar && (
+          <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm">
+            <div className="flex flex-col lg:flex-row lg:items-end gap-4">
+              <div className="flex-1 min-w-[200px]">
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">By Keyword</label>
+                <div className="relative">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="text"
+                    value={searchKeyword}
+                    onChange={(e) => setSearchKeyword(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleApplyFilters(); }}
+                    placeholder="Search by title or description..."
+                    className="w-full pl-11 pr-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-sm outline-none focus:bg-white focus:ring-2 focus:ring-[#003087]/20 transition-all"
+                  />
+                </div>
+              </div>
+
+              <div className="w-full lg:w-52">
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">By Category</label>
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-sm outline-none focus:bg-white focus:ring-2 focus:ring-[#003087]/20 transition-all appearance-none"
+                >
+                  <option value="All">All Categories</option>
+                  {categoryOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="w-full lg:w-48">
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Starting From</label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-sm outline-none focus:bg-white focus:ring-2 focus:ring-[#003087]/20 transition-all"
+                />
+              </div>
+
+              <div className="flex gap-2 w-full lg:w-auto">
+                <button
+                  onClick={handleApplyFilters}
+                  className="flex-1 lg:flex-none px-6 py-2.5 bg-[#003087] text-white rounded-xl font-bold text-sm hover:bg-[#002566] transition-colors"
+                >
+                  Apply Filters
+                </button>
+                <button
+                  onClick={handleClearFilters}
+                  className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-6 py-2.5 border-2 border-gray-200 text-gray-600 rounded-xl font-bold text-sm hover:bg-gray-50 transition-colors"
+                >
+                  <RefreshCcw className="w-4 h-4" /> Clear Filters
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {activeTab === 'Teaching Opportunities' && (
           <div className="bg-[#003087] rounded-[24px] p-8 text-white flex flex-col md:flex-row justify-between items-center gap-6 text-left">
@@ -1277,11 +1493,11 @@ export function EventsView({ userRole, userName = 'Alumni User', userEmail = '' 
           <div>
             {loadingActivities ? (
               <div className="text-center py-10 text-gray-500">Loading GiveBack activities...</div>
-            ) : activities.filter(activity => !activity.is_archived).length === 0 ? (
+            ) : activities.filter(activity => activity.event_type === 'giveback' && !activity.is_archived).length === 0 ? (
               <div className="text-center py-10 text-gray-500">No GiveBack activities available yet.</div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {activities.filter(activity => !activity.is_archived).map((activity) => (
+                {activities.filter(activity => activity.event_type === 'giveback' && !activity.is_archived).map((activity) => (
                   <ActivityCard
                     key={activity.id}
                     activity={activity}
@@ -1320,11 +1536,13 @@ export function EventsView({ userRole, userName = 'Alumni User', userEmail = '' 
           <div>
             {loadingActivities ? (
               <div className="text-center py-10 text-gray-500">Loading events...</div>
-            ) : upcomingEventActivities.length === 0 ? (
-              <div className="text-center py-10 text-gray-500">No upcoming events yet.</div>
+            ) : visibleUpcomingEventActivities.length === 0 ? (
+              <div className="text-center py-10 text-gray-500">
+                {hasActiveFilters ? 'No upcoming events match your filters.' : 'No upcoming events yet.'}
+              </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {upcomingEventActivities.map((activity) => (
+                {visibleUpcomingEventActivities.map((activity) => (
                   <EventActivityCard
                     key={activity.id}
                     activity={activity}
@@ -1349,11 +1567,13 @@ export function EventsView({ userRole, userName = 'Alumni User', userEmail = '' 
           <div>
             {loadingActivities ? (
               <div className="text-center py-10 text-gray-500">Loading events...</div>
-            ) : pastEventActivities.length === 0 ? (
-              <div className="text-center py-10 text-gray-500">No past events yet.</div>
+            ) : visiblePastEventActivities.length === 0 ? (
+              <div className="text-center py-10 text-gray-500">
+                {hasActiveFilters ? 'No past events match your filters.' : 'No past events yet.'}
+              </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {pastEventActivities.map((activity) => (
+                {visiblePastEventActivities.map((activity) => (
                   <EventActivityCard
                     key={activity.id}
                     activity={activity}
@@ -1402,6 +1622,31 @@ export function EventsView({ userRole, userName = 'Alumni User', userEmail = '' 
           </div>
         )}
 
+        {activeTab === 'Archived' && userRole === 'admin' && (
+          <div>
+            {loadingActivities ? (
+              <div className="text-center py-10 text-gray-500">Loading archived events...</div>
+            ) : archivedEventActivities.length === 0 ? (
+              <div className="text-center py-10 text-gray-500">Nothing archived right now.</div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {archivedEventActivities.map((activity) => (
+                  <EventActivityCard
+                    key={activity.id}
+                    activity={activity}
+                    userRole={userRole}
+                    context="archived"
+                    displayState={getEventDisplayState(activity, now)}
+                    isNew={false}
+                    onRestore={handleRestoreEventActivity}
+                    onView={openActivityDetails}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* My Submissions grid (alumni's own proposals) */}
         {activeTab === 'My Submissions' && userRole !== 'admin' && (
           <div>
@@ -1433,8 +1678,13 @@ export function EventsView({ userRole, userName = 'Alumni User', userEmail = '' 
 
         {/* Teaching Opportunities / Seminars & Workshops — static demo content, unchanged */}
         {(activeTab === 'Teaching Opportunities' || activeTab === 'Seminars & Workshops') && (
+          visibleFilteredEvents.length === 0 ? (
+            <div className="text-center py-10 text-gray-500">
+              {hasActiveFilters ? 'No opportunities match your filters.' : 'Nothing here yet.'}
+            </div>
+          ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredEvents.map((event) => (
+            {visibleFilteredEvents.map((event) => (
               <EventCard
                 key={event.id}
                 event={event}
@@ -1443,6 +1693,7 @@ export function EventsView({ userRole, userName = 'Alumni User', userEmail = '' 
               />
             ))}
           </div>
+          )
         )}
 
         {/* Create GiveBack Activity form */}
@@ -1616,11 +1867,46 @@ export function EventsView({ userRole, userName = 'Alumni User', userEmail = '' 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-semibold text-gray-500 mb-2">Starts *</label>
-                    <input type="datetime-local" value={newEventForm.scheduleStart} onChange={(e) => setNewEventForm({ ...newEventForm, scheduleStart: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
+                    <input
+                      type="datetime-local"
+                      value={newEventForm.scheduleStart}
+                      onChange={(e) => {
+                        const scheduleStart = e.target.value;
+                        const endIsNowInvalid = newEventForm.scheduleEnd && newEventForm.scheduleEnd <= scheduleStart;
+                        const scheduleEnd = endIsNowInvalid ? '' : newEventForm.scheduleEnd;
+                        const registrationEndIsNowInvalid = newEventForm.registrationEnd && (!scheduleEnd || newEventForm.registrationEnd >= scheduleEnd);
+                        setNewEventForm({
+                          ...newEventForm,
+                          scheduleStart,
+                          scheduleEnd,
+                          registrationEnd: registrationEndIsNowInvalid ? '' : newEventForm.registrationEnd,
+                        });
+                      }}
+                      min={toDateTimeLocalValue(new Date())}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
+                    />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-gray-500 mb-2">Ends *</label>
-                    <input type="datetime-local" value={newEventForm.scheduleEnd} onChange={(e) => setNewEventForm({ ...newEventForm, scheduleEnd: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
+                    <input
+                      type="datetime-local"
+                      value={newEventForm.scheduleEnd}
+                      onChange={(e) => {
+                        const scheduleEnd = e.target.value;
+                        const registrationEndIsNowInvalid = newEventForm.registrationEnd && newEventForm.registrationEnd >= scheduleEnd;
+                        setNewEventForm({
+                          ...newEventForm,
+                          scheduleEnd,
+                          registrationEnd: registrationEndIsNowInvalid ? '' : newEventForm.registrationEnd,
+                        });
+                      }}
+                      disabled={!newEventForm.scheduleStart}
+                      min={newEventForm.scheduleStart || undefined}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    />
+                    {!newEventForm.scheduleStart && (
+                      <p className="text-xs text-gray-500 mt-1">Set the start date/time first.</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1630,25 +1916,34 @@ export function EventsView({ userRole, userName = 'Alumni User', userEmail = '' 
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Event Capacity</label>
-                  <input type="number" placeholder="Maximum number of attendees" value={newEventForm.capacity} onChange={(e) => setNewEventForm({ ...newEventForm, capacity: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Event Capacity *</label>
+                  <input type="number" required min="1" placeholder="Maximum number of attendees" value={newEventForm.capacity} onChange={(e) => setNewEventForm({ ...newEventForm, capacity: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Price per Person (₱)</label>
-                  <input type="number" min="0" placeholder="0 for free" value={newEventForm.feeAmount} onChange={(e) => setNewEventForm({ ...newEventForm, feeAmount: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Price per Person (₱) *</label>
+                  <input type="number" required min="0" placeholder="0 for free" value={newEventForm.feeAmount} onChange={(e) => setNewEventForm({ ...newEventForm, feeAmount: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
+                  {Number(newEventForm.feeAmount) === 0 && (
+                    <p className="text-xs text-gray-500 mt-1">This will be listed as a Free event.</p>
+                  )}
                 </div>
               </div>
               <div className="pt-2 border-t border-gray-100">
                 <p className="text-sm font-semibold text-gray-700 mb-3">Registration Window</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-500 mb-2">Registration Starts</label>
-                    <input type="datetime-local" value={newEventForm.registrationStart} onChange={(e) => setNewEventForm({ ...newEventForm, registrationStart: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-500 mb-2">Registration Ends</label>
-                    <input type="datetime-local" value={newEventForm.registrationEnd} onChange={(e) => setNewEventForm({ ...newEventForm, registrationEnd: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
-                  </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-2">Registration Ends *</label>
+                  <input
+                    type="datetime-local"
+                    required
+                    value={newEventForm.registrationEnd}
+                    onChange={(e) => setNewEventForm({ ...newEventForm, registrationEnd: e.target.value })}
+                    disabled={!newEventForm.scheduleEnd}
+                    min={toDateTimeLocalValue(new Date())}
+                    max={newEventForm.scheduleEnd || undefined}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  />
+                  {!newEventForm.scheduleEnd && (
+                    <p className="text-xs text-gray-500 mt-1">Set the event end date/time first.</p>
+                  )}
                 </div>
               </div>
               <div>
@@ -1670,12 +1965,12 @@ export function EventsView({ userRole, userName = 'Alumni User', userEmail = '' 
         )}
       </main>
 
-      {/* Reject Proposal Modal */}
+      {/* Decline Proposal Modal */}
       {rejectingActivity && (
         <div className="fixed inset-0 z-[95] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="bg-white rounded-[24px] w-full max-w-md overflow-hidden shadow-2xl">
             <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-              <h3 className="text-xl font-bold text-gray-900">Reject Proposal</h3>
+              <h3 className="text-xl font-bold text-gray-900">Decline Proposal</h3>
               <button onClick={() => { setRejectingActivity(null); setRejectReasonText(''); }} className="text-gray-400 hover:text-gray-600">
                 <X className="w-5 h-5" />
               </button>
@@ -1685,12 +1980,12 @@ export function EventsView({ userRole, userName = 'Alumni User', userEmail = '' 
                 Let the submitter of <span className="font-semibold">{rejectingActivity.title}</span> know why this proposal can't push through.
               </p>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Reason for Rejection *</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Reason for Declining *</label>
                 <textarea
                   rows={4}
                   value={rejectReasonText}
                   onChange={(e) => setRejectReasonText(e.target.value)}
-                  placeholder="Explain why this event proposal is being rejected..."
+                  placeholder="Explain why this event proposal is being declined..."
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent resize-none"
                 />
               </div>
@@ -1700,7 +1995,7 @@ export function EventsView({ userRole, userName = 'Alumni User', userEmail = '' 
                 Cancel
               </button>
               <button onClick={handleConfirmReject} className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors">
-                Confirm Rejection
+                Confirm Decline
               </button>
             </div>
           </div>
@@ -1710,32 +2005,32 @@ export function EventsView({ userRole, userName = 'Alumni User', userEmail = '' 
       {/* Detail View Modal */}
       {selectedEvent && (
         <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white rounded-[32px] w-full max-w-lg overflow-hidden shadow-2xl">
-            <div className="relative h-48">
+          <div className="bg-white rounded-[32px] w-full max-w-2xl max-h-[85vh] overflow-y-auto overflow-x-hidden shadow-2xl">
+            <div className="relative h-72">
               <img src={selectedEvent.image} alt={selectedEvent.title} className="w-full h-full object-cover" />
-              <button onClick={() => setSelectedEvent(null)} className="absolute top-4 right-4 p-2 bg-black/20 hover:bg-black/40 rounded-full text-white backdrop-blur-md transition-colors">
-                <X className="w-5 h-5" />
+              <button onClick={() => setSelectedEvent(null)} className="absolute top-5 right-5 p-2.5 bg-black/20 hover:bg-black/40 rounded-full text-white backdrop-blur-md transition-colors">
+                <X className="w-6 h-6" />
               </button>
             </div>
-            <div className="p-8 text-left">
-              <span className="inline-block px-3 py-1 bg-blue-50 text-[#003087] rounded-full text-[10px] font-bold uppercase mb-3">
+            <div className="p-10 text-left">
+              <span className="inline-block px-4 py-1.5 bg-blue-50 text-[#003087] rounded-full text-xs font-bold uppercase mb-4">
                 {selectedEvent.category}
               </span>
-              <h2 className="text-2xl font-bold mb-4 text-gray-900">{selectedEvent.title}</h2>
-              <div className="space-y-3 mb-6">
-                <div className="flex items-center gap-3 text-gray-600 text-sm">
-                  <Calendar className="w-4 h-4 text-[#003087]" />
+              <h2 className="text-3xl font-bold mb-5 text-gray-900">{selectedEvent.title}</h2>
+              <div className="space-y-4 mb-8">
+                <div className="flex items-center gap-3 text-gray-600 text-base">
+                  <Calendar className="w-5 h-5 text-[#003087]" />
                   <span>{selectedEvent.date} • {selectedEvent.time}</span>
                 </div>
-                <div className="flex items-center gap-3 text-gray-600 text-sm">
-                  <MapPin className="w-4 h-4 text-[#003087]" />
+                <div className="flex items-center gap-3 text-gray-600 text-base">
+                  <MapPin className="w-5 h-5 text-[#003087]" />
                   <span>{selectedEvent.location}</span>
                 </div>
               </div>
-              <div className="bg-gray-50 p-4 rounded-2xl mb-8">
-                <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-line">{selectedEvent.description}</p>
+              <div className="bg-gray-50 p-6 rounded-2xl mb-10">
+                <p className="text-gray-600 text-base leading-relaxed whitespace-pre-line">{selectedEvent.description}</p>
               </div>
-              <button onClick={() => setSelectedEvent(null)} className="w-full py-3 bg-[#003087] text-white rounded-xl font-bold hover:bg-[#002566] transition-colors">
+              <button onClick={() => setSelectedEvent(null)} className="w-full py-4 bg-[#003087] text-white rounded-xl font-bold text-base hover:bg-[#002566] transition-colors">
                 Close Details
               </button>
             </div>
