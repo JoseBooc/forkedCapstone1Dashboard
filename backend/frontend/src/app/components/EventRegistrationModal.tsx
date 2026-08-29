@@ -15,6 +15,9 @@ interface EventRegistrationModalProps {
     image: string;
     feeAmount: number;
   };
+  userFirstName: string;
+  userLastName: string;
+  userEmail: string;
   onClose: () => void;
 }
 
@@ -30,12 +33,14 @@ function formatPrice(amount: number): string {
 //  GiveBack Activities now go through the normal
 //  registration flow just like any other event.
 // ─────────────────────────────────────────────
-export function EventRegistrationModal({ event, onClose }: EventRegistrationModalProps) {
+export function EventRegistrationModal({ event, userFirstName, userLastName, userEmail, onClose }: EventRegistrationModalProps) {
   const [step, setStep] = useState<'form' | 'payment' | 'confirmation'>('form');
 
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
+  // First/Last Name and Email are locked to the logged-in alumni's account
+  // so registrations always reflect who's actually registering.
+  const firstName = userFirstName;
+  const lastName = userLastName;
+  const email = userEmail;
   const [guest1Name, setGuest1Name] = useState('');
   const [guest2Name, setGuest2Name] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('gcash');
@@ -322,10 +327,10 @@ export function EventRegistrationModal({ event, onClose }: EventRegistrationModa
             <input
               type="text"
               required
+              readOnly
               value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
               placeholder="Enter your first name"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-700 cursor-not-allowed"
             />
           </div>
 
@@ -334,10 +339,10 @@ export function EventRegistrationModal({ event, onClose }: EventRegistrationModa
             <input
               type="text"
               required
+              readOnly
               value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
               placeholder="Enter your last name"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-700 cursor-not-allowed"
             />
           </div>
 
@@ -346,11 +351,12 @@ export function EventRegistrationModal({ event, onClose }: EventRegistrationModa
             <input
               type="email"
               required
+              readOnly
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
               placeholder="Enter your email"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-700 cursor-not-allowed"
             />
+            <p className="text-xs text-gray-500 mt-1">Locked to your account details.</p>
           </div>
 
           <div>

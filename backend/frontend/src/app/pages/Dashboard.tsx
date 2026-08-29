@@ -26,6 +26,8 @@ export function Dashboard() {
   const userRole = (localStorage.getItem('userRole') as 'alumni' | 'admin') || 'alumni';
   const userName = localStorage.getItem('userName') || 'Alumni User';
   const userEmail = localStorage.getItem('userEmail') || '';
+  const userFirstName = localStorage.getItem('userFirstName') || '';
+  const userLastName = localStorage.getItem('userLastName') || '';
 
   const renderView = () => {
     switch (activeView) {
@@ -36,7 +38,7 @@ export function Dashboard() {
       case 'directory': 
         return <DirectoryView userRole={userRole} />;
       case 'events':
-        return <EventsView userRole={userRole} userName={userName} userEmail={userEmail} />;
+        return <EventsView userRole={userRole} userName={userName} userEmail={userEmail} userFirstName={userFirstName} userLastName={userLastName} />;
       case 'surveys': 
         return <SurveysView userRole={userRole} />;
       case 'careers': 

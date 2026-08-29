@@ -195,6 +195,8 @@ export function ProfileView({ userRole }: ProfileViewProps) {
       const fullName = `${userData.first_name || ''}${userData.middle_name ? ' ' + userData.middle_name : ''} ${userData.last_name || ''}`.trim();
       if (fullName) {
         localStorage.setItem('userName', fullName);
+        localStorage.setItem('userFirstName', userData.first_name || '');
+        localStorage.setItem('userLastName', userData.last_name || '');
         // Trigger events to update sidebar
         window.dispatchEvent(new Event('storage'));
         window.dispatchEvent(new CustomEvent('userProfileUpdated'));
@@ -365,6 +367,8 @@ export function ProfileView({ userRole }: ProfileViewProps) {
         // Update localStorage with the new full name (only include middle name if not empty)
         const fullName = `${formData.firstName}${cleanMiddleName ? ' ' + cleanMiddleName : ''} ${formData.lastName}`.trim();
         localStorage.setItem('userName', fullName);
+        localStorage.setItem('userFirstName', formData.firstName);
+        localStorage.setItem('userLastName', formData.lastName);
         // Update stored email if it changed
         if (formData.email && formData.email !== userEmail) {
           localStorage.setItem('userEmail', formData.email);

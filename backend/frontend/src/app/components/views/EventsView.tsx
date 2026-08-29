@@ -516,7 +516,12 @@ function EventActivityCard({
   );
 }
 
-export function EventsView({ userRole, userName = 'Alumni User', userEmail = '' }: { userRole: string; userName?: string; userEmail?: string }) {
+export function EventsView({ userRole, userName = 'Alumni User', userEmail = '', userFirstName = '', userLastName = '' }: { userRole: string; userName?: string; userEmail?: string; userFirstName?: string; userLastName?: string }) {
+  // Older sessions logged in before first/last name were tracked separately
+  // won't have them in storage yet — fall back to splitting the display name.
+  const [fallbackFirstName, ...fallbackLastParts] = userName.trim().split(/\s+/);
+  const resolvedFirstName = userFirstName || fallbackFirstName || '';
+  const resolvedLastName = userLastName || fallbackLastParts.join(' ');
   const [activeTab, setActiveTab] = useState('Upcoming Events');
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<EventDetailData | null>(null);
@@ -2050,6 +2055,9 @@ export function EventsView({ userRole, userName = 'Alumni User', userEmail = '' 
             image: registrationEvent.image,
             feeAmount: registrationEvent.feeAmount
           }}
+          userFirstName={resolvedFirstName}
+          userLastName={resolvedLastName}
+          userEmail={userEmail}
           onClose={() => {
             setRegistrationEvent(null);
             // Refresh registrations after closing modal in case a new one was just submitted

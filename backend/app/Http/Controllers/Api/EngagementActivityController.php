@@ -112,7 +112,7 @@ class EngagementActivityController extends Controller
     public function approve($id)
     {
         $activity = EngagementActivity::findOrFail($id);
-        $activity->update(['approval_status' => 'approved']);
+        $activity->update(['approval_status' => 'approved', 'posted_at' => now()]);
 
         return response()->json($activity);
     }

@@ -42,6 +42,8 @@ export function LoginPage() {
         localStorage.setItem('userRole',  userData.role);
         localStorage.setItem('userName',  userData.name);
         localStorage.setItem('userEmail', userData.email);
+        localStorage.setItem('userFirstName', userData.first_name || '');
+        localStorage.setItem('userLastName',  userData.last_name || '');
         navigate('/dashboard');
       } else {
         const errorData = await response.json();
