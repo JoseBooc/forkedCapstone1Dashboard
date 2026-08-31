@@ -1,21 +1,25 @@
-import { useState } from 'react';
-import { 
-  Briefcase, 
-  Search, 
-  Filter, 
-  MapPin, 
-  Clock, 
-  ArrowRight, 
-  Bookmark, 
+import { useEffect, useState } from 'react';
+import {
+  Briefcase,
+  Search,
+  Filter,
+  MapPin,
+  Clock,
+  ArrowRight,
+  Bookmark,
   Building2,
   GraduationCap,
   Laptop,
   X,
   Calendar,
   CheckCircle2,
-  ChevronLeft // Added for back button
+  ChevronLeft,
+  Loader2,
+  ShieldCheck,
 } from 'lucide-react';
 import { Footer } from '../Footer';
+
+const API_BASE_URL = 'http://localhost:8000';
 
 interface Opportunity {
   id: number;
@@ -23,166 +27,220 @@ interface Opportunity {
   title: string;
   company: string;
   location: string;
-  workType: string;
-  posted: string;
-  salary?: string;
-  description: string;
-  isPriority?: boolean;
+  work_type: string;
   modality: 'Remote' | 'Hybrid' | 'On-site';
+  salary_range: string | null;
+  description: string;
+  application_email: string;
+  is_priority: boolean;
+  status: string;
+  posted_by_name: string | null;
+  created_at: string;
+}
+
+interface HiringRequestItem {
+  id: number;
+  type: 'Job' | 'Internship';
+  title: string;
+  company: string;
+  location: string;
+  work_type: string;
+  modality: string;
+  salary_range: string | null;
+  description: string;
+  application_email: string;
+  submitted_by_name: string | null;
+  status: 'pending' | 'approved' | 'rejected';
+  created_at: string;
+}
+
+function formatPosted(dateString: string) {
+  const posted = new Date(dateString);
+  const diffMs = Date.now() - posted.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays <= 0) return 'Today';
+  if (diffDays === 1) return '1 day ago';
+  if (diffDays < 7) return `${diffDays} days ago`;
+  const diffWeeks = Math.floor(diffDays / 7);
+  return `${diffWeeks} week${diffWeeks > 1 ? 's' : ''} ago`;
 }
 
 export function CareersView({ userRole }: { userRole: string }) {
   const [showPostForm, setShowPostForm] = useState(false);
-  const [submissionStatus, setSubmissionStatus] = useState<'idle' | 'published' | 'draft'>('idle');
-  const [opportunityType, setOpportunityType] = useState<'job' | 'internship' | null>('job');
-  
+  const [submissionStatus, setSubmissionStatus] = useState<'idle' | 'published'>('idle');
+  const [opportunityType, setOpportunityType] = useState<'Job' | 'Internship'>('Job');
+
   const [activeTab, setActiveTab] = useState('All Opportunities');
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [selectedModality, setSelectedModality] = useState<string>('All');
-  
-  // Added state to track selected opportunity for details view
+
   const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
 
-  const tabs = ['All Opportunities', 'Jobs only', 'Internship only'];
+  const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
-  const opportunities: Opportunity[] = [
-    {
-      id: 1,
-      type: 'Job',
-      title: "Senior Software Engineer",
-      company: "Ateneo de Davao University • ICT Division",
-      location: "Jacinto Campus, Davao City",
-      workType: "Full-time",
-      modality: "On-site",
-      posted: "1 day ago",
-      salary: "Php 60,000 - 85,000",
-      description: "We are looking for a highly skilled developer to lead our digital transformation projects. Experience in React, Node.js, and cloud infrastructure is preferred.",
-      isPriority: true
-    },
-    {
-      id: 2,
-      type: 'Job',
-      title: "Project Communications Lead",
-      company: "Blue Knight Media Group",
-      location: "Matina, Davao City",
-      workType: "Part-time",
-      modality: "Hybrid",
-      posted: "3 days ago",
-      description: "Manage internal and external communications for university-led community projects.",
-      isPriority: false
-    },
-    {
-      id: 3,
-      type: 'Internship',
-      title: "Junior UI/UX Designer",
-      company: "ADDU Tech Hub",
-      location: "Remote",
-      workType: "Internship",
-      modality: "Remote",
-      posted: "5 days ago",
-      description: "Perfect for recent graduates looking to build their portfolio in user-centered design and university systems.",
-      isPriority: false
-    },
-    {
-      id: 4,
-      type: 'Job',
-      title: "Associate Professor in Computer Science",
-      company: "ADDU - School of Engineering & Architecture",
-      location: "Davao City",
-      workType: "Full-time",
-      modality: "On-site",
-      posted: "2 days ago",
-      description: "Join our faculty to shape the next generation of engineers. Master's degree required.",
-      isPriority: true
-    },
-    {
-      id: 5,
-      type: 'Internship',
-      title: "Data Science Intern",
-      company: "FinTech Solutions Davao",
-      location: "Lanang, Davao City",
-      workType: "Internship",
-      modality: "Hybrid",
-      posted: "1 week ago",
-      description: "Apply machine learning models to real-world financial data sets under mentorship.",
-      isPriority: false
-    },
-    {
-      id: 6,
-      type: 'Job',
-      title: "Human Resources Specialist",
-      company: "San Pedro Hospital",
-      location: "Davao City",
-      workType: "Full-time",
-      modality: "On-site",
-      posted: "4 days ago",
-      description: "Managing recruitment and employee relations for a leading healthcare provider.",
-      isPriority: false
-    },
-    {
-      id: 7,
-      type: 'Internship',
-      title: "Social Media & Marketing Intern",
-      company: "Ateneo Alumni Association",
-      location: "Davao City",
-      workType: "Internship",
-      modality: "Remote",
-      posted: "Today",
-      description: "Help us reach the global alumni network through creative content and strategy.",
-      isPriority: false
-    },
-    {
-      id: 8,
-      type: 'Job',
-      title: "Mobile App Developer (Flutter)",
-      company: "Innovate Davao Inc.",
-      location: "Remote",
-      workType: "Contract",
-      modality: "Remote",
-      posted: "6 days ago",
-      description: "Build cross-platform applications for regional startups. Competitive project-based pay.",
-      isPriority: false
+  const [pendingRequests, setPendingRequests] = useState<HiringRequestItem[]>([]);
+  const [reviewingId, setReviewingId] = useState<number | null>(null);
+
+  const [formTitle, setFormTitle] = useState('');
+  const [formCompany, setFormCompany] = useState('');
+  const [formLocation, setFormLocation] = useState('');
+  const [formWorkType, setFormWorkType] = useState('');
+  const [formModality, setFormModality] = useState<'Remote' | 'Hybrid' | 'On-site'>('On-site');
+  const [formSalary, setFormSalary] = useState('');
+  const [formDescription, setFormDescription] = useState('');
+  const [formEmail, setFormEmail] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+
+  const isAdmin = userRole === 'admin';
+  const tabs = isAdmin
+    ? ['All Opportunities', 'Jobs only', 'Internship only', 'Pending Requests']
+    : ['All Opportunities', 'Jobs only', 'Internship only'];
+
+  const fetchOpportunities = async () => {
+    setLoading(true);
+    setLoadError('');
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/career-opportunities`);
+      if (!response.ok) throw new Error('Failed to load opportunities');
+      const data = await response.json();
+      setOpportunities(data);
+    } catch (err) {
+      setLoadError('Unable to load career opportunities. Make sure the server is running.');
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
 
-  const handleToggleOpportunity = (type: 'job' | 'internship') => {
-    setOpportunityType(opportunityType === type ? null : type);
+  const fetchPendingRequests = async () => {
+    if (!isAdmin) return;
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/hiring-requests?status=pending`);
+      if (!response.ok) throw new Error('Failed to load hiring requests');
+      const data = await response.json();
+      setPendingRequests(data);
+    } catch (err) {
+      // Silently ignore; the pending tab will just show empty state
+    }
+  };
+
+  useEffect(() => {
+    fetchOpportunities();
+    fetchPendingRequests();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const resetForm = () => {
+    setFormTitle('');
+    setFormCompany('');
+    setFormLocation('');
+    setFormWorkType('');
+    setFormModality('On-site');
+    setFormSalary('');
+    setFormDescription('');
+    setFormEmail('');
+    setOpportunityType('Job');
+    setSubmitError('');
   };
 
   const handleCloseForm = () => {
     setShowPostForm(false);
     setSubmissionStatus('idle');
+    resetForm();
   };
 
-  const filteredOpportunities = opportunities.filter(item => {
-    const matchesTab = 
-      activeTab === 'All Opportunities' || 
-      (activeTab === 'Jobs only' && item.type === 'Job') || 
+  const handleSubmitOpportunity = async () => {
+    if (!formTitle || !formCompany || !formLocation || !formWorkType || !formDescription || !formEmail) {
+      setSubmitError('Please fill in all required fields.');
+      return;
+    }
+
+    setSubmitting(true);
+    setSubmitError('');
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/hiring-requests`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: opportunityType,
+          title: formTitle,
+          company: formCompany,
+          location: formLocation,
+          work_type: formWorkType,
+          modality: formModality,
+          salary_range: formSalary || null,
+          description: formDescription,
+          application_email: formEmail,
+          submitted_by_name: localStorage.getItem('userName') || null,
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to submit opportunity');
+
+      setSubmissionStatus('published');
+      if (isAdmin) fetchPendingRequests();
+    } catch (err) {
+      setSubmitError('Something went wrong submitting your request. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleReview = async (id: number, action: 'approve' | 'reject') => {
+    setReviewingId(id);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/hiring-requests/${id}/${action}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reviewed_by_name: localStorage.getItem('userName') || null }),
+      });
+      if (!response.ok) throw new Error('Review action failed');
+      await Promise.all([fetchPendingRequests(), fetchOpportunities()]);
+    } catch (err) {
+      // no-op; the item stays in the pending list so the admin can retry
+    } finally {
+      setReviewingId(null);
+    }
+  };
+
+  const filteredOpportunities = opportunities.filter((item) => {
+    const matchesTab =
+      activeTab === 'All Opportunities' ||
+      (activeTab === 'Jobs only' && item.type === 'Job') ||
       (activeTab === 'Internship only' && item.type === 'Internship');
 
-    const matchesSearch = 
+    const matchesSearch =
       item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.company.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const matchesModality = 
-      selectedModality === 'All' || item.modality === selectedModality;
+    const matchesModality = selectedModality === 'All' || item.modality === selectedModality;
 
     return matchesTab && matchesSearch && matchesModality;
   });
+
+  const fullTimeCount = opportunities.filter((o) => o.work_type === 'Full-time').length;
+  const internshipCount = opportunities.filter((o) => o.type === 'Internship').length;
+  const postedThisWeekCount = opportunities.filter((o) => {
+    const diffDays = Math.floor((Date.now() - new Date(o.created_at).getTime()) / (1000 * 60 * 60 * 24));
+    return diffDays <= 7;
+  }).length;
 
   if (selectedOpportunity) {
     return (
       <div className="flex flex-col min-h-screen bg-[#F8FAFC]">
         <main className="flex-1 p-8">
           <div className="max-w-4xl mx-auto text-left">
-            <button 
-              onClick={() => setSelectedOpportunity(null)} 
+            <button
+              onClick={() => setSelectedOpportunity(null)}
               className="flex items-center gap-2 text-gray-500 font-bold mb-8 hover:text-[#003087] transition-all"
             >
               <ChevronLeft className="w-5 h-5" /> Back to Career Opportunities
             </button>
-            
+
             <div className="bg-white rounded-[40px] shadow-xl overflow-hidden border border-gray-100">
               <div className="bg-[#003087] p-12 text-white">
                 <div className="flex justify-between items-start">
@@ -194,7 +252,7 @@ export function CareersView({ userRole }: { userRole: string }) {
                     <div className="flex flex-wrap gap-6 text-blue-100">
                       <div className="flex items-center gap-2 font-bold"><Building2 className="w-5 h-5" /> {selectedOpportunity.company}</div>
                       <div className="flex items-center gap-2 font-bold"><MapPin className="w-5 h-5" /> {selectedOpportunity.location}</div>
-                      <div className="flex items-center gap-2 font-bold"><Clock className="w-5 h-5" /> {selectedOpportunity.workType}</div>
+                      <div className="flex items-center gap-2 font-bold"><Clock className="w-5 h-5" /> {selectedOpportunity.work_type}</div>
                     </div>
                   </div>
                 </div>
@@ -211,23 +269,26 @@ export function CareersView({ userRole }: { userRole: string }) {
 
                   <div className="space-y-6">
                     <div className="bg-gray-50 p-8 rounded-3xl border border-gray-100 space-y-6">
-                      {selectedOpportunity.salary && (
+                      {selectedOpportunity.salary_range && (
                         <div className="space-y-1">
                           <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">Salary Range</p>
-                          <p className="text-xl font-bold text-[#003087]">{selectedOpportunity.salary}</p>
+                          <p className="text-xl font-bold text-[#003087]">{selectedOpportunity.salary_range}</p>
                         </div>
                       )}
                       <div className="space-y-1">
                         <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">Date Posted</p>
-                        <p className="text-xl font-bold text-gray-900">{selectedOpportunity.posted}</p>
+                        <p className="text-xl font-bold text-gray-900">{formatPosted(selectedOpportunity.created_at)}</p>
                       </div>
                       <div className="space-y-1">
                         <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">Modality</p>
                         <p className="text-xl font-bold text-gray-900">{selectedOpportunity.modality}</p>
                       </div>
-                      <button className="w-full py-4 bg-[#003087] text-white rounded-2xl font-bold shadow-lg shadow-blue-200 hover:bg-[#002566] transition-all">
+                      <a
+                        href={`mailto:${selectedOpportunity.application_email}`}
+                        className="block text-center w-full py-4 bg-[#003087] text-white rounded-2xl font-bold shadow-lg shadow-blue-200 hover:bg-[#002566] transition-all"
+                      >
                         Apply Now
-                      </button>
+                      </a>
                     </div>
                   </div>
                 </div>
@@ -258,15 +319,15 @@ export function CareersView({ userRole }: { userRole: string }) {
                     <label className="block text-sm font-bold text-gray-700 mb-4 uppercase tracking-wider">Opportunity Type *</label>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <button
-                        onClick={() => handleToggleOpportunity('job')}
-                        className={`flex flex-col items-center justify-center p-8 rounded-2xl border-2 transition-all ${opportunityType === 'job' ? 'border-[#003087] bg-blue-50/50 text-[#003087]' : 'border-gray-100 bg-gray-50/50 text-gray-400'}`}
+                        onClick={() => setOpportunityType('Job')}
+                        className={`flex flex-col items-center justify-center p-8 rounded-2xl border-2 transition-all ${opportunityType === 'Job' ? 'border-[#003087] bg-blue-50/50 text-[#003087]' : 'border-gray-100 bg-gray-50/50 text-gray-400'}`}
                       >
                         <Briefcase className="w-8 h-8 mb-3" />
                         <span className="font-bold text-lg">Full-time Job</span>
                       </button>
                       <button
-                        onClick={() => handleToggleOpportunity('internship')}
-                        className={`flex flex-col items-center justify-center p-8 rounded-2xl border-2 transition-all ${opportunityType === 'internship' ? 'border-[#003087] bg-blue-50/50 text-[#003087]' : 'border-gray-100 bg-gray-50/50 text-gray-400'}`}
+                        onClick={() => setOpportunityType('Internship')}
+                        className={`flex flex-col items-center justify-center p-8 rounded-2xl border-2 transition-all ${opportunityType === 'Internship' ? 'border-[#003087] bg-blue-50/50 text-[#003087]' : 'border-gray-100 bg-gray-50/50 text-gray-400'}`}
                       >
                         <GraduationCap className="w-8 h-8 mb-3 text-orange-500" />
                         <span className="font-bold text-lg">Internship</span>
@@ -276,55 +337,74 @@ export function CareersView({ userRole }: { userRole: string }) {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <label className="block text-sm font-bold text-gray-700">Job Title *</label>
-                      <input type="text" placeholder="e.g., Senior Software Engineer" className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:bg-white focus:ring-2 focus:ring-[#003087]/10 transition-all" />
+                      <input type="text" value={formTitle} onChange={(e) => setFormTitle(e.target.value)} placeholder="e.g., Senior Software Engineer" className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:bg-white focus:ring-2 focus:ring-[#003087]/10 transition-all" />
                     </div>
                     <div className="space-y-2">
                       <label className="block text-sm font-bold text-gray-700">Company Name *</label>
-                      <input type="text" placeholder="Your company name" className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:bg-white focus:ring-2 focus:ring-[#003087]/10 transition-all" />
+                      <input type="text" value={formCompany} onChange={(e) => setFormCompany(e.target.value)} placeholder="Your company name" className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:bg-white focus:ring-2 focus:ring-[#003087]/10 transition-all" />
                     </div>
                     <div className="space-y-2">
                       <label className="block text-sm font-bold text-gray-700">Location *</label>
-                      <input type="text" placeholder="City, Country or Remote" className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:bg-white focus:ring-2 focus:ring-[#003087]/10 transition-all" />
+                      <input type="text" value={formLocation} onChange={(e) => setFormLocation(e.target.value)} placeholder="City, Country or Remote" className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:bg-white focus:ring-2 focus:ring-[#003087]/10 transition-all" />
                     </div>
                     <div className="space-y-2">
                       <label className="block text-sm font-bold text-gray-700">Employment Type *</label>
-                      <select className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none appearance-none text-gray-500">
-                        <option>Select type</option>
+                      <select value={formWorkType} onChange={(e) => setFormWorkType(e.target.value)} className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none appearance-none text-gray-700">
+                        <option value="">Select type</option>
                         <option>Full-time</option>
                         <option>Part-time</option>
                         <option>Contract</option>
+                        <option>Internship</option>
                       </select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="block text-sm font-bold text-gray-700">Work Modality *</label>
+                      <select value={formModality} onChange={(e) => setFormModality(e.target.value as 'Remote' | 'Hybrid' | 'On-site')} className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none appearance-none text-gray-700">
+                        <option>On-site</option>
+                        <option>Hybrid</option>
+                        <option>Remote</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="block text-sm font-bold text-gray-700">Salary Range (optional)</label>
+                      <input type="text" value={formSalary} onChange={(e) => setFormSalary(e.target.value)} placeholder="e.g., Php 40,000 - 60,000" className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:bg-white focus:ring-2 focus:ring-[#003087]/10 transition-all" />
                     </div>
                   </div>
                   <div className="space-y-2">
                     <label className="block text-sm font-bold text-gray-700">Description *</label>
-                    <textarea placeholder="Describe the role, responsibilities, and requirements..." rows={6} className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none resize-none focus:bg-white focus:ring-2 focus:ring-[#003087]/10" />
+                    <textarea value={formDescription} onChange={(e) => setFormDescription(e.target.value)} placeholder="Describe the role, responsibilities, and requirements..." rows={6} className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none resize-none focus:bg-white focus:ring-2 focus:ring-[#003087]/10" />
                   </div>
                   <div className="space-y-2">
                     <label className="block text-sm font-bold text-gray-700">Application Email *</label>
-                    <input type="email" placeholder="careers@company.com" className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:bg-white focus:ring-2 focus:ring-[#003087]/10" />
+                    <input type="email" value={formEmail} onChange={(e) => setFormEmail(e.target.value)} placeholder="careers@company.com" className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:bg-white focus:ring-2 focus:ring-[#003087]/10" />
                   </div>
+                  {submitError && <p className="text-red-600 text-sm font-semibold">{submitError}</p>}
                   <div className="pt-6 flex gap-4">
-                    <button onClick={() => setSubmissionStatus('published')} className="px-10 py-4 bg-[#003087] text-white rounded-xl font-bold hover:bg-[#002566] transition-all shadow-lg shadow-blue-900/10">
+                    <button
+                      onClick={handleSubmitOpportunity}
+                      disabled={submitting}
+                      className="px-10 py-4 bg-[#003087] text-white rounded-xl font-bold hover:bg-[#002566] transition-all shadow-lg shadow-blue-900/10 disabled:opacity-60 flex items-center gap-2"
+                    >
+                      {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
                       Post Opportunity
                     </button>
-                    <button onClick={() => setSubmissionStatus('draft')} className="px-10 py-4 bg-white border border-gray-200 text-gray-700 rounded-xl font-bold hover:bg-gray-50 transition-all">
-                      Save as Draft
+                    <button onClick={handleCloseForm} className="px-10 py-4 bg-white border border-gray-200 text-gray-700 rounded-xl font-bold hover:bg-gray-50 transition-all">
+                      Cancel
                     </button>
                   </div>
                 </div>
               </>
             ) : (
               <div className="py-20 flex flex-col items-center text-center space-y-6">
-                <div className={`w-20 h-20 rounded-full flex items-center justify-center ${submissionStatus === 'published' ? 'bg-green-100' : 'bg-blue-100'}`}>
-                  <CheckCircle2 className={`w-10 h-10 ${submissionStatus === 'published' ? 'text-green-600' : 'text-[#003087]'}`} />
+                <div className="w-20 h-20 rounded-full flex items-center justify-center bg-green-100">
+                  <CheckCircle2 className="w-10 h-10 text-green-600" />
                 </div>
                 <div className="space-y-2">
-                  <h2 className="text-3xl font-bold text-gray-900">{submissionStatus === 'published' ? 'Opportunity Posted!' : 'Draft Saved!'}</h2>
+                  <h2 className="text-3xl font-bold text-gray-900">Opportunity Submitted!</h2>
                   <p className="text-gray-500 max-w-sm mx-auto">
-                    {submissionStatus === 'published' 
-                      ? "Your listing has been submitted and is now pending review by the Alumni Office."
-                      : "Your progress has been saved. You can find this listing in your drafts later."}
+                    {isAdmin
+                      ? "Your listing has been submitted. Approve it from the Pending Requests tab to publish it live."
+                      : "Your listing has been submitted and is now pending review by the Alumni Office."}
                   </p>
                 </div>
                 <button onClick={handleCloseForm} className="mt-4 px-8 py-3 bg-[#003087] text-white rounded-xl font-bold hover:bg-[#002566] transition-all">
@@ -355,15 +435,15 @@ export function CareersView({ userRole }: { userRole: string }) {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
           <div className="bg-[#003087] p-6 rounded-[24px] shadow-sm border border-blue-100/10 text-left">
             <p className="text-blue-200 text-[11px] font-bold uppercase tracking-wider mb-2">Full-time Jobs</p>
-            <p className="text-4xl font-bold text-white">31</p>
+            <p className="text-4xl font-bold text-white">{fullTimeCount}</p>
           </div>
-          <div className="bg-orange-600 p-6 rounded-[24px] shadow-sm border border-orange-100/10 text-left">
-            <p className="text-orange-100 text-[11px] font-bold uppercase tracking-wider mb-2">Internships</p>
-            <p className="text-4xl font-bold text-white">14</p>
+          <div className="bg-amber-500 p-6 rounded-[24px] shadow-sm border border-amber-100/10 text-left">
+            <p className="text-amber-100 text-[11px] font-bold uppercase tracking-wider mb-2">Internships</p>
+            <p className="text-4xl font-bold text-white">{internshipCount}</p>
           </div>
           <div className="bg-gray-50 p-6 rounded-[24px] border border-gray-100 text-left">
             <p className="text-gray-400 text-[11px] font-bold uppercase tracking-wider mb-2">Posted This Week</p>
-            <p className="text-4xl font-bold text-[#003087]">12</p>
+            <p className="text-4xl font-bold text-[#003087]">{postedThisWeekCount}</p>
           </div>
         </div>
 
@@ -372,97 +452,155 @@ export function CareersView({ userRole }: { userRole: string }) {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`pb-4 text-[13px] font-bold whitespace-nowrap transition-all relative ${activeTab === tab ? 'text-[#003087]' : 'text-gray-400'}`}
+              className={`pb-4 text-[13px] font-bold whitespace-nowrap transition-all relative flex items-center gap-2 ${activeTab === tab ? 'text-[#003087]' : 'text-gray-400'}`}
             >
+              {tab === 'Pending Requests' && <ShieldCheck className="w-3.5 h-3.5" />}
               {tab}
+              {tab === 'Pending Requests' && pendingRequests.length > 0 && (
+                <span className="bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">{pendingRequests.length}</span>
+              )}
               {activeTab === tab && <div className="absolute bottom-0 left-0 w-full h-[2px] bg-[#003087]" />}
             </button>
           ))}
         </div>
 
-        <div className="relative flex flex-col md:flex-row gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input 
-              type="text" 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by job title or company..."
-              className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:bg-white focus:ring-2 focus:ring-[#003087]/20 outline-none text-sm transition-all"
-            />
-          </div>
-          <div className="relative">
-            <button 
-              onClick={() => setShowFilters(!showFilters)}
-              className={`flex items-center justify-center gap-2 px-8 py-4 border rounded-2xl font-bold text-sm transition-all h-full ${showFilters || selectedModality !== 'All' ? 'bg-[#003087] text-white border-[#003087]' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}
-            >
-              <Filter className="w-4 h-4" />
-              {selectedModality === 'All' ? 'Filter' : `Modality: ${selectedModality}`}
-            </button>
-            {showFilters && (
-              <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-100 rounded-2xl shadow-2xl z-50 p-2 text-left">
-                <div className="p-3 border-b border-gray-50 flex justify-between items-center">
-                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Work Modality</span>
-                  <button onClick={() => setShowFilters(false)}><X className="w-4 h-4 text-gray-400" /></button>
+        {activeTab === 'Pending Requests' ? (
+          <div className="space-y-6 text-left pb-10">
+            {pendingRequests.length > 0 ? (
+              pendingRequests.map((req) => (
+                <div key={req.id} className="rounded-[32px] p-8 bg-white border border-gray-100 flex flex-col md:flex-row justify-between gap-8">
+                  <div className="flex-1 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <span className="bg-gray-100 text-gray-500 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">{req.type}</span>
+                      <span className="text-gray-400 text-[12px] font-medium">Submitted {formatPosted(req.created_at)}{req.submitted_by_name ? ` by ${req.submitted_by_name}` : ''}</span>
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900">{req.title}</h3>
+                    <p className="text-[#003087] font-semibold flex items-center gap-2"><Building2 className="w-4 h-4 opacity-70" /> {req.company}</p>
+                    <div className="flex flex-wrap gap-6 text-[14px] text-gray-500">
+                      <div className="flex items-center gap-2"><MapPin className="w-4 h-4 opacity-70" /> {req.location}</div>
+                      <div className="flex items-center gap-2"><Clock className="w-4 h-4 opacity-70" /> {req.work_type} ({req.modality})</div>
+                    </div>
+                    <p className="text-gray-600 text-sm">{req.description}</p>
+                  </div>
+                  <div className="flex flex-row md:flex-col justify-end gap-3 min-w-[160px]">
+                    <button
+                      onClick={() => handleReview(req.id, 'approve')}
+                      disabled={reviewingId === req.id}
+                      className="px-6 py-3 rounded-2xl font-bold text-sm bg-[#003087] text-white hover:bg-[#002566] transition-all disabled:opacity-60"
+                    >
+                      Approve
+                    </button>
+                    <button
+                      onClick={() => handleReview(req.id, 'reject')}
+                      disabled={reviewingId === req.id}
+                      className="px-6 py-3 rounded-2xl font-bold text-sm bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 transition-all disabled:opacity-60"
+                    >
+                      Reject
+                    </button>
+                  </div>
                 </div>
-                {['All', 'On-site', 'Hybrid', 'Remote'].map((modality) => (
-                  <button
-                    key={modality}
-                    onClick={() => {
-                      setSelectedModality(modality);
-                      setShowFilters(false);
-                    }}
-                    className={`w-full text-left px-4 py-3 text-sm rounded-xl transition-colors ${selectedModality === modality ? 'bg-blue-50 text-[#003087] font-bold' : 'text-gray-600 hover:bg-gray-50'}`}
-                  >
-                    {modality}
-                  </button>
-                ))}
+              ))
+            ) : (
+              <div className="py-24 text-center bg-gray-50 rounded-[40px] border border-dashed border-gray-200">
+                <p className="text-gray-400 font-medium italic">No pending hiring requests to review.</p>
               </div>
             )}
           </div>
-        </div>
+        ) : (
+          <>
+            <div className="relative flex flex-col md:flex-row gap-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search by job title or company..."
+                  className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:bg-white focus:ring-2 focus:ring-[#003087]/20 outline-none text-sm transition-all"
+                />
+              </div>
+              <div className="relative">
+                <button
+                  onClick={() => setShowFilters(!showFilters)}
+                  className={`flex items-center justify-center gap-2 px-8 py-4 border rounded-2xl font-bold text-sm transition-all h-full ${showFilters || selectedModality !== 'All' ? 'bg-[#003087] text-white border-[#003087]' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}
+                >
+                  <Filter className="w-4 h-4" />
+                  {selectedModality === 'All' ? 'Filter' : `Modality: ${selectedModality}`}
+                </button>
+                {showFilters && (
+                  <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-100 rounded-2xl shadow-2xl z-50 p-2 text-left">
+                    <div className="p-3 border-b border-gray-50 flex justify-between items-center">
+                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Work Modality</span>
+                      <button onClick={() => setShowFilters(false)}><X className="w-4 h-4 text-gray-400" /></button>
+                    </div>
+                    {['All', 'On-site', 'Hybrid', 'Remote'].map((modality) => (
+                      <button
+                        key={modality}
+                        onClick={() => {
+                          setSelectedModality(modality);
+                          setShowFilters(false);
+                        }}
+                        className={`w-full text-left px-4 py-3 text-sm rounded-xl transition-colors ${selectedModality === modality ? 'bg-blue-50 text-[#003087] font-bold' : 'text-gray-600 hover:bg-gray-50'}`}
+                      >
+                        {modality}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
 
-        <div className="grid grid-cols-1 gap-6 text-left pb-10">
-          {filteredOpportunities.length > 0 ? (
-            filteredOpportunities.map((item) => (
-              <div 
-                key={item.id} 
-                className={`rounded-[32px] p-8 flex flex-col md:flex-row justify-between gap-8 transition-all ${item.isPriority ? 'bg-[#003087] text-white shadow-2xl shadow-blue-900/20' : 'bg-white text-gray-900 border border-gray-100 hover:border-gray-200 hover:shadow-xl hover:shadow-gray-200/40'}`}
-              >
-                <div className="flex-1 space-y-5">
-                  <div className="flex items-center gap-3">
-                    {item.isPriority && <span className="bg-orange-500 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">Featured Opportunity</span>}
-                    <div className="flex items-center gap-1.5">
-                      <Calendar className={`w-3.5 h-3.5 ${item.isPriority ? 'text-blue-300' : 'text-gray-400'}`} />
-                      <span className={`${item.isPriority ? 'text-blue-300' : 'text-gray-400'} text-[12px] font-medium`}>{item.type} • Posted {item.posted}</span>
+            <div className="grid grid-cols-1 gap-6 text-left pb-10">
+              {loading ? (
+                <div className="py-24 flex items-center justify-center gap-3 text-gray-400">
+                  <Loader2 className="w-5 h-5 animate-spin" /> Loading opportunities...
+                </div>
+              ) : loadError ? (
+                <div className="py-24 text-center bg-gray-50 rounded-[40px] border border-dashed border-gray-200">
+                  <p className="text-red-500 font-medium">{loadError}</p>
+                </div>
+              ) : filteredOpportunities.length > 0 ? (
+                filteredOpportunities.map((item) => (
+                  <div
+                    key={item.id}
+                    className={`rounded-[32px] p-8 flex flex-col md:flex-row justify-between gap-8 transition-all ${item.is_priority ? 'bg-[#003087] text-white shadow-2xl shadow-blue-900/20' : 'bg-white text-gray-900 border border-gray-100 hover:border-gray-200 hover:shadow-xl hover:shadow-gray-200/40'}`}
+                  >
+                    <div className="flex-1 space-y-5">
+                      <div className="flex items-center gap-3">
+                        {item.is_priority && <span className="bg-amber-500 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">Featured Opportunity</span>}
+                        <div className="flex items-center gap-1.5">
+                          <Calendar className={`w-3.5 h-3.5 ${item.is_priority ? 'text-blue-300' : 'text-gray-400'}`} />
+                          <span className={`${item.is_priority ? 'text-blue-300' : 'text-gray-400'} text-[12px] font-medium`}>{item.type} • Posted {formatPosted(item.created_at)}</span>
+                        </div>
+                      </div>
+                      <div>
+                        <h3 className="text-2xl font-bold leading-tight">{item.title}</h3>
+                        <p className={`${item.is_priority ? 'text-blue-100' : 'text-[#003087]'} font-semibold text-lg mt-1 flex items-center gap-2`}><Building2 className="w-4 h-4 opacity-70" /> {item.company}</p>
+                      </div>
+                      <div className="flex flex-wrap gap-6 text-[14px]">
+                        <div className={`flex items-center gap-2 ${item.is_priority ? 'text-blue-100' : 'text-gray-500'}`}><MapPin className="w-4 h-4 opacity-70" /> {item.location}</div>
+                        <div className={`flex items-center gap-2 ${item.is_priority ? 'text-blue-100' : 'text-gray-500'}`}>{item.type === 'Internship' ? <GraduationCap className="w-4 h-4 opacity-70" /> : <Laptop className="w-4 h-4 opacity-70" />} {item.work_type} ({item.modality})</div>
+                      </div>
+                    </div>
+                    <div className="flex flex-row md:flex-col justify-end gap-3 min-w-[180px]">
+                      <button
+                        onClick={() => setSelectedOpportunity(item)}
+                        className={`px-8 py-4 rounded-2xl font-bold text-sm transition-all flex-1 md:flex-none shadow-sm ${item.is_priority ? 'bg-white text-[#003087] hover:bg-blue-50' : 'bg-[#003087] text-white hover:bg-[#002566]'}`}
+                      >
+                        {item.is_priority ? 'Apply Now' : 'View Details'}
+                      </button>
+                      <button className={`p-4 rounded-2xl transition-all border flex justify-center ${item.is_priority ? 'bg-white/10 border-white/10 text-white hover:bg-white/20' : 'bg-gray-50 border-gray-100 text-gray-400 hover:bg-gray-100'}`}><Bookmark className="w-5 h-5" /></button>
                     </div>
                   </div>
-                  <div>
-                    <h3 className="text-2xl font-bold leading-tight">{item.title}</h3>
-                    <p className={`${item.isPriority ? 'text-blue-100' : 'text-[#003087]'} font-semibold text-lg mt-1 flex items-center gap-2`}><Building2 className="w-4 h-4 opacity-70" /> {item.company}</p>
-                  </div>
-                  <div className="flex flex-wrap gap-6 text-[14px]">
-                    <div className={`flex items-center gap-2 ${item.isPriority ? 'text-blue-100' : 'text-gray-500'}`}><MapPin className="w-4 h-4 opacity-70" /> {item.location}</div>
-                    <div className={`flex items-center gap-2 ${item.isPriority ? 'text-blue-100' : 'text-gray-500'}`}>{item.type === 'Internship' ? <GraduationCap className="w-4 h-4 opacity-70" /> : <Laptop className="w-4 h-4 opacity-70" />} {item.workType} ({item.modality})</div>
-                  </div>
+                ))
+              ) : (
+                <div className="py-24 text-center bg-gray-50 rounded-[40px] border border-dashed border-gray-200">
+                  <p className="text-gray-400 font-medium italic">No matches found for your current search.</p>
                 </div>
-                <div className="flex flex-row md:flex-col justify-end gap-3 min-w-[180px]">
-                  <button 
-                    onClick={() => setSelectedOpportunity(item)}
-                    className={`px-8 py-4 rounded-2xl font-bold text-sm transition-all flex-1 md:flex-none shadow-sm ${item.isPriority ? 'bg-white text-[#003087] hover:bg-blue-50' : 'bg-[#003087] text-white hover:bg-[#002566]'}`}
-                  >
-                    {item.isPriority ? 'Apply Now' : 'View Details'}
-                  </button>
-                  <button className={`p-4 rounded-2xl transition-all border flex justify-center ${item.isPriority ? 'bg-white/10 border-white/10 text-white hover:bg-white/20' : 'bg-gray-50 border-gray-100 text-gray-400 hover:bg-gray-100'}`}><Bookmark className="w-5 h-5" /></button>
-                </div>
-              </div>
-            ))
-          ) : (
-            <div className="py-24 text-center bg-gray-50 rounded-[40px] border border-dashed border-gray-200">
-              <p className="text-gray-400 font-medium italic">No matches found for your current search.</p>
+              )}
             </div>
-          )}
-        </div>
+          </>
+        )}
       </main>
       <Footer />
     </div>

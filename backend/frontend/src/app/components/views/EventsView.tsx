@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Calendar, Clock, MapPin, Award, User, Plus, X, CheckCircle, XCircle, Trash2, Edit, RotateCcw, Search, RefreshCcw } from 'lucide-react';
+import { Calendar, Clock, MapPin, Award, User, X, CheckCircle, XCircle, Trash2, Edit, RotateCcw, Search, RefreshCcw } from 'lucide-react';
 import { Footer } from '../Footer';
 import { EventRegistrationModal, MyRegistrations, type MyRegistration } from '../EventRegistrationModal';
 
@@ -878,20 +878,9 @@ export function EventsView({ userRole, userName = 'Alumni User', userEmail = '',
       )}
 
       <main className="flex-1 p-8 space-y-8">
-        <div className="flex justify-between items-center">
-          <div className="text-left">
-            <h1 className="text-3xl font-bold text-gray-900">Engagement</h1>
-            <p className="text-gray-500 text-sm mt-1">Manage events and alumni contributions</p>
-          </div>
-          {userRole !== 'admin' && (
-            <button
-              onClick={() => setActiveTab('Submit Proposal')}
-              className="flex items-center gap-2 px-4 py-2 bg-[#003087] text-white rounded-lg hover:bg-[#002066] transition-colors font-semibold shadow-md"
-            >
-              <Plus className="w-5 h-5" />
-              Submit Proposal
-            </button>
-          )}
+        <div className="text-left">
+          <h1 className="text-3xl font-bold text-gray-900">Engagement</h1>
+          <p className="text-gray-500 text-sm mt-1">Manage events and alumni contributions</p>
         </div>
 
         {/* One row: View selector + search/filter bar on the left,
@@ -946,8 +935,18 @@ export function EventsView({ userRole, userName = 'Alumni User', userEmail = '',
             </>
           )}
 
-          {tabs.length > 0 && (
-            <div className="flex gap-6 ml-auto overflow-x-auto no-scrollbar">
+          {(tabs.length > 0 || userRole !== 'admin') && (
+            <div className="flex items-center gap-6 ml-auto overflow-x-auto no-scrollbar">
+              {userRole !== 'admin' && (
+                <button
+                  onClick={() => setActiveTab('Submit Proposal')}
+                  className={`pb-1 text-[13px] font-bold whitespace-nowrap transition-all relative ${
+                    activeTab === 'Submit Proposal' || activeTab === 'Edit Proposal' ? 'text-[#003087]' : 'text-gray-400 hover:text-gray-600'
+                  }`}
+                >
+                  Submit Proposal
+                </button>
+              )}
               {tabs.map((tab) => (
                 <button
                   key={tab}
