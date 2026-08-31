@@ -1,48 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Calendar, Clock, MapPin, Users, Award, User, FileText, Plus, X, CheckCircle, XCircle, Trash2, Edit, RotateCcw, Search, RefreshCcw } from 'lucide-react';
+import { Calendar, Clock, MapPin, Award, User, Plus, X, CheckCircle, XCircle, Trash2, Edit, RotateCcw, Search, RefreshCcw } from 'lucide-react';
 import { Footer } from '../Footer';
 import { EventRegistrationModal, MyRegistrations, type MyRegistration } from '../EventRegistrationModal';
 
 // Image imports
 import CareerFairBG from '../../../assets/CareerFairBG.jpg';
-import GuestLectureBG from '../../../assets/GuestLectureBG.jpg';
-import WorkshopBG from '../../../assets/WorkshopBG.jpg';
-import MentorCapBG from '../../../assets/MentorCapBG.jpg';
-import FinancialManageBG from '../../../assets/FinancialManageBG.jpg';
-import HealthCareBG from '../../../assets/HealthCareBG.jpg';
-import WorkshopLeadBG from '../../../assets/WorkshopLeadBG.jpg';
-import CareerAdviceBG from '../../../assets/CareerAdviceBG.jpg';
-import LabInstructBG from '../../../assets/LabInstructBG.jpg';
-import SkillWorkshopBG from '../../../assets/SkillWorkshopBG.jpg';
-import AccountingBG from '../../../assets/AccountingBG.jpg';
-import LeaderDigitalBG from '../../../assets/LeaderDigitalBG.jpg';
-import AdvFinanceBG from '../../../assets/AdvFinanceBG.jpg';
-import AIandMachineBG from '../../../assets/AIandMachineBG.jpg';
-import ProjectManagementBG from '../../../assets/ProjectManagementBG.jpg';
-import LegalLawBG from '../../../assets/LegalLawBG.jpg';
-import EntrepBG from '../../../assets/EntrepBG.jpg';
-import MentalHealthBG from '../../../assets/MentalHealthBG.jpg';
-import MarketingBG from '../../../assets/MarketingBG.jpg';
-import CybersecBG from '../../../assets/CybersecBG.jpg';
-import SustainBG from '../../../assets/SustainBG.jpg';
-import ExcelBG from '../../../assets/ExcelBG.jpg';
-import PharmaBG from '../../../assets/PharmaBG.jpg';
-
-interface Event {
-  id: string;
-  title: string;
-  category: string;
-  date: string;
-  time: string;
-  location: string;
-  participants: number;
-  description: string;
-  image: string;
-  tab: 'Teaching Opportunities' | 'Seminars & Workshops';
-  postedBy?: string;
-  postedDate?: string;
-  compensation?: string;
-}
 
 interface EventDetailData {
   title: string;
@@ -172,203 +134,10 @@ const EVENT_CATEGORY_OPTIONS: { value: string; label: string }[] = [
   { value: 'Sports', label: 'Sports' },
   { value: 'Technology', label: 'Technology' },
   { value: 'Leadership', label: 'Leadership' },
+  { value: 'Teaching Opportunities', label: 'Teaching Opportunities' },
+  { value: 'Seminars & Workshops', label: 'Seminars & Workshops' },
 ];
 
-const INITIAL_EVENTS: Event[] = [
-  { id: '12', title: "Guest Lecturer - Digital Marketing", category: "Business", date: "1 Semester", time: "Tue & Thu preferred", location: "School of Business and Governance", participants: 8, compensation: "Honorarium provided", description: "Share your expertise in digital marketing with our business students.", image: GuestLectureBG, tab: 'Teaching Opportunities', postedBy: "Dr. Antonio Reyes", postedDate: "5 days ago" },
-  { id: '13', title: "Workshop Facilitator - Python", category: "Computer Science", date: "2 Days", time: "March 8-9, 2026", location: "Department of Computer Science", participants: 15, compensation: "Php 15,000", description: "Conduct hands-on Python workshop for intermediate students.", image: WorkshopBG, tab: 'Teaching Opportunities', postedBy: "Prof. Maria Santos", postedDate: "2 weeks ago" },
-  { id: '14', title: "Mentor - Engineering Capstone", category: "Engineering", date: "1 Academic Year", time: "4 hours/month", location: "College of Engineering", participants: 12, compensation: "Certificate + Recognition", description: "Guide senior engineering students through their capstone projects.", image: MentorCapBG, tab: 'Teaching Opportunities', postedBy: "Engr. Robert Tan", postedDate: "1 week ago" },
-  { id: '15', title: "Adjunct Professor - Finance", category: "Finance", date: "1 Semester", time: "MWF 2:00 PM - 3:30 PM", location: "School of Business and Governance", participants: 6, compensation: "Competitive academic rate", description: "Teach undergraduate financial management course.", image: FinancialManageBG, tab: 'Teaching Opportunities', postedBy: "Dean Patricia Cruz", postedDate: "3 days ago" },
-  { id: '16', title: "Guest Speaker - Nursing", category: "Nursing", date: "2-hour Session", time: "Feb 25, 2026 at 3:00 PM", location: "School of Nursing", participants: 4, compensation: "Honorarium + Travel", description: "Share insights on healthcare administration with nursing students.", image: HealthCareBG, tab: 'Teaching Opportunities', postedBy: "Dr. Elizabeth Gomez", postedDate: "1 week ago" },
-  { id: '17', title: "Workshop Leader - UX/UI", category: "IT", date: "5 Days Intensive", time: "April 14-18, 9:00 AM", location: "Dept. of Information Technology", participants: 11, compensation: "Php 50,000", description: "Lead intensive UX/UI bootcamp covering research and prototyping.", image: WorkshopLeadBG, tab: 'Teaching Opportunities', postedBy: "Prof. Jennifer Lim", postedDate: "4 days ago" },
-  { id: '18', title: "Career Advisor - Law", category: "Law", date: "Ongoing", time: "2 hours/week", location: "College of Law", participants: 7, compensation: "Volunteer (Recognition)", description: "Provide career guidance to law students preparing for bar exams.", image: CareerAdviceBG, tab: 'Teaching Opportunities', postedBy: "Atty. Marco Gonzales", postedDate: "2 weeks ago" },
-  { id: '19', title: "Lab Instructor - Data Science", category: "Mathematics", date: "1 Semester", time: "Saturdays 10:00 AM", location: "Department of Mathematics", participants: 9, compensation: "Standard adjunct rate", description: "Supervise data science lab sessions using R and Python.", image: LabInstructBG, tab: 'Teaching Opportunities', postedBy: "Dr. Thomas Valdez", postedDate: "6 days ago" },
-  { id: '20', title: "Skills Workshop - Speaking", category: "Communication", date: "3-hour Workshop", time: "March 12, 2026", location: "Department of Communication", participants: 13, compensation: "Php 8,000", description: "Teach students effective public speaking and presentation techniques.", image: SkillWorkshopBG, tab: 'Teaching Opportunities', postedBy: "Prof. Amanda Reyes", postedDate: "1 week ago" },
-  { id: '21', title: "Practicum Supervisor", category: "Accounting", date: "6 months", time: "Monthly check-ins", location: "School of Business", participants: 5, compensation: "Certificate + Recognition", description: "Supervise accounting students during their industry practicum.", image: AccountingBG, tab: 'Teaching Opportunities', postedBy: "CPA Catherine Velasco", postedDate: "3 days ago" },
-  { id: '22', title: "Leadership in the Digital Age", category: "Professional Dev", date: "March 15, 2026", time: "9:00 AM - 4:00 PM", location: "ADDU Finster Hall", participants: 120, description: "Leading teams in a digital-first environment with focus on remote management.", image: LeaderDigitalBG, tab: 'Seminars & Workshops' },
-  { id: '23', title: "Advanced Financial Analytics", category: "Finance", date: "April 05, 2026", time: "1:00 PM - 5:00 PM", location: "Virtual / Zoom", participants: 85, description: "Master financial modeling and data analytics for modern investment strategies.", image: AdvFinanceBG, tab: 'Seminars & Workshops' },
-  { id: '24', title: "AI and Machine Learning", category: "Technology", date: "April 12, 2026", time: "10:00 AM - 12:00 PM", location: "ADDU Community Center", participants: 45, description: "Strategic overview of AI capabilities for business implementations.", image: AIandMachineBG, tab: 'Seminars & Workshops' },
-  { id: '25', title: "Agile Project Management", category: "Management", date: "May 20, 2026", time: "9:00 AM - 3:00 PM", location: "Online", participants: 200, description: "Certification-ready workshop for Agile and Scrum methodologies.", image: ProjectManagementBG, tab: 'Seminars & Workshops' },
-  { id: '26', title: "Legal Issues in E-Commerce", category: "Law", date: "June 10, 2026", time: "2:00 PM - 5:00 PM", location: "ADDU College of Law", participants: 60, description: "Deep dive into digital trade, consumer rights, and data privacy frameworks.", image: LegalLawBG, tab: 'Seminars & Workshops' },
-  { id: '27', title: "Entrepreneurship Mastery", category: "Business", date: "June 15, 2026", time: "9:00 AM - 5:00 PM", location: "Online", participants: 110, description: "Scale your startup with expert insights on operations and funding.", image: EntrepBG, tab: 'Seminars & Workshops' },
-  { id: '28', title: "Workplace Mental Health", category: "Wellness", date: "July 02, 2026", time: "1:30 PM - 4:30 PM", location: "Virtual", participants: 150, description: "Promoting psychological safety and mental well-being in corporate settings.", image: MentalHealthBG, tab: 'Seminars & Workshops' },
-  { id: '29', title: "Modern Content Marketing", category: "Marketing", date: "July 20, 2026", time: "10:00 AM - 3:00 PM", location: "ADDU Arrupe Hall", participants: 95, description: "Storytelling and content strategies for the social media era.", image: MarketingBG, tab: 'Seminars & Workshops' },
-  { id: '30', title: "Cybersecurity Essentials", category: "IT Security", date: "August 05, 2026", time: "9:00 AM - 12:00 PM", location: "Online", participants: 180, description: "Protecting business data from modern threats and social engineering.", image: CybersecBG, tab: 'Seminars & Workshops' },
-  { id: '31', title: "Sustainable Business", category: "Innovation", date: "August 18, 2026", time: "1:00 PM - 4:00 PM", location: "ADDU Community Center", participants: 70, description: "Integrating ESG principles into your business strategy and operations.", image: SustainBG, tab: 'Seminars & Workshops' },
-  { id: '32', title: "Excel for Business Pros", category: "Data", date: "September 03, 2026", time: "9:00 AM - 12:00 PM", location: "Online", participants: 300, description: "Advanced functions, pivot tables, and data visualization techniques.", image: ExcelBG, tab: 'Seminars & Workshops' },
-  { id: '33', title: "Pharmacy Trends 2026", category: "Healthcare", date: "September 15, 2026", time: "2:00 PM - 5:00 PM", location: "ADDU School of Nursing", participants: 55, description: "Updating clinical knowledge on emerging pharmaceuticals and patient care.", image: PharmaBG, tab: 'Seminars & Workshops' },
-];
-
-function EventCard({ event, onView, onRegister }: any) {
-  const isTeaching = event.tab === 'Teaching Opportunities';
-
-  return (
-    <div className="bg-white rounded-[24px] overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col h-full text-left">
-      <div className="relative h-56 overflow-hidden">
-        <img
-          src={event.image}
-          alt={event.title}
-          onClick={() => onView(event)}
-          className="w-full h-full object-cover cursor-pointer"
-        />
-        <div className="absolute top-4 right-4 flex flex-col gap-2 items-end">
-          <span className="px-4 py-1.5 bg-[#003087] text-white text-[10px] rounded-full font-bold uppercase tracking-wider shadow-lg">
-            {event.category}
-          </span>
-        </div>
-      </div>
-
-      <div className="p-6 flex flex-col flex-1">
-        <h3
-          onClick={() => onView(event)}
-          className="text-lg font-bold text-gray-900 mb-1 line-clamp-1 cursor-pointer hover:text-[#003087] transition-colors"
-        >
-          {event.title}
-        </h3>
-
-        <div className="space-y-2 mb-4">
-          <div className="flex items-start gap-2 text-gray-500 text-[13px]">
-            <Calendar className="w-4 h-4 text-gray-400 mt-0.5" /> {event.date}
-          </div>
-          <div className="flex items-start gap-2 text-gray-500 text-[13px]">
-            <Clock className="w-4 h-4 text-gray-400 mt-0.5" /> {event.time || 'TBD'}
-          </div>
-          {!isTeaching && (
-            <div className="flex items-start gap-2 text-gray-500 text-[13px]">
-              <MapPin className="w-4 h-4 text-gray-400 mt-0.5" /> {event.location}
-            </div>
-          )}
-          {isTeaching && event.compensation && (
-            <div className="flex items-start gap-2 text-[#22C55E] text-[13px] font-semibold">
-              <Award className="w-4 h-4 mt-0.5" /> {event.compensation}
-            </div>
-          )}
-          <div className="flex items-start gap-2 text-[#003087] text-[13px] font-semibold">
-            <Users className="w-4 h-4 mt-0.5" />
-            {event.participants} {isTeaching ? 'applications' : 'participants'}
-          </div>
-        </div>
-
-        <p className="text-gray-500 text-[13px] leading-relaxed line-clamp-3 mb-6 flex-1">
-          {event.description}
-        </p>
-
-        {isTeaching && event.postedBy && (
-          <div className="pt-4 border-t border-gray-100 mb-6 flex items-center gap-2 text-gray-400 text-[11px]">
-            <User className="w-3 h-3" />
-            <span>Posted by <span className="text-gray-600 font-medium">{event.postedBy}</span> • {event.postedDate}</span>
-          </div>
-        )}
-
-        <div className="flex gap-2 mt-auto">
-          {event.tab === 'Seminars & Workshops' ? (
-            <button
-              onClick={() => onRegister(event)}
-              className="w-full py-2.5 rounded-lg font-bold text-sm transition-colors bg-[#003087] text-white hover:bg-[#002566]"
-            >
-              Register
-            </button>
-          ) : (
-            <button
-              onClick={() => onView(event)}
-              className="w-full py-2.5 rounded-lg font-bold text-sm transition-colors bg-[#003087] text-white hover:bg-[#002566]"
-            >
-              Apply Now
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ActivityCard({ activity, userRole, onEdit, onRemove, onToggleRegistration, onRegister }: any) {
-  const isAdmin = userRole === 'admin';
-  const schedule = `${formatVenueDate(activity.schedule_start)} • ${formatVenueTime(activity.schedule_start)} - ${formatVenueTime(activity.schedule_end)}`;
-
-  return (
-    <div className="bg-white rounded-[24px] overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col h-full text-left">
-      <div className="relative h-56 overflow-hidden">
-        <img
-          src={resolveImageUrl(activity.image_url) || CareerFairBG}
-          alt={activity.title}
-          onClick={() => onRegister(activity)}
-          className="w-full h-full object-cover cursor-pointer"
-        />
-        <div className="absolute top-4 right-4 flex flex-col gap-2 items-end">
-          {isAdmin && (
-            <>
-              <button
-                onClick={() => onEdit(activity)}
-                className="p-2 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-transform active:scale-95"
-              >
-                <Edit className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => onRemove(activity.id)}
-                className="p-2 bg-red-600 text-white rounded-full shadow-lg hover:bg-red-700 transition-transform active:scale-95"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </>
-          )}
-          <span className="px-4 py-1.5 bg-[#003087] text-white text-[10px] rounded-full font-bold uppercase tracking-wider shadow-lg">
-            {activity.status}
-          </span>
-        </div>
-      </div>
-
-      <div className="p-6 flex flex-col flex-1">
-        <h3
-          onClick={() => onRegister(activity)}
-          className="text-lg font-bold text-gray-900 mb-1 line-clamp-1 cursor-pointer hover:underline"
-        >
-          {activity.title}
-        </h3>
-
-        <div className="space-y-2 mb-4">
-          <div className="flex items-start gap-2 text-gray-500 text-[13px]">
-            <Calendar className="w-4 h-4 text-gray-400 mt-0.5" /> {schedule}
-          </div>
-          <div className="flex items-start gap-2 text-gray-500 text-[13px]">
-            <MapPin className="w-4 h-4 text-gray-400 mt-0.5" /> {activity.venue}
-          </div>
-          <div className="flex items-start gap-2 text-[#003087] text-[13px] font-semibold">
-            <Users className="w-4 h-4 mt-0.5" />
-            {activity.participant_limit ? `${activity.participant_limit} slots` : 'Open slots'}
-          </div>
-          <div className="flex items-start gap-2 text-emerald-600 text-[13px] font-semibold">
-            <Award className="w-4 h-4 mt-0.5" />
-            {activity.fee_amount > 0 ? `₱${activity.fee_amount.toLocaleString()} fee` : 'Free'}
-          </div>
-        </div>
-
-        <p className="text-gray-500 text-[13px] leading-relaxed line-clamp-3 mb-6 flex-1">
-          {activity.description}
-        </p>
-
-        <div className="flex gap-2 mt-auto">
-          {isAdmin ? (
-            <button
-              onClick={() => onToggleRegistration(activity.id)}
-              className="w-full py-2.5 rounded-lg font-bold text-sm transition-colors bg-gray-100 text-gray-700 hover:bg-gray-200"
-            >
-              {activity.registration_open ? 'Close Registration' : 'Open Registration'}
-            </button>
-          ) : (
-            <button
-              onClick={() => onRegister(activity)}
-              disabled={!activity.registration_open}
-              className="w-full py-2.5 rounded-lg font-bold text-sm transition-colors bg-[#003087] text-white hover:bg-[#002566] disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {activity.registration_open ? 'Register' : 'Registration Closed'}
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // EventActivityCard — real, DB-backed cards for Upcoming Events / Past Events /
 // Alumni Proposals / My Submissions. `context` controls which action row renders.
@@ -537,29 +306,10 @@ export function EventsView({ userRole, userName = 'Alumni User', userEmail = '',
 
   const [activities, setActivities] = useState<GivebackActivity[]>([]);
   const [loadingActivities, setLoadingActivities] = useState(true);
-  const [editingActivity, setEditingActivity] = useState<GivebackActivity | null>(null);
-  const [activityImage, setActivityImage] = useState<File | null>(null);
-  const [activityImagePreview, setActivityImagePreview] = useState<string | null>(null);
-  const [activityForm, setActivityForm] = useState({
-    title: '',
-    description: '',
-    venue: '',
-    scheduleStart: '',
-    scheduleEnd: '',
-    participantLimit: '',
-    feeAmount: '',
-    status: 'upcoming',
-    registrationOpen: true
-  });
 
   // ── My Registrations state ──────────────────────────────
   const [myRegistrations, setMyRegistrations] = useState<MyRegistration[]>([]);
   const [loadingRegistrations, setLoadingRegistrations] = useState(false);
-
-  const [events] = useState<Event[]>(() => {
-    const saved = localStorage.getItem('addu_events');
-    return saved ? JSON.parse(saved) : INITIAL_EVENTS;
-  });
 
   // ── Upcoming Events / Alumni Proposals state (DB-backed) ─
   const [newEventForm, setNewEventForm] = useState({
@@ -717,152 +467,6 @@ export function EventsView({ userRole, userName = 'Alumni User', userEmail = '',
     }
   };
 
-  const resetActivityForm = () => {
-    setActivityForm({
-      title: '',
-      description: '',
-      venue: '',
-      scheduleStart: '',
-      scheduleEnd: '',
-      participantLimit: '',
-      feeAmount: '',
-      status: 'upcoming',
-      registrationOpen: true
-    });
-    setActivityImage(null);
-    setActivityImagePreview(null);
-    setEditingActivity(null);
-  };
-
-  const handleCreateActivity = async () => {
-    if (!activityForm.title || !activityForm.description || !activityForm.venue || !activityForm.scheduleStart || !activityForm.scheduleEnd) {
-      alert('Please fill in all required fields');
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append('title', activityForm.title);
-    formData.append('description', activityForm.description);
-    formData.append('venue', activityForm.venue);
-    formData.append('schedule_start', activityForm.scheduleStart);
-    formData.append('schedule_end', activityForm.scheduleEnd);
-    formData.append('participant_limit', activityForm.participantLimit || '');
-    formData.append('fee_amount', activityForm.feeAmount || '0');
-    formData.append('status', activityForm.status);
-    formData.append('registration_open', activityForm.registrationOpen ? '1' : '0');
-    formData.append('created_by_name', userRole === 'admin' ? 'Admin' : userName);
-    if (activityImage) formData.append('image', activityImage);
-
-    try {
-      const response = await fetch('http://localhost:8000/api/giveback/activities', {
-        method: 'POST',
-        body: formData
-      });
-      if (response.ok) {
-        await fetchActivities();
-        resetActivityForm();
-        setActiveTab('GiveBack Activities');
-        triggerToast();
-      } else {
-        const errorData = await response.json().catch(() => ({}));
-        alert(errorData.message || 'Failed to create activity');
-      }
-    } catch (error) {
-      console.error('Error creating activity:', error);
-      alert('Failed to create activity');
-    }
-  };
-
-  const handleEditActivity = (activity: GivebackActivity) => {
-    setEditingActivity(activity);
-    setActivityForm({
-      title: activity.title,
-      description: activity.description,
-      venue: activity.venue,
-      scheduleStart: toDateTimeLocalValue(parseVenueDateTime(activity.schedule_start)),
-      scheduleEnd: toDateTimeLocalValue(parseVenueDateTime(activity.schedule_end)),
-      participantLimit: activity.participant_limit ? String(activity.participant_limit) : '',
-      feeAmount: String(activity.fee_amount || 0),
-      status: activity.status,
-      registrationOpen: activity.registration_open
-    });
-    setActivityImagePreview(resolveImageUrl(activity.image_url));
-    setActiveTab('Edit GiveBack Activity');
-  };
-
-  const handleUpdateActivity = async () => {
-    if (!editingActivity) return;
-    if (!activityForm.title || !activityForm.description || !activityForm.venue || !activityForm.scheduleStart || !activityForm.scheduleEnd) {
-      alert('Please fill in all required fields');
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append('title', activityForm.title);
-    formData.append('description', activityForm.description);
-    formData.append('venue', activityForm.venue);
-    formData.append('schedule_start', activityForm.scheduleStart);
-    formData.append('schedule_end', activityForm.scheduleEnd);
-    formData.append('participant_limit', activityForm.participantLimit || '');
-    formData.append('fee_amount', activityForm.feeAmount || '0');
-    formData.append('status', activityForm.status);
-    formData.append('registration_open', activityForm.registrationOpen ? '1' : '0');
-    formData.append('created_by_name', editingActivity.created_by_name || userName);
-    if (activityImage) formData.append('image', activityImage);
-    // PHP never parses multipart bodies on a literal PUT verb — spoof it via POST.
-    formData.append('_method', 'PUT');
-
-    try {
-      const response = await fetch(`http://localhost:8000/api/giveback/activities/${editingActivity.id}`, {
-        method: 'POST',
-        body: formData
-      });
-      if (response.ok) {
-        await fetchActivities();
-        resetActivityForm();
-        setActiveTab('GiveBack Activities');
-        triggerToast();
-      } else {
-        const errorData = await response.json().catch(() => ({}));
-        alert(errorData.message || 'Failed to update activity');
-      }
-    } catch (error) {
-      console.error('Error updating activity:', error);
-      alert('Failed to update activity');
-    }
-  };
-
-  const handleRemoveActivity = async (id: number) => {
-    if (!window.confirm('Are you sure you want to delete this activity?')) return;
-    try {
-      const response = await fetch(`http://localhost:8000/api/giveback/activities/${id}`, { method: 'DELETE' });
-      if (response.ok) {
-        await fetchActivities();
-        triggerToast();
-      } else {
-        alert('Failed to delete activity');
-      }
-    } catch (error) {
-      console.error('Error deleting activity:', error);
-      alert('Failed to delete activity');
-    }
-  };
-
-  const handleToggleActivityRegistration = async (id: number) => {
-    try {
-      const response = await fetch(`http://localhost:8000/api/giveback/activities/${id}/toggle-registration`, { method: 'PATCH' });
-      if (response.ok) {
-        await fetchActivities();
-        triggerToast();
-      } else {
-        alert('Failed to update registration status');
-      }
-    } catch (error) {
-      console.error('Error toggling registration:', error);
-      alert('Failed to update registration status');
-    }
-  };
-
   const openRegistrationModalFromActivity = (activity: GivebackActivity, fallbackImage?: string) => {
     setRegistrationEvent({
       id: activity.id,
@@ -873,62 +477,6 @@ export function EventsView({ userRole, userName = 'Alumni User', userEmail = '',
       image: resolveImageUrl(activity.image_url) || fallbackImage || CareerFairBG,
       feeAmount: Number(activity.fee_amount || 0)
     });
-  };
-
-  const handleLegacyEventRegister = async (event: Event) => {
-    const existingActivity = activities.find(
-      (activity) =>
-        !activity.is_archived &&
-        activity.title.trim().toLowerCase() === event.title.trim().toLowerCase() &&
-        activity.venue.trim().toLowerCase() === event.location.trim().toLowerCase()
-    );
-
-    if (existingActivity) {
-      if (!existingActivity.registration_open) {
-        alert('Registration is currently closed for this activity.');
-        return;
-      }
-      openRegistrationModalFromActivity(existingActivity, event.image);
-      return;
-    }
-
-    const parsedDate = new Date(event.date);
-    const startDate = Number.isNaN(parsedDate.getTime()) ? new Date() : parsedDate;
-    startDate.setHours(9, 0, 0, 0);
-    const endDate = new Date(startDate);
-    endDate.setHours(startDate.getHours() + 2);
-
-    try {
-      const response = await fetch('http://localhost:8000/api/giveback/activities', {
-        method: 'POST',
-        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: event.title,
-          description: event.description,
-          venue: event.location || 'TBA',
-          schedule_start: startDate.toISOString(),
-          schedule_end: endDate.toISOString(),
-          registration_open: true,
-          participant_limit: event.participants > 0 ? event.participants : null,
-          fee_amount: 1000,
-          status: 'upcoming',
-          created_by_name: userName,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        alert(errorData.message || 'Unable to prepare this activity for registration.');
-        return;
-      }
-
-      const createdActivity: GivebackActivity = await response.json();
-      setActivities((prev) => [createdActivity, ...prev]);
-      openRegistrationModalFromActivity(createdActivity, event.image);
-    } catch (error) {
-      console.error('Error preparing legacy event registration:', error);
-      alert('Unable to prepare registration at the moment. Please try again.');
-    }
   };
 
   // ── Upcoming Events / Alumni Proposals handlers (real API) ─
@@ -1262,30 +810,25 @@ export function EventsView({ userRole, userName = 'Alumni User', userEmail = '',
   const hasNewUpcomingEvent = upcomingEventActivities.some((a) => !dismissedNewEventIds.includes(a.id));
   const hasNewPastEvent = pastEventActivities.some((a) => !dismissedConcludedEventIds.includes(a.id));
 
-  const baseTabs = ['GiveBack Activities', 'Upcoming Events', 'Past Events', 'Teaching Opportunities', 'Seminars & Workshops'];
+  // Upcoming Events / Past Events are no longer separate tabs — they're
+  // picked via the "View" dropdown in the filter bar instead. Teaching
+  // Opportunities and Seminars & Workshops have been retired as their own
+  // views entirely; they're just categories on regular events now. Only the
+  // views that aren't simple filterable lists stay as real tabs.
   let tabs = userRole === 'admin'
-    ? [...baseTabs, 'Alumni Proposals', 'Archived', 'Create Event', 'Create GiveBack Activity']
-    : [...baseTabs, 'My Submissions', 'My Registrations']; // ← My Registrations added here
+    ? ['Alumni Proposals', 'Archived', 'Create Event']
+    : ['My Submissions', 'My Registrations'];
 
   if (editingEventActivity && (activeTab === 'Edit Event' || activeTab === 'Edit Proposal')) tabs = [...tabs, activeTab];
-  if (editingActivity && activeTab === 'Edit GiveBack Activity') tabs = [...tabs, 'Edit GiveBack Activity'];
 
-  const filteredEvents = events.filter(event => event.tab === activeTab);
+  // 'Upcoming Events' is now the single combined events view (upcoming and
+  // past events shown together, distinguished by each card's status badge).
+  const showFilterBar = activeTab === 'Upcoming Events';
 
-  const FILTERABLE_TABS = ['Upcoming Events', 'Past Events', 'Teaching Opportunities', 'Seminars & Workshops'];
-  const showFilterBar = FILTERABLE_TABS.includes(activeTab);
-
-  // Upcoming/Past Events use the fixed category list from the Create Event
-  // form, so the filter always offers every choice an admin can pick, not
-  // just whichever categories happen to be posted. Teaching Opportunities
-  // and Seminars & Workshops have their own vocabulary (subjects/topics),
-  // so their options are still drawn from whatever data is present.
-  const isEventActivityTab = activeTab === 'Upcoming Events' || activeTab === 'Past Events';
-  const categoryOptions: { value: string; label: string }[] = isEventActivityTab
-    ? EVENT_CATEGORY_OPTIONS
-    : Array.from(
-        new Set(filteredEvents.map((item) => item.category).filter((c): c is string => !!c))
-      ).sort().map((c) => ({ value: c, label: c }));
+  // Teaching Opportunities and Seminars & Workshops are just two more
+  // categories now (folded into the combined events list), so the filter
+  // always offers the full fixed list from the Create Event form.
+  const categoryOptions = EVENT_CATEGORY_OPTIONS;
 
   const matchesAppliedFilters = (
     title: string,
@@ -1315,9 +858,6 @@ export function EventsView({ userRole, userName = 'Alumni User', userEmail = '',
   const visiblePastEventActivities = pastEventActivities.filter((a) =>
     matchesAppliedFilters(a.title, a.description, a.category, parseVenueDateTime(a.schedule_start))
   );
-  const visibleFilteredEvents = filteredEvents.filter((event) =>
-    matchesAppliedFilters(event.title, event.description, event.category, event.date)
-  );
 
   const hasActiveFilters = !!appliedFilters.keyword || appliedFilters.category !== 'All' || !!appliedFilters.startDate;
 
@@ -1343,15 +883,7 @@ export function EventsView({ userRole, userName = 'Alumni User', userEmail = '',
             <h1 className="text-3xl font-bold text-gray-900">Engagement</h1>
             <p className="text-gray-500 text-sm mt-1">Manage events and alumni contributions</p>
           </div>
-          {userRole === 'admin' ? (
-            <button
-              onClick={() => setActiveTab(activeTab === 'GiveBack Activities' ? 'Create GiveBack Activity' : 'Create Event')}
-              className="flex items-center gap-2 px-4 py-2 bg-[#003087] text-white rounded-lg hover:bg-[#002066] transition-colors font-semibold shadow-md"
-            >
-              <Plus className="w-5 h-5" />
-              {activeTab === 'GiveBack Activities' ? 'Create GiveBack Activity' : 'Create Event'}
-            </button>
-          ) : (
+          {userRole !== 'admin' && (
             <button
               onClick={() => setActiveTab('Submit Proposal')}
               className="flex items-center gap-2 px-4 py-2 bg-[#003087] text-white rounded-lg hover:bg-[#002066] transition-colors font-semibold shadow-md"
@@ -1362,171 +894,101 @@ export function EventsView({ userRole, userName = 'Alumni User', userEmail = '',
           )}
         </div>
 
-        {/* Tab Navigation */}
-        <div className="flex gap-8 border-b border-gray-200 overflow-x-auto no-scrollbar">
-          {tabs.map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`pb-4 text-[13px] font-bold whitespace-nowrap transition-all relative ${
-                activeTab === tab ? 'text-[#003087]' : 'text-gray-400'
-              }`}
-            >
-              <span className="inline-flex items-center gap-1.5">
-                {tab}
-                {tab === 'Alumni Proposals' && pendingProposalCount > 0 && (
-                  <span className="inline-flex items-center justify-center min-w-[16px] h-4 px-1 bg-red-600 text-white text-[10px] rounded-full font-bold">
-                    {pendingProposalCount}
+        {/* One row: View selector + search/filter bar on the left,
+            remaining tabs (Alumni Proposals, Archived, etc.) on the right. */}
+        <div className="flex flex-wrap items-center gap-3 border-b border-gray-200 pb-3">
+          {showFilterBar && (
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                value={searchKeyword}
+                onChange={(e) => setSearchKeyword(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleApplyFilters(); }}
+                placeholder="Search by title or description..."
+                className="pl-9 pr-3 py-2 w-48 xl:w-64 bg-gray-50 border border-gray-100 rounded-lg text-sm outline-none focus:bg-white focus:ring-2 focus:ring-[#003087]/20 transition-all"
+              />
+            </div>
+          )}
+
+          {showFilterBar && (
+            <>
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg text-sm outline-none focus:bg-white focus:ring-2 focus:ring-[#003087]/20 transition-all appearance-none"
+              >
+                <option value="All">All Categories</option>
+                {categoryOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg text-sm outline-none focus:bg-white focus:ring-2 focus:ring-[#003087]/20 transition-all"
+              />
+
+              <button
+                onClick={handleApplyFilters}
+                className="px-4 py-2 bg-[#003087] text-white rounded-lg font-bold text-sm hover:bg-[#002566] transition-colors whitespace-nowrap"
+              >
+                Apply Filters
+              </button>
+              <button
+                onClick={handleClearFilters}
+                className="flex items-center gap-1.5 px-4 py-2 border-2 border-gray-200 text-gray-600 rounded-lg font-bold text-sm hover:bg-gray-50 transition-colors whitespace-nowrap"
+              >
+                <RefreshCcw className="w-3.5 h-3.5" /> Clear Filters
+              </button>
+            </>
+          )}
+
+          {tabs.length > 0 && (
+            <div className="flex gap-6 ml-auto overflow-x-auto no-scrollbar">
+              {tabs.map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`pb-1 text-[13px] font-bold whitespace-nowrap transition-all relative ${
+                    activeTab === tab ? 'text-[#003087]' : 'text-gray-400'
+                  }`}
+                >
+                  <span className="inline-flex items-center gap-1.5">
+                    {tab}
+                    {tab === 'Alumni Proposals' && pendingProposalCount > 0 && (
+                      <span className="inline-flex items-center justify-center min-w-[16px] h-4 px-1 bg-red-600 text-white text-[10px] rounded-full font-bold">
+                        {pendingProposalCount}
+                      </span>
+                    )}
+                    {tab === 'Archived' && archivedEventActivities.length > 0 && (
+                      <span className="inline-flex items-center justify-center min-w-[16px] h-4 px-1 bg-gray-400 text-white text-[10px] rounded-full font-bold">
+                        {archivedEventActivities.length}
+                      </span>
+                    )}
+                    {tab === 'My Submissions' && hasUnseenMySubmissions && (
+                      <span className="w-2 h-2 bg-red-600 rounded-full" />
+                    )}
                   </span>
-                )}
-                {tab === 'Archived' && archivedEventActivities.length > 0 && (
-                  <span className="inline-flex items-center justify-center min-w-[16px] h-4 px-1 bg-gray-400 text-white text-[10px] rounded-full font-bold">
-                    {archivedEventActivities.length}
-                  </span>
-                )}
-                {tab === 'My Submissions' && hasUnseenMySubmissions && (
-                  <span className="w-2 h-2 bg-red-600 rounded-full" />
-                )}
-                {tab === 'Upcoming Events' && hasNewUpcomingEvent && (
-                  <span className="w-2 h-2 bg-red-600 rounded-full" />
-                )}
-                {tab === 'Past Events' && hasNewPastEvent && (
-                  <span className="w-2 h-2 bg-red-600 rounded-full" />
-                )}
-              </span>
-              {activeTab === tab && (
-                <div className="absolute bottom-0 left-0 w-full h-[2px] bg-[#003087]" />
-              )}
-            </button>
-          ))}
+                  {activeTab === tab && (
+                    <div className="absolute bottom-0 left-0 w-full h-[2px] bg-[#003087]" />
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Search & Filter Bar — Upcoming Events, Past Events, Teaching
-            Opportunities, Seminars & Workshops */}
-        {showFilterBar && (
-          <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm">
-            <div className="flex flex-col lg:flex-row lg:items-end gap-4">
-              <div className="flex-1 min-w-[200px]">
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">By Keyword</label>
-                <div className="relative">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <input
-                    type="text"
-                    value={searchKeyword}
-                    onChange={(e) => setSearchKeyword(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') handleApplyFilters(); }}
-                    placeholder="Search by title or description..."
-                    className="w-full pl-11 pr-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-sm outline-none focus:bg-white focus:ring-2 focus:ring-[#003087]/20 transition-all"
-                  />
-                </div>
-              </div>
-
-              <div className="w-full lg:w-52">
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">By Category</label>
-                <select
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-sm outline-none focus:bg-white focus:ring-2 focus:ring-[#003087]/20 transition-all appearance-none"
-                >
-                  <option value="All">All Categories</option>
-                  {categoryOptions.map((opt) => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="w-full lg:w-48">
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Starting From</label>
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-sm outline-none focus:bg-white focus:ring-2 focus:ring-[#003087]/20 transition-all"
-                />
-              </div>
-
-              <div className="flex gap-2 w-full lg:w-auto">
-                <button
-                  onClick={handleApplyFilters}
-                  className="flex-1 lg:flex-none px-6 py-2.5 bg-[#003087] text-white rounded-xl font-bold text-sm hover:bg-[#002566] transition-colors"
-                >
-                  Apply Filters
-                </button>
-                <button
-                  onClick={handleClearFilters}
-                  className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-6 py-2.5 border-2 border-gray-200 text-gray-600 rounded-xl font-bold text-sm hover:bg-gray-50 transition-colors"
-                >
-                  <RefreshCcw className="w-4 h-4" /> Clear Filters
-                </button>
-              </div>
-            </div>
-          </div>
+        {activeTab === 'Upcoming Events' && (hasNewUpcomingEvent || hasNewPastEvent) && (
+          <p className="-mt-4 text-xs text-red-600 font-semibold flex items-center gap-1.5">
+            <span className="w-2 h-2 bg-red-600 rounded-full inline-block" />
+            {hasNewUpcomingEvent ? 'New events have been posted.' : 'Events have concluded since you last checked.'}
+          </p>
         )}
 
-        {activeTab === 'Teaching Opportunities' && (
-          <div className="bg-[#003087] rounded-[24px] p-8 text-white flex flex-col md:flex-row justify-between items-center gap-6 text-left">
-            <div>
-              <h2 className="text-2xl font-bold mb-2">Share Your Expertise with Future Ateneans</h2>
-              <p className="text-blue-100 text-sm max-w-2xl">Give back to your alma mater by teaching or mentoring. Help shape the next generation.</p>
-            </div>
-            <button className="whitespace-nowrap bg-white text-[#003087] px-8 py-3 rounded-xl font-bold hover:bg-blue-50 transition-colors shadow-lg">Express Interest</button>
-          </div>
-        )}
 
-        {activeTab === 'Seminars & Workshops' && (
-          <div className="bg-orange-600 rounded-[24px] p-8 text-white flex flex-col md:flex-row justify-between items-center gap-6 text-left shadow-lg">
-            <div>
-              <h2 className="text-2xl font-bold mb-2">Continuous Professional Development</h2>
-              <p className="text-orange-50 text-sm max-w-2xl">
-                Enhance your skills and stay competitive with professional seminars and workshops. Earn CEU credits while learning from industry experts.
-              </p>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-              <button className="whitespace-nowrap bg-white text-orange-600 px-8 py-3 rounded-xl font-bold hover:bg-orange-50 transition-colors shadow-lg">
-                Browse All Seminars
-              </button>
-              <button className="whitespace-nowrap bg-transparent border border-white/30 text-white px-8 py-3 rounded-xl font-bold hover:bg-white/10 transition-colors flex items-center justify-center gap-2">
-                <FileText className="w-4 h-4" />
-                My Certificates
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* GiveBack Activities grid */}
-        {activeTab === 'GiveBack Activities' && (
-          <div>
-            {loadingActivities ? (
-              <div className="text-center py-10 text-gray-500">Loading GiveBack activities...</div>
-            ) : activities.filter(activity => activity.event_type === 'giveback' && !activity.is_archived).length === 0 ? (
-              <div className="text-center py-10 text-gray-500">No GiveBack activities available yet.</div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {activities.filter(activity => activity.event_type === 'giveback' && !activity.is_archived).map((activity) => (
-                  <ActivityCard
-                    key={activity.id}
-                    activity={activity}
-                    userRole={userRole}
-                    onEdit={handleEditActivity}
-                    onRemove={handleRemoveActivity}
-                    onToggleRegistration={handleToggleActivityRegistration}
-                    onRegister={(selected: GivebackActivity) =>
-                      setRegistrationEvent({
-                        id: selected.id,
-                        title: selected.title,
-                        date: formatVenueDate(selected.schedule_start),
-                        time: `${formatVenueTime(selected.schedule_start)} - ${formatVenueTime(selected.schedule_end)}`,
-                        location: selected.venue,
-                        image: selected.image_url || CareerFairBG,
-                        feeAmount: Number(selected.fee_amount || 0)
-                      })
-                    }
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        )}
 
         {/* ── My Registrations tab ───────────────────────────── */}
         {activeTab === 'My Registrations' && userRole !== 'admin' && (
@@ -1536,14 +998,15 @@ export function EventsView({ userRole, userName = 'Alumni User', userEmail = '',
           />
         )}
 
-        {/* Upcoming Events grid (real, DB-backed) */}
+        {/* Events grid (real, DB-backed) — upcoming and past shown together,
+            each card's own status badge tells them apart. */}
         {activeTab === 'Upcoming Events' && (
           <div>
             {loadingActivities ? (
               <div className="text-center py-10 text-gray-500">Loading events...</div>
-            ) : visibleUpcomingEventActivities.length === 0 ? (
+            ) : visibleUpcomingEventActivities.length === 0 && visiblePastEventActivities.length === 0 ? (
               <div className="text-center py-10 text-gray-500">
-                {hasActiveFilters ? 'No upcoming events match your filters.' : 'No upcoming events yet.'}
+                {hasActiveFilters ? 'No events match your filters.' : 'No events yet.'}
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -1562,22 +1025,6 @@ export function EventsView({ userRole, userName = 'Alumni User', userEmail = '',
                     onDismissNew={handleDismissNewEvent}
                   />
                 ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Past Events grid (real, DB-backed) */}
-        {activeTab === 'Past Events' && (
-          <div>
-            {loadingActivities ? (
-              <div className="text-center py-10 text-gray-500">Loading events...</div>
-            ) : visiblePastEventActivities.length === 0 ? (
-              <div className="text-center py-10 text-gray-500">
-                {hasActiveFilters ? 'No past events match your filters.' : 'No past events yet.'}
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {visiblePastEventActivities.map((activity) => (
                   <EventActivityCard
                     key={activity.id}
@@ -1678,155 +1125,6 @@ export function EventsView({ userRole, userName = 'Alumni User', userEmail = '',
                 ))}
               </div>
             )}
-          </div>
-        )}
-
-        {/* Teaching Opportunities / Seminars & Workshops — static demo content, unchanged */}
-        {(activeTab === 'Teaching Opportunities' || activeTab === 'Seminars & Workshops') && (
-          visibleFilteredEvents.length === 0 ? (
-            <div className="text-center py-10 text-gray-500">
-              {hasActiveFilters ? 'No opportunities match your filters.' : 'Nothing here yet.'}
-            </div>
-          ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {visibleFilteredEvents.map((event) => (
-              <EventCard
-                key={event.id}
-                event={event}
-                onView={setSelectedEvent}
-                onRegister={handleLegacyEventRegister}
-              />
-            ))}
-          </div>
-          )
-        )}
-
-        {/* Create GiveBack Activity form */}
-        {activeTab === 'Create GiveBack Activity' && userRole === 'admin' && (
-          <div className="bg-white rounded-xl border-2 border-[#003087]/20 p-8 shadow-sm">
-            <h3 className="text-2xl font-bold text-gray-900 mb-6">Create GiveBack Activity</h3>
-            <div className="space-y-6">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Activity Title *</label>
-                <input type="text" placeholder="Enter activity title" value={activityForm.title} onChange={(e) => setActivityForm({ ...activityForm, title: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Starts *</label>
-                  <input type="datetime-local" value={activityForm.scheduleStart} onChange={(e) => setActivityForm({ ...activityForm, scheduleStart: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Ends *</label>
-                  <input type="datetime-local" value={activityForm.scheduleEnd} onChange={(e) => setActivityForm({ ...activityForm, scheduleEnd: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Venue *</label>
-                  <input type="text" placeholder="Enter venue or location" value={activityForm.venue} onChange={(e) => setActivityForm({ ...activityForm, venue: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Status *</label>
-                  <select value={activityForm.status} onChange={(e) => setActivityForm({ ...activityForm, status: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent">
-                    <option value="upcoming">Upcoming</option>
-                    <option value="ongoing">Ongoing</option>
-                    <option value="completed">Completed</option>
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Description *</label>
-                <textarea rows={6} placeholder="Describe the activity details..." value={activityForm.description} onChange={(e) => setActivityForm({ ...activityForm, description: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent resize-none"></textarea>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Participant Limit</label>
-                  <input type="number" placeholder="Maximum number of participants" value={activityForm.participantLimit} onChange={(e) => setActivityForm({ ...activityForm, participantLimit: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Fee Amount (PHP)</label>
-                  <input type="number" placeholder="0 for free" value={activityForm.feeAmount} onChange={(e) => setActivityForm({ ...activityForm, feeAmount: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <input type="checkbox" checked={activityForm.registrationOpen} onChange={(e) => setActivityForm({ ...activityForm, registrationOpen: e.target.checked })} className="w-4 h-4 accent-[#003087]" />
-                <span className="text-sm font-semibold text-gray-700">Open registration</span>
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Poster / Image</label>
-                <input type="file" accept="image/*" onChange={(e) => { const file = e.target.files?.[0]; if (file) { setActivityImage(file); setActivityImagePreview(URL.createObjectURL(file)); } }} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
-                {activityImagePreview && <img src={activityImagePreview} alt="Preview" className="mt-3 h-32 rounded-lg object-cover" />}
-              </div>
-              <div className="flex gap-3 pt-6 border-t border-gray-200">
-                <button onClick={handleCreateActivity} className="px-6 py-3 bg-[#003087] text-white rounded-lg hover:bg-[#002066] transition-colors font-semibold">Create Activity</button>
-                <button onClick={() => { resetActivityForm(); setActiveTab('GiveBack Activities'); }} className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-semibold">Cancel</button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Edit GiveBack Activity form */}
-        {activeTab === 'Edit GiveBack Activity' && userRole === 'admin' && editingActivity && (
-          <div className="bg-white rounded-xl border-2 border-blue-200 p-8 shadow-sm">
-            <h3 className="text-2xl font-bold text-gray-900 mb-6">Edit GiveBack Activity</h3>
-            <p className="text-gray-600 text-sm mb-6">Update the activity details below.</p>
-            <div className="space-y-6">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Activity Title *</label>
-                <input type="text" placeholder="Enter activity title" value={activityForm.title} onChange={(e) => setActivityForm({ ...activityForm, title: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Starts *</label>
-                  <input type="datetime-local" value={activityForm.scheduleStart} onChange={(e) => setActivityForm({ ...activityForm, scheduleStart: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Ends *</label>
-                  <input type="datetime-local" value={activityForm.scheduleEnd} onChange={(e) => setActivityForm({ ...activityForm, scheduleEnd: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Venue *</label>
-                  <input type="text" placeholder="Enter venue or location" value={activityForm.venue} onChange={(e) => setActivityForm({ ...activityForm, venue: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Status *</label>
-                  <select value={activityForm.status} onChange={(e) => setActivityForm({ ...activityForm, status: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent">
-                    <option value="upcoming">Upcoming</option>
-                    <option value="ongoing">Ongoing</option>
-                    <option value="completed">Completed</option>
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Description *</label>
-                <textarea rows={6} placeholder="Describe the activity details..." value={activityForm.description} onChange={(e) => setActivityForm({ ...activityForm, description: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent resize-none"></textarea>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Participant Limit</label>
-                  <input type="number" placeholder="Maximum number of participants" value={activityForm.participantLimit} onChange={(e) => setActivityForm({ ...activityForm, participantLimit: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Fee Amount (PHP)</label>
-                  <input type="number" placeholder="0 for free" value={activityForm.feeAmount} onChange={(e) => setActivityForm({ ...activityForm, feeAmount: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <input type="checkbox" checked={activityForm.registrationOpen} onChange={(e) => setActivityForm({ ...activityForm, registrationOpen: e.target.checked })} className="w-4 h-4 accent-[#003087]" />
-                <span className="text-sm font-semibold text-gray-700">Open registration</span>
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Poster / Image</label>
-                <input type="file" accept="image/*" onChange={(e) => { const file = e.target.files?.[0]; if (file) { setActivityImage(file); setActivityImagePreview(URL.createObjectURL(file)); } }} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087] focus:border-transparent" />
-                {activityImagePreview && <img src={activityImagePreview} alt="Preview" className="mt-3 h-32 rounded-lg object-cover" />}
-              </div>
-              <div className="flex gap-3 pt-6 border-t border-gray-200">
-                <button onClick={handleUpdateActivity} className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold">Update Activity</button>
-                <button onClick={() => { resetActivityForm(); setActiveTab('GiveBack Activities'); }} className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-semibold">Cancel</button>
-              </div>
-            </div>
           </div>
         )}
 
